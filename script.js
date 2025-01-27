@@ -383,7 +383,22 @@ function checkAreaBoundaries(currentPuzzle) {
 }
 
 // 게임 초기화
-document.getElementById('startButton').addEventListener('click', () => startGame(currentLevel));
+function onload() {
+    // 레벨 선택기 생성
+    createLevelSelector();
+    
+    // 초기 레벨 시작
+    startGame(0);
+    
+    // startButton 대신 게임보드에 클릭 이벤트 추가
+    const gameBoard = document.getElementById('gameBoard');
+    if (gameBoard) {
+        gameBoard.addEventListener('click', () => {
+            // 현재 레벨 다시 시작
+            startGame(currentLevel);
+        });
+    }
+}
 
 // 레벨 선택 UI 추가
 function createLevelSelector() {
@@ -416,7 +431,4 @@ function createLevelSelector() {
 }
 
 // 게임 초기화
-window.onload = () => {
-    createLevelSelector();
-    startGame(0);
-};
+document.addEventListener('DOMContentLoaded', onload);
