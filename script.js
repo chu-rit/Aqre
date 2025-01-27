@@ -15,7 +15,11 @@ function startGame(levelIndex = 0) {
     gameStarted = true;
     
     const puzzle = PUZZLE_MAPS[levelIndex];
-    gameBoard = JSON.parse(JSON.stringify(puzzle.initialState));
+    
+    // initialState가 없는 경우 기본 게임판 생성
+    gameBoard = puzzle.initialState || Array.from({ length: BOARD_SIZE }, () => 
+        Array(BOARD_SIZE).fill(0)
+    );
     
     updateGameInfo();
     renderBoard();
@@ -36,41 +40,9 @@ function updateGameInfo() {
 }
 
 // 영역에 필요한 회색 칸 수를 표시하는 오버레이 생성
-function createAreaOverlay(area) {
-    // 영역의 크기와 위치 계산
-    const cellSize = 60; // --cell-size 값
-    const borderWidth = 2; // border width
-    
-    // 영역의 경계 계산
-    const minRow = Math.min(...area.cells.map(cell => cell[0]));
-    const maxRow = Math.max(...area.cells.map(cell => cell[0]));
-    const minCol = Math.min(...area.cells.map(cell => cell[1]));
-    const maxCol = Math.max(...area.cells.map(cell => cell[1]));
-    
-    const width = (maxCol - minCol + 1) * cellSize;
-    const height = (maxRow - minRow + 1) * cellSize;
-    const left = minCol * cellSize - borderWidth;
-    const top = minRow * cellSize - borderWidth;
-    
-    // 영역 컨테이너 생성
-    const container = document.createElement('div');
-    container.className = 'area-container';
-    container.style.width = `${width}px`;
-    container.style.height = `${height}px`;
-    container.style.left = `${left}px`;
-    container.style.top = `${top}px`;
-
-    // 숫자 오버레이 생성 (0보다 큰 경우에만)
-    if (area.required > 0 && area.required !== 'J') {
-        const overlay = document.createElement('div');
-        overlay.className = 'area-overlay';
-        overlay.textContent = area.required;
-        
-        // 컨테이너에 오버레이 추가
-        container.appendChild(overlay);
-    }
-    
-    return container;
+function renderAreaOverlays(areas) {
+    // Do nothing, effectively removing area overlays
+    return;
 }
 
 // 보드 렌더링
@@ -78,27 +50,72 @@ function renderBoard() {
     const board = document.getElementById('gameBoard');
     board.innerHTML = '';
     
+    // 현재 퍼즐의 영역 정보 가져오기
+    const currentPuzzle = PUZZLE_MAPS[currentLevel];
+    
+    // 게임판이 없거나 잘못된 경우 기본 게임판 생성
+    if (!gameBoard || !Array.isArray(gameBoard) || gameBoard.length === 0) {
+        gameBoard = Array.from({ length: BOARD_SIZE }, () => 
+            Array(BOARD_SIZE).fill(0)
+        );
+    }
+    
+    // 기존 오버레이 제거
+    const existingOverlays = board.querySelectorAll('.area-overlay');
+    existingOverlays.forEach(overlay => overlay.remove());
+    
+    // 각 영역에 대해 숫자 표시를 추적할 Set
+    const displayedAreas = new Set();
+    
     // 셀 생성
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        for (let j = 0; j < BOARD_SIZE; j++) {
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
-            if (gameBoard[i][j] === 1) {
+            
+            // 셀의 색상 설정
+            if (gameBoard[row][col] === 1) {
                 cell.classList.add('gray');
             }
-            cell.dataset.row = i;
-            cell.dataset.col = j;
+            
+            // 셀의 행, 열 데이터 속성 설정
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            
+            // 셀의 영역 정보 추가
+            const areaWithCell = currentPuzzle.areas.find(area => 
+                area.cells.some(([r, c]) => r === row && c === col)
+            );
+            
+            if (areaWithCell) {
+                cell.dataset.areaRequired = areaWithCell.required || '';
+                
+                // 해당 영역의 첫 번째 셀에만 숫자 오버레이 표시
+                if (!displayedAreas.has(areaWithCell)) {
+                    const areaOverlay = document.createElement('div');
+                    areaOverlay.className = 'area-overlay';
+                    
+                    // 'J' 문자 처리 예외 
+                    if (areaWithCell.required === 'J') {
+                        // 아무것도 표시하지 않음
+                        areaOverlay.textContent = '';
+                        areaOverlay.style.display = 'none';
+                    } else {
+                        areaOverlay.textContent = areaWithCell.required;
+                    }
+                    
+                    cell.appendChild(areaOverlay);
+                    displayedAreas.add(areaWithCell);
+                }
+            }
+            
             cell.addEventListener('click', handleCellClick);
             board.appendChild(cell);
         }
     }
     
-    // 영역 오버레이 추가
-    const currentPuzzle = PUZZLE_MAPS[currentLevel];
-    currentPuzzle.areas.forEach(area => {
-        const areaContainer = createAreaOverlay(area);
-        board.appendChild(areaContainer);
-    });
+    // 영역 경계 체크
+    checkAreaBoundaries(currentPuzzle);
 }
 
 // 셀 클릭 처리
@@ -312,6 +329,57 @@ function showMessage(text, type = 'info') {
     document.querySelector('.game-content').appendChild(messageElement);
     
     setTimeout(() => messageElement.remove(), 3000);
+}
+
+// 영역 경계 체크 함수
+function checkAreaBoundaries(currentPuzzle) {
+    const board = document.getElementById('gameBoard');
+    
+    // 모든 셀의 area-boundary 클래스 제거
+    board.querySelectorAll('.area-boundary').forEach(cell => {
+        cell.classList.remove('area-boundary');
+        cell.removeAttribute('data-border-top');
+        cell.removeAttribute('data-border-bottom');
+        cell.removeAttribute('data-border-left');
+        cell.removeAttribute('data-border-right');
+    });
+    
+    // 각 영역에 대해 경계 체크
+    for (const area of currentPuzzle.areas) {
+        const areaCells = area.cells.map(([row, col]) => ({
+            cell: board.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`),
+            row,
+            col
+        }));
+        
+        // 각 셀에 대해 상하좌우 연결성 체크
+        areaCells.forEach((cellData, index) => {
+            const { cell, row, col } = cellData;
+            
+            // 상하좌우 방향 체크
+            const directions = [
+                { dx: 0, dy: -1, border: 'top' },    // 위
+                { dx: 0, dy: 1, border: 'bottom' },  // 아래
+                { dx: -1, dy: 0, border: 'left' },   // 왼쪽
+                { dx: 1, dy: 0, border: 'right' }    // 오른쪽
+            ];
+            
+            directions.forEach(dir => {
+                // 같은 영역의 셀 중 현재 방향에 있는 셀 찾기
+                const connectedCell = areaCells.find(
+                    otherCell => 
+                        otherCell.row === row + dir.dy && 
+                        otherCell.col === col + dir.dx
+                );
+                
+                // 연결된 셀이 없다면 경계선 추가
+                if (!connectedCell) {
+                    cell.classList.add('area-boundary');
+                    cell.setAttribute(`data-border-${dir.border}`, 'true');
+                }
+            });
+        });
+    }
 }
 
 // 게임 초기화
