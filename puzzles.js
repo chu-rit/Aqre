@@ -38,12 +38,12 @@ const PUZZLE_MAPS = [
                 cells: [[1,4], [1,5],
                         [2,4], [2,5],
                         [3,4], [3,5]],
-                required: '5'
+                required: 5
             },
             {
                 cells: [[4,2], [4,3], [4,4],
                         [5,2], [5,3], [5,4]],
-                required: '4'
+                required: 4
             },
             {
                 cells: [[4,5], [5,5]],
