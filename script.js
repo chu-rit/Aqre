@@ -153,16 +153,12 @@ function checkGameCompletion() {
             return count + (gameBoard[row][col] === 1 ? 1 : 0);
         }, 0);
         
-<<<<<<< HEAD
-        if (grayCount !== area.required) {
-=======
         // 'J'인 경우는 검사하지 않음
         if (area.required === 'J') continue;
         
         // 문자열로 된 숫자를 정수로 변환하여 비교
         const requiredCount = parseInt(area.required);
         if (grayCount !== requiredCount) {
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             return false;
         }
     }
@@ -206,16 +202,12 @@ function checkGameRules() {
             return count + (gameBoard[row][col] === 1 ? 1 : 0);
         }, 0);
         
-<<<<<<< HEAD
-        if (grayCount > area.required) {
-=======
         // 'J'인 경우는 검사하지 않음
         if (area.required === 'J') continue;
         
         // 문자열로 된 숫자를 정수로 변환하여 비교
         const requiredCount = parseInt(area.required);
         if (grayCount > requiredCount) {
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             violations.areaOverflow = true;
             violationMessages.add('영역의 회색 칸 수가 초과되었습니다.');
             break;
@@ -400,8 +392,6 @@ function checkAreaBoundaries(currentPuzzle) {
     }
 }
 
-<<<<<<< HEAD
-=======
 // 화면 전환 함수들
 function showScreen(screenId) {
     // 모든 화면 숨기기
@@ -513,7 +503,6 @@ function showStartScreen() {
     document.getElementById('startScreen').style.display = 'flex';
 }
 
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
 // 게임 초기화
 function onload() {
     // 레벨 선택기 생성
@@ -540,11 +529,7 @@ function createLevelSelector() {
         <h3>Select Level</h3>
         <div class="level-buttons">
             ${PUZZLE_MAPS.map(puzzle => `
-<<<<<<< HEAD
-                <button class="level-btn" data-level="${puzzle.id - 1}">
-=======
                 <button class="level-btn" data-level="${puzzle.id}">
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
                     Level ${puzzle.id}
                     <span class="difficulty ${puzzle.difficulty.toLowerCase()}">${puzzle.difficulty}</span>
                 </button>
@@ -561,17 +546,7 @@ function createLevelSelector() {
     selector.addEventListener('click', (e) => {
         if (e.target.classList.contains('level-btn')) {
             const level = parseInt(e.target.dataset.level);
-<<<<<<< HEAD
-            startGame(level);
-        }
-    });
-}
-
-// 게임 초기화
-document.addEventListener('DOMContentLoaded', onload);
-=======
             startGame(level - 1);
         }
     });
 }
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
