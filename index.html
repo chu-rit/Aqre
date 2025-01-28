@@ -2,12 +2,22 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <link rel="icon" href="icon-192x192.png">
+    
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <title>Aqre Puzzle Game</title>
 </head>
 <body>
+    <div id="messageContainer" class="message-container"></div>
+
     <div class="start-screen" id="startScreen">
         <h1>AQRE</h1>
         <div class="button-container">
@@ -23,6 +33,12 @@
         </div>
         <div id="levelGrid" class="level-grid">
             <!-- Level buttons will be dynamically added here -->
+        </div>
+        <div id="preparingOverlay" class="preparing-overlay" style="display: none;">
+            <div class="preparing-content">
+                <div class="preparing-icon">🧩</div>
+                <div class="preparing-text">준비 중입니다</div>
+            </div>
         </div>
     </div>
 

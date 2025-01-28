@@ -8,6 +8,107 @@ let gameBoard = [];
 let moves = 0;
 let gameStarted = false;
 
+// 이벤트 리스너 설정
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startButton');
+    const optionsButton = document.getElementById('optionsButton');
+    const backToStart = document.getElementById('backToStart');
+    const backToLevels = document.getElementById('backToLevels');
+    const showRules = document.getElementById('showRules');
+    const closeRules = document.getElementById('closeRules');
+    const rulesPopup = document.getElementById('rulesPopup');
+
+    // 시작 화면 버튼들
+    if (startButton) {
+        startButton.addEventListener('click', () => {
+            showScreen('levelScreen');
+            createLevelScreen();
+        });
+    }
+
+    if (optionsButton) {
+        optionsButton.addEventListener('click', () => {
+            // 옵션 메뉴 표시 로직
+            console.log('옵션 메뉴 열기');
+            // TODO: 옵션 메뉴 구현
+        });
+    }
+
+    // 뒤로 가기 버튼들
+    if (backToStart) {
+        backToStart.addEventListener('click', () => {
+            showScreen('startScreen');
+        });
+    }
+
+    if (backToLevels) {
+        backToLevels.addEventListener('click', () => {
+            showScreen('levelScreen');
+        });
+    }
+
+    // 규칙 보기 버튼 이벤트
+    if (showRules) {
+        showRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.add('show');
+            }
+        });
+    }
+
+    if (closeRules) {
+        closeRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+
+    // 팝업 외부 클릭시 닫기
+    if (rulesPopup) {
+        rulesPopup.addEventListener('click', (e) => {
+            if (e.target === rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+});
+
+// 레벨 선택 화면 생성
+function createLevelScreen() {
+    const levelGrid = document.getElementById('levelGrid');
+    levelGrid.innerHTML = ''; // 기존 내용 초기화
+
+    // 30개의 레벨 버튼 생성
+    for (let i = 1; i <= 30; i++) {
+        const levelBtn = document.createElement('button');
+        levelBtn.className = 'level-btn';
+        levelBtn.dataset.level = i;
+        levelBtn.textContent = `${i}`;
+        
+        levelBtn.addEventListener('click', () => {
+            // showScreen('gameScreen');
+            // startGame(i - 1);
+            checkLevel(i - 1);
+        });
+        
+        levelGrid.appendChild(levelBtn);
+    }
+}
+
+// 레벨 유효성 검사 함수
+function checkLevel(levelIndex) {
+
+    // 레벨 인덱스가 유효한 범위를 벗어나는 경우
+    if (levelIndex < 0 || levelIndex >= PUZZLE_MAPS.length) {
+        showMessage('아직 준비중입니다.', 'warning');
+        return false;
+    }
+
+    showScreen('gameScreen');
+    startGame(levelIndex);
+}
+
 // 게임 초기화
 function startGame(levelIndex = 0) {
     currentLevel = levelIndex;
@@ -332,13 +433,33 @@ function updateViolationDisplay() {
 
 // 메시지 표시
 function showMessage(text, type = 'info') {
+    const messageContainer = document.getElementById('messageContainer');
+    if (!messageContainer) {
+        console.error('메시지 컨테이너를 찾을 수 없습니다.');
+        return;
+    }
+
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}`;
     messageElement.textContent = text;
-    
-    document.querySelector('.game-content').appendChild(messageElement);
-    
-    setTimeout(() => messageElement.remove(), 3000);
+
+    messageContainer.innerHTML = ''; // 기존 메시지 제거
+    messageContainer.appendChild(messageElement);
+
+    // 메시지 표시 애니메이션
+    requestAnimationFrame(() => {
+        messageElement.style.opacity = '1';
+        messageElement.style.transform = 'scale(1)';
+    });
+
+    // 일정 시간 후 메시지 제거
+    setTimeout(() => {
+        messageElement.style.opacity = '0';
+        messageElement.style.transform = 'scale(0.8)';
+        setTimeout(() => {
+            messageContainer.innerHTML = '';
+        }, 300);
+    }, 3000);
 }
 
 // 영역 경계 체크 함수
@@ -403,92 +524,38 @@ function showScreen(screenId) {
                                                     screenId === 'startScreen' ? 'flex' : 'block';
 }
 
-// 레벨 선택 화면 생성
-function createLevelScreen() {
+// 레벨 선택 UI 추가
+function createLevelSelector() {
     const levelGrid = document.getElementById('levelGrid');
+    const preparingOverlay = document.getElementById('preparingOverlay');
     levelGrid.innerHTML = ''; // 기존 내용 초기화
 
-    // 30개의 레벨 버튼 생성
-    for (let i = 1; i <= 30; i++) {
-        const levelBtn = document.createElement('button');
-        levelBtn.className = 'level-btn';
-        levelBtn.dataset.level = i;
-        levelBtn.textContent = `${i}`;
-        
-        levelBtn.addEventListener('click', () => {
-            showScreen('gameScreen');
-            startGame(i - 1);
-        });
-        
-        levelGrid.appendChild(levelBtn);
+    // 퍼즐 맵이 없거나 비어있는 경우
+    if (!PUZZLE_MAPS || PUZZLE_MAPS.length === 0) {
+        // 준비 중 오버레이 표시
+        preparingOverlay.style.display = 'flex';
+        return;
     }
+
+    // 준비 중 오버레이 숨기기
+    preparingOverlay.style.display = 'none';
+    console.log('이거맞아?');
+
+    // 레벨 버튼 생성
+    PUZZLE_MAPS.forEach((puzzle, index) => {
+        const levelButton = document.createElement('button');
+        levelButton.textContent = `Level ${puzzle.id}`;
+        levelButton.addEventListener('click', () => {
+            // 레벨 유효성 검사
+            if (checkLevel(index)) {
+                console.log(checkLevel(index));
+                // startGame(index);
+                // showGameScreen();
+            }
+        });
+        levelGrid.appendChild(levelButton);
+    });
 }
-
-// 이벤트 리스너 설정
-document.addEventListener('DOMContentLoaded', () => {
-    const startButton = document.getElementById('startButton');
-    const optionsButton = document.getElementById('optionsButton');
-    const backToStart = document.getElementById('backToStart');
-    const backToLevels = document.getElementById('backToLevels');
-    const showRules = document.getElementById('showRules');
-    const closeRules = document.getElementById('closeRules');
-    const rulesPopup = document.getElementById('rulesPopup');
-
-    // 시작 화면 버튼들
-    if (startButton) {
-        startButton.addEventListener('click', () => {
-            showScreen('levelScreen');
-            createLevelScreen();
-        });
-    }
-
-    if (optionsButton) {
-        optionsButton.addEventListener('click', () => {
-            // 옵션 메뉴 표시 로직
-            console.log('옵션 메뉴 열기');
-            // TODO: 옵션 메뉴 구현
-        });
-    }
-
-    // 뒤로 가기 버튼들
-    if (backToStart) {
-        backToStart.addEventListener('click', () => {
-            showScreen('startScreen');
-        });
-    }
-
-    if (backToLevels) {
-        backToLevels.addEventListener('click', () => {
-            showScreen('levelScreen');
-        });
-    }
-
-    // 규칙 보기 버튼 이벤트
-    if (showRules) {
-        showRules.addEventListener('click', () => {
-            if (rulesPopup) {
-                rulesPopup.classList.add('show');
-            }
-        });
-    }
-
-    if (closeRules) {
-        closeRules.addEventListener('click', () => {
-            if (rulesPopup) {
-                rulesPopup.classList.remove('show');
-            }
-        });
-    }
-
-    // 팝업 외부 클릭시 닫기
-    if (rulesPopup) {
-        rulesPopup.addEventListener('click', (e) => {
-            if (e.target === rulesPopup) {
-                rulesPopup.classList.remove('show');
-            }
-        });
-    }
-});
 
 // 게임 화면 전환 함수
 function showGameScreen() {
@@ -519,34 +586,4 @@ function onload() {
             startGame(currentLevel);
         });
     }
-}
-
-// 레벨 선택 UI 추가
-function createLevelSelector() {
-    const selector = document.createElement('div');
-    selector.className = 'level-selector';
-    selector.innerHTML = `
-        <h3>Select Level</h3>
-        <div class="level-buttons">
-            ${PUZZLE_MAPS.map(puzzle => `
-                <button class="level-btn" data-level="${puzzle.id}">
-                    Level ${puzzle.id}
-                    <span class="difficulty ${puzzle.difficulty.toLowerCase()}">${puzzle.difficulty}</span>
-                </button>
-            `).join('')}
-        </div>
-    `;
-    
-    document.querySelector('.game-content').insertBefore(
-        selector,
-        document.getElementById('gameBoard')
-    );
-    
-    // 레벨 선택 이벤트 리스너
-    selector.addEventListener('click', (e) => {
-        if (e.target.classList.contains('level-btn')) {
-            const level = parseInt(e.target.dataset.level);
-            startGame(level - 1);
-        }
-    });
 }
