@@ -38,20 +38,12 @@ const PUZZLE_MAPS = [
                 cells: [[1,4], [1,5],
                         [2,4], [2,5],
                         [3,4], [3,5]],
-<<<<<<< HEAD
-                required: '5'
-=======
                 required: 5
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             },
             {
                 cells: [[4,2], [4,3], [4,4],
                         [5,2], [5,3], [5,4]],
-<<<<<<< HEAD
-                required: '4'
-=======
                 required: 4
->>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             },
             {
                 cells: [[4,5], [5,5]],
@@ -156,4 +148,3 @@ function isValidPlacement(puzzle, row, col, num) {
 
     return true;
 }
-
