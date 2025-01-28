@@ -101,47 +101,55 @@ function createLevelScreen() {
     const levelGrid = document.getElementById('levelGrid');
     levelGrid.innerHTML = ''; // 기존 내용 초기화
 
-    // 30개의 레벨 버튼 생성
-    for (let i = 1; i <= 30; i++) {
+    // 퍼즐 맵의 ID를 기반으로 레벨 버튼 생성
+    PUZZLE_MAPS.forEach(puzzle => {
         const levelBtn = document.createElement('button');
         levelBtn.className = 'level-btn';
-        levelBtn.dataset.level = i;
-        levelBtn.textContent = `${i}`;
+        levelBtn.dataset.level = puzzle.id;
+        levelBtn.textContent = `${puzzle.id}`;
         
         levelBtn.addEventListener('click', () => {
-            // showScreen('gameScreen');
-            // startGame(i - 1);
-            checkLevel(i - 1);
+            checkLevel(puzzle.id);
         });
         
         levelGrid.appendChild(levelBtn);
-    }
+    });
 }
 
 // 레벨 유효성 검사 함수
-function checkLevel(levelIndex) {
+function checkLevel(levelId) {
+    // 레벨 ID로 퍼즐 찾기
+    const puzzle = PUZZLE_MAPS.find(p => p.id === levelId);
 
-    // 레벨 인덱스가 유효한 범위를 벗어나는 경우
-    if (levelIndex < 0 || levelIndex >= PUZZLE_MAPS.length) {
+    // 퍼즐을 찾지 못한 경우
+    if (!puzzle) {
         showMessage('아직 준비중입니다.', 'warning');
         return false;
     }
 
     showScreen('gameScreen');
-    startGame(levelIndex);
+    startGame(levelId);
+    return true;
 }
 
 // 게임 초기화
-function startGame(levelIndex = 0) {
-    currentLevel = levelIndex;
+function startGame(levelId = 11) {
+    // 레벨 ID로 퍼즐 찾기
+    const puzzle = PUZZLE_MAPS.find(p => p.id === levelId);
+    
+    // 퍼즐을 찾지 못한 경우 첫 번째 퍼즐로 폴백
+    if (!puzzle) {
+        console.warn(`레벨 ${levelId}을 찾을 수 없습니다. 기본 퍼즐로 대체합니다.`);
+        puzzle = PUZZLE_MAPS[0];
+    }
+    
+    currentLevel = levelId;
     moves = 0;
     gameStarted = true;
     
-    const puzzle = PUZZLE_MAPS[levelIndex];
-    
     // initialState가 없는 경우 기본 게임판 생성
-    gameBoard = puzzle.initialState || Array.from({ length: BOARD_SIZE }, () => 
-        Array(BOARD_SIZE).fill(0)
+    gameBoard = puzzle.initialState || Array.from({ length: puzzle.size }, () => 
+        Array(puzzle.size).fill(0)
     );
     
     updateGameInfo();
@@ -151,12 +159,11 @@ function startGame(levelIndex = 0) {
 
 // 게임 정보 업데이트
 function updateGameInfo() {
-    const puzzle = PUZZLE_MAPS[currentLevel];
+    const puzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     const infoElement = document.querySelector('.level-info');
-    if (infoElement) {
+    if (infoElement && puzzle) {
         infoElement.innerHTML = `
-            <h3>Level ${puzzle.id}: ${puzzle.name}</h3>
-            <p>Difficulty: ${puzzle.difficulty}</p>
+            <h3>Level ${puzzle.id}: ${puzzle.name || '이름 없음'}</h3>
             <p>Moves: ${moves}</p>
         `;
     }
@@ -174,7 +181,10 @@ function renderBoard() {
     board.innerHTML = '';
     
     // 현재 퍼즐의 영역 정보 가져오기
-    const currentPuzzle = PUZZLE_MAPS[currentLevel];
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
+    
+    // 퍼즐의 size 속성 사용
+    const BOARD_SIZE = currentPuzzle.size || 6;
     
     // 게임판이 없거나 잘못된 경우 기본 게임판 생성
     if (!gameBoard || !Array.isArray(gameBoard) || gameBoard.length === 0) {
@@ -201,11 +211,11 @@ function renderBoard() {
                 cell.classList.add('gray');
             }
             
-            // 셀의 행, 열 데이터 속성 설정
+            // 각 셀에 데이터셋 추가
             cell.dataset.row = row;
             cell.dataset.col = col;
             
-            // 셀의 영역 정보 추가
+            // 각 영역에 대해 숫자 표시
             const areaWithCell = currentPuzzle.areas.find(area => 
                 area.cells.some(([r, c]) => r === row && c === col)
             );
@@ -236,6 +246,9 @@ function renderBoard() {
             board.appendChild(cell);
         }
     }
+    
+    // 보드의 그리드 크기 조정
+    board.style.gridTemplateColumns = `repeat(${BOARD_SIZE}, 1fr)`;
     
     // 영역 경계 체크
     checkAreaBoundaries(currentPuzzle);
@@ -274,7 +287,7 @@ function checkGameRules() {
         cellConnectivity: false
     };
     const violationMessages = new Set();
-    const currentPuzzle = PUZZLE_MAPS[currentLevel];
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     
     // 1. 각 영역의 회색 칸 수 확인
     for (const area of currentPuzzle.areas) {
@@ -306,8 +319,8 @@ function checkGameRules() {
     ];
     
     for (const dir of directions) {
-        for (let i = 0; i < BOARD_SIZE; i++) {
-            for (let j = 0; j <= BOARD_SIZE - 4; j++) {
+        for (let i = 0; i < currentPuzzle.size; i++) {
+            for (let j = 0; j <= currentPuzzle.size - 4; j++) {
                 const sequence = [];
                 for (let k = 0; k < 4; k++) {
                     const color = dir.dx === 1 
@@ -316,7 +329,7 @@ function checkGameRules() {
                     sequence.push(color);
                 }
                 
-                // 4개 연속 같은 색상 체크
+                // 4개 연속 같은 색상 체크 (흰색 포함)
                 if (sequence.every(color => color === sequence[0])) {
                     violations.consecutiveColors[dir.key] = true;
                     violationMessages.add(`${dir.name} 방향 4칸 연속 색상 위반`);
@@ -343,11 +356,12 @@ function checkGameRules() {
 
 // 회색 칸 연결성 확인 함수
 function checkGrayCellConnectivity() {
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     const grayCells = [];
     
     // 회색 칸 위치 찾기
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        for (let j = 0; j < BOARD_SIZE; j++) {
+    for (let i = 0; i < currentPuzzle.size; i++) {
+        for (let j = 0; j < currentPuzzle.size; j++) {
             if (gameBoard[i][j] === 1) {
                 grayCells.push([i, j]);
             }
@@ -358,23 +372,23 @@ function checkGrayCellConnectivity() {
     if (grayCells.length === 0) return true;
     
     // 방문 배열 초기화
-    const visited = Array.from({ length: BOARD_SIZE }, () => 
-        Array(BOARD_SIZE).fill(false)
+    const visited = Array.from({ length: currentPuzzle.size }, () => 
+        Array(currentPuzzle.size).fill(false)
     );
     
     // 첫 번째 회색 칸에서 DFS 시작
     const startCell = grayCells[0];
-    dfsConnectivity(startCell[0], startCell[1], visited);
+    dfsConnectivity(startCell[0], startCell[1], visited, currentPuzzle);
     
     // 모든 회색 칸이 방문되었는지 확인
     return grayCells.every(([row, col]) => visited[row][col]);
 }
 
 // 깊이 우선 탐색으로 회색 칸 연결성 탐색
-function dfsConnectivity(row, col, visited) {
+function dfsConnectivity(row, col, visited, currentPuzzle) {
     // 보드 경계 및 방문, 회색 칸 체크
-    if (row < 0 || row >= BOARD_SIZE || 
-        col < 0 || col >= BOARD_SIZE || 
+    if (row < 0 || row >= currentPuzzle.size || 
+        col < 0 || col >= currentPuzzle.size || 
         visited[row][col] || 
         gameBoard[row][col] !== 1) {
         return;
@@ -392,7 +406,7 @@ function dfsConnectivity(row, col, visited) {
     ];
     
     for (const [dx, dy] of directions) {
-        dfsConnectivity(row + dx, col + dy, visited);
+        dfsConnectivity(row + dx, col + dy, visited, currentPuzzle);
     }
 }
 
@@ -445,6 +459,43 @@ function showMessage(text, type = 'info') {
             messageContainer.innerHTML = '';
         }, 300);
     }, 3000);
+}
+
+// 영역 제약 조건을 확인하는 함수
+function checkAreaConstraints(puzzle, area, num) {
+    // 영역의 required 값이 0인 경우 숫자가 하나도 없어야 함
+    if (area.required === 0) {
+        const filledInArea = area.cells.filter(([r, c]) => puzzle.initialState[r][c] !== 0).length;
+        return filledInArea === 0 && num === 0;
+    }
+
+    // 영역의 required 값이 0보다 큰 경우에만 제약 조건 확인
+    if (area.required > 0) {
+        const filledInArea = area.cells.filter(([r, c]) => puzzle.initialState[r][c] !== 0).length;
+        return filledInArea < area.required || num === 0;
+    }
+    
+    // 다른 경우 어떤 숫자든 허용
+    return true;
+}
+
+// 숫자 배치의 유효성을 확인하는 함수
+function isValidPlacement(puzzle, row, col, num) {
+    // 행과 열 제약 조건 확인
+    for (let i = 0; i < puzzle.initialState.length; i++) {
+        if (puzzle.initialState[row][i] === num && i !== col) return false;
+        if (puzzle.initialState[i][col] === num && i !== row) return false;
+    }
+
+    // 현재 셀의 영역 찾기
+    const area = puzzle.areas.find(a => a.cells.some(([r, c]) => r === row && c === col));
+    
+    // 영역이 존재하면 제약 조건 확인
+    if (area) {
+        return checkAreaConstraints(puzzle, area, num);
+    }
+
+    return true;
 }
 
 // 영역 경계 체크 함수
@@ -543,35 +594,17 @@ function createLevelSelector() {
 
     // 준비 중 오버레이 숨기기
     preparingOverlay.style.display = 'none';
-    console.log('이거맞아?');
 
     // 레벨 버튼 생성
-    PUZZLE_MAPS.forEach((puzzle, index) => {
+    PUZZLE_MAPS.forEach(puzzle => {
         const levelButton = document.createElement('button');
         levelButton.textContent = `Level ${puzzle.id}`;
         levelButton.addEventListener('click', () => {
             // 레벨 유효성 검사
-            if (checkLevel(index)) {
-                console.log(checkLevel(index));
-                // startGame(index);
-                // showGameScreen();
-            }
+            checkLevel(puzzle.id);
         });
         levelGrid.appendChild(levelButton);
     });
-}
-
-// 게임 화면 전환 함수
-function showGameScreen() {
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('gameScreen').style.display = 'block';
-    onload(); // 게임 초기화
-}
-
-// 시작 화면으로 돌아가기
-function showStartScreen() {
-    document.getElementById('gameScreen').style.display = 'none';
-    document.getElementById('startScreen').style.display = 'flex';
 }
 
 // 게임 초기화
@@ -579,8 +612,8 @@ function onload() {
     // 레벨 선택기 생성
     createLevelSelector();
     
-    // 초기 레벨 시작
-    startGame(0);
+    // 초기 레벨 시작 (첫 번째 퍼즐의 ID 사용)
+    startGame(PUZZLE_MAPS[0].id);
     
     // startButton 대신 게임보드에 클릭 이벤트 추가
     const gameBoard = document.getElementById('gameBoard');
