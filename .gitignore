@@ -1,0 +1,26 @@
+# 운영 체제 파일
+.DS_Store
+Thumbs.db
+
+# 에디터 설정 파일
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# 임시 파일
+*.log
+*.tmp
+*~
+
+# 의존성 및 빌드 폴더
+node_modules/
+dist/
+build/
+
+# 개인 설정 파일
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
