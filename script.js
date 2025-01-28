@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showRules = document.getElementById('showRules');
     const closeRules = document.getElementById('closeRules');
     const rulesPopup = document.getElementById('rulesPopup');
+    const gameClearPopup = document.getElementById('gameClearPopup');
 
     // 시작 화면 버튼들
     if (startButton) {
@@ -70,6 +71,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === rulesPopup) {
                 rulesPopup.classList.remove('show');
             }
+        });
+    }
+
+    // 게임 클리어 팝업 외부 클릭시 닫기
+    if (gameClearPopup) {
+        gameClearPopup.addEventListener('click', (e) => {
+            if (e.target === gameClearPopup) {
+                gameClearPopup.style.display = 'none';
+            }
+        });
+    }
+
+    // 게임 클리어 팝업 이벤트 리스너 추가
+    const backToLevelsButton = document.getElementById('backToLevelsButton');
+
+    if (backToLevelsButton) {
+        backToLevelsButton.addEventListener('click', () => {
+            if (gameClearPopup) {
+                gameClearPopup.style.display = 'none';
+            }
+            showScreen('levelScreen');
         });
     }
 });
@@ -231,9 +253,6 @@ function handleCellClick(event) {
     moves++;
     updateGameInfo();
     updateViolationDisplay();
-    
-    // 게임 클리어 체크
-    checkGameCompletion();
 }
 
 // 셀 색상 변경
@@ -242,46 +261,6 @@ function toggleCellColor(cell, row, col) {
     
     // 클래스를 한 번만 토글
     cell.classList.toggle('gray', gameBoard[row][col] === 1);
-}
-
-// 게임 완료 체크
-function checkGameCompletion() {
-    const currentPuzzle = PUZZLE_MAPS[currentLevel];
-    
-    // 각 영역의 회색 칸 수 확인
-    for (const area of currentPuzzle.areas) {
-        const grayCount = area.cells.reduce((count, [row, col]) => {
-            return count + (gameBoard[row][col] === 1 ? 1 : 0);
-        }, 0);
-        
-        // 'J'인 경우는 검사하지 않음
-        if (area.required === 'J') continue;
-        
-        // 문자열로 된 숫자를 정수로 변환하여 비교
-        const requiredCount = parseInt(area.required);
-        if (grayCount !== requiredCount) {
-            return false;
-        }
-    }
-    
-    // 4개 연속 체크
-    for (let i = 0; i < BOARD_SIZE; i++) {
-        // 가로 체크
-        for (let j = 0; j <= BOARD_SIZE - 4; j++) {
-            const sum = gameBoard[i][j] + gameBoard[i][j+1] + 
-                       gameBoard[i][j+2] + gameBoard[i][j+3];
-            if (sum === 4 || sum === 0) return false;
-        }
-        
-        // 세로 체크
-        for (let j = 0; j <= BOARD_SIZE - 4; j++) {
-            const sum = gameBoard[j][i] + gameBoard[j+1][i] + 
-                       gameBoard[j+2][i] + gameBoard[j+3][i];
-            if (sum === 4 || sum === 0) return false;
-        }
-    }
-    
-    return true;
 }
 
 // 규칙 위반 사항 체크 함수
@@ -426,6 +405,7 @@ function updateViolationDisplay() {
     
     if (ruleCheck.violationMessages.length === 0) {
         violationList.innerHTML = '<li>규칙 위반 없음</li>';
+        showGameClearPopup(); // 게임 클리어 팝업 표시
         return;
     }
     
@@ -518,6 +498,25 @@ function checkAreaBoundaries(currentPuzzle) {
     }
 }
 
+// 게임 클리어 팝업 표시 함수
+function showGameClearPopup() {
+    const gameClearPopup = document.getElementById('gameClearPopup');
+    const clearMoves = document.getElementById('clearMoves');
+    const backToLevelsButton = document.getElementById('backToLevelsButton');
+
+    // 요소 중 하나라도 없으면 경고 로그
+    if (!gameClearPopup || !clearMoves || !backToLevelsButton) {
+        console.error('게임 클리어 팝업 요소 중 일부가 누락되었습니다.');
+        return;
+    }
+
+    // 움직임 수 표시
+    clearMoves.textContent = moves;
+
+    // 팝업 표시
+    gameClearPopup.style.display = 'flex';
+}
+
 // 화면 전환 함수들
 function showScreen(screenId) {
     // 모든 화면 숨기기
@@ -592,3 +591,24 @@ function onload() {
         });
     }
 }
+
+// 게임 클리어 테스트 함수
+function testClear() {
+    console.log('testClear 함수 호출');
+    
+    // 팝업 요소 직접 확인
+    const gameClearPopup = document.getElementById('gameClearPopup');
+    if (!gameClearPopup) {
+        console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
+        return false;
+    }
+    
+    // 강제로 팝업 표시
+    gameClearPopup.style.display = 'flex';
+    console.log('팝업 강제 표시');
+    
+    return true;
+}
+
+// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
+window.testClear = testClear;
