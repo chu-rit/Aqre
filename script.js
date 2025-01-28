@@ -153,7 +153,16 @@ function checkGameCompletion() {
             return count + (gameBoard[row][col] === 1 ? 1 : 0);
         }, 0);
         
+<<<<<<< HEAD
         if (grayCount !== area.required) {
+=======
+        // 'J'인 경우는 검사하지 않음
+        if (area.required === 'J') continue;
+        
+        // 문자열로 된 숫자를 정수로 변환하여 비교
+        const requiredCount = parseInt(area.required);
+        if (grayCount !== requiredCount) {
+>>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             return false;
         }
     }
@@ -197,7 +206,16 @@ function checkGameRules() {
             return count + (gameBoard[row][col] === 1 ? 1 : 0);
         }, 0);
         
+<<<<<<< HEAD
         if (grayCount > area.required) {
+=======
+        // 'J'인 경우는 검사하지 않음
+        if (area.required === 'J') continue;
+        
+        // 문자열로 된 숫자를 정수로 변환하여 비교
+        const requiredCount = parseInt(area.required);
+        if (grayCount > requiredCount) {
+>>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
             violations.areaOverflow = true;
             violationMessages.add('영역의 회색 칸 수가 초과되었습니다.');
             break;
@@ -382,6 +400,120 @@ function checkAreaBoundaries(currentPuzzle) {
     }
 }
 
+<<<<<<< HEAD
+=======
+// 화면 전환 함수들
+function showScreen(screenId) {
+    // 모든 화면 숨기기
+    ['startScreen', 'levelScreen', 'gameScreen'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    // 요청된 화면 표시
+    document.getElementById(screenId).style.display = screenId === 'levelScreen' ? 'block' : 
+                                                    screenId === 'startScreen' ? 'flex' : 'block';
+}
+
+// 레벨 선택 화면 생성
+function createLevelScreen() {
+    const levelGrid = document.getElementById('levelGrid');
+    levelGrid.innerHTML = ''; // 기존 내용 초기화
+
+    // 30개의 레벨 버튼 생성
+    for (let i = 1; i <= 30; i++) {
+        const levelBtn = document.createElement('button');
+        levelBtn.className = 'level-btn';
+        levelBtn.dataset.level = i;
+        levelBtn.textContent = `${i}`;
+        
+        levelBtn.addEventListener('click', () => {
+            showScreen('gameScreen');
+            startGame(i - 1);
+        });
+        
+        levelGrid.appendChild(levelBtn);
+    }
+}
+
+// 이벤트 리스너 설정
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startButton');
+    const optionsButton = document.getElementById('optionsButton');
+    const backToStart = document.getElementById('backToStart');
+    const backToLevels = document.getElementById('backToLevels');
+    const showRules = document.getElementById('showRules');
+    const closeRules = document.getElementById('closeRules');
+    const rulesPopup = document.getElementById('rulesPopup');
+
+    // 시작 화면 버튼들
+    if (startButton) {
+        startButton.addEventListener('click', () => {
+            showScreen('levelScreen');
+            createLevelScreen();
+        });
+    }
+
+    if (optionsButton) {
+        optionsButton.addEventListener('click', () => {
+            // 옵션 메뉴 표시 로직
+            console.log('옵션 메뉴 열기');
+            // TODO: 옵션 메뉴 구현
+        });
+    }
+
+    // 뒤로 가기 버튼들
+    if (backToStart) {
+        backToStart.addEventListener('click', () => {
+            showScreen('startScreen');
+        });
+    }
+
+    if (backToLevels) {
+        backToLevels.addEventListener('click', () => {
+            showScreen('levelScreen');
+        });
+    }
+
+    // 규칙 보기 버튼 이벤트
+    if (showRules) {
+        showRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.add('show');
+            }
+        });
+    }
+
+    if (closeRules) {
+        closeRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+
+    // 팝업 외부 클릭시 닫기
+    if (rulesPopup) {
+        rulesPopup.addEventListener('click', (e) => {
+            if (e.target === rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+});
+
+// 게임 화면 전환 함수
+function showGameScreen() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'block';
+    onload(); // 게임 초기화
+}
+
+// 시작 화면으로 돌아가기
+function showStartScreen() {
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+}
+
+>>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
 // 게임 초기화
 function onload() {
     // 레벨 선택기 생성
@@ -408,7 +540,11 @@ function createLevelSelector() {
         <h3>Select Level</h3>
         <div class="level-buttons">
             ${PUZZLE_MAPS.map(puzzle => `
+<<<<<<< HEAD
                 <button class="level-btn" data-level="${puzzle.id - 1}">
+=======
+                <button class="level-btn" data-level="${puzzle.id}">
+>>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
                     Level ${puzzle.id}
                     <span class="difficulty ${puzzle.difficulty.toLowerCase()}">${puzzle.difficulty}</span>
                 </button>
@@ -425,6 +561,7 @@ function createLevelSelector() {
     selector.addEventListener('click', (e) => {
         if (e.target.classList.contains('level-btn')) {
             const level = parseInt(e.target.dataset.level);
+<<<<<<< HEAD
             startGame(level);
         }
     });
@@ -432,3 +569,9 @@ function createLevelSelector() {
 
 // 게임 초기화
 document.addEventListener('DOMContentLoaded', onload);
+=======
+            startGame(level - 1);
+        }
+    });
+}
+>>>>>>> 1c81fb2f82513798af98ae06eb757025260ed4fb
