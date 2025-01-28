@@ -313,6 +313,11 @@ function checkGameRules() {
             violationMessages.add('영역의 회색 칸 수가 초과되었습니다.');
             break;
         }
+        if (grayCount < requiredCount) {
+            violations.areaOverflow = true;
+            violationMessages.add('영역의 회색 칸 수가 부족합니다.');
+            break;
+        }
     }
     
     // 2. 연속된 같은 색상 체크 (가로, 세로)
