@@ -167,27 +167,56 @@ function startGame(levelId = 11) {
     // 레벨 1에서 튜토리얼 메시지 추가
     if (levelId === 1) {
         showHelper([
-            'This is a helper.',
-            'I\'ll briefly explain how to play the game.',
-            'First, try tapping the white tiles you see above to change them to gray, and turn the gray tiles back into white tiles.'
+            '여기는 튜토리얼 레벨 입니다.',
+            '간단히 게임 방법을 알려드리겠습니다.',
+            '먼저 위에 보이는 흰색 타일을 터치해서 회색으로 회색 타일을 흰색 타일로 바꾸어보세요.'
         ]);
+        // showHelper([
+        //     'This is a helper.',
+        //     'I\'ll briefly explain how to play the game.',
+        //     'First, try tapping the white tiles you see above to change them to gray, and turn the gray tiles back into white tiles.'
+        // ]);
     } else if (levelId === 2) {
         showHelper([
-            'In any part of the map, there should not be more than four tiles of the same color in a row or column. Change the corner tiles to meet this condition.'
+            '맵 어디에서든 가로나 세로로 같은 색의 타일이 4개가 넘으면 안됩니다.',
+            '모퉁이의 타일을 바꾸어 조건을 충족시키세요.'
         ]);
+        // showHelper([
+        //     'In any part of the map, there should not be more than four tiles of the same color in a row or column. Change the corner tiles to meet this condition.'
+        // ]);
     } else if (levelId === 3) {
         showHelper([
-            'If you look closely, each tile belongs to a specific area.',
-            'Additionally, each area has an assigned number.',
-            'You must turn that many tiles gray according to the number.',
-            'However, remember that you cannot have more than four tiles of the same color in the same direction.'
+            '자세히 보면 각 타일은 속해 있는 영역이 있습니다.',
+            '또한 영역에는 숫자가 할당되어 있습니다.',
+            '그 숫자만큼 타일을 회색으로 만들어야 합니다.',
+            '하지만 가로 방향으로 같은 색의 타일이 4개가 되면 안된다는 것을 잊지마세요.'
         ]);
+        // showHelper([
+        //     'If you look closely, each tile belongs to a specific area.',
+        //     'Additionally, each area has an assigned number.',
+        //     'You must turn that many tiles gray according to the number.',
+        //     'However, remember that you cannot have more than four tiles of the same color in the same direction.'
+        // ]);
     } else if (levelId === 4) {
         showHelper([
-           'Now for the final additional condition.',
-           'All gray blocks must be connected.',
-           'Diagonals are considered not connected.',
-           'Satisfy all conditions along with the other requirements.'
+            '이제 마지막 추가 조건입니다.',
+            '모든 회색 블럭은 연결되어 있어야 합니다.',
+            '대각선은 연결되지 않은 것으로 취급합니다.',
+            '다른 조건들과 함께 모든 조건에 충족시키세요.'
+        ]);
+        // showHelper([
+        //    'Now for the final additional condition.',
+        //    'All gray blocks must be connected.',
+        //    'Diagonals are considered not connected.',
+        //    'Satisfy all conditions along with the other requirements.'
+        // ]);
+    } else if (levelId === 5) {
+        showHelper([
+            '이제 모든 조건을 알려드렸습니다.',
+            '1. 가로든 세로든 같은 색의 블럭이 4개가 되면 안됩니다.',
+            '2. 각 영역의 숫자에 맞추어 회색 블럭을 만들어야 합니다.',
+            '3. 회색 타일은 서로 연결되어 있어야 합니다.',
+            '재밌는 게임 되시길 바랍니다.'
         ]);
     } else {
         hideHelper();
