@@ -138,7 +138,7 @@ const PUZZLE_MAPS = [
             [1, 0, 1, 2],
             [1, 0, 1, 0]
         ]
-    }
+    },
     {
         id: 11,
         name: "Level 11",
