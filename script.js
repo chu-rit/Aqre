@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeRules = document.getElementById('closeRules');
     const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
+    const helperCloseButton = document.getElementById('helperCloseButton');
 
     // 시작 화면 버튼들
     if (startButton) {
@@ -94,6 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showScreen('levelScreen');
         });
     }
+
+    // 도움말 닫기 버튼 이벤트 리스너 추가
+    if (helperCloseButton) {
+        helperCloseButton.addEventListener('click', () => {
+            hideHelper();
+        });
+    }
 });
 
 // 레벨 선택 화면 생성
@@ -155,6 +163,35 @@ function startGame(levelId = 11) {
     updateGameInfo();
     renderBoard();
     updateViolationDisplay();
+    
+    // 레벨 1에서 튜토리얼 메시지 추가
+    if (levelId === 1) {
+        showHelper([
+            'This is a helper.',
+            'I\'ll briefly explain how to play the game.',
+            'First, try tapping the white tiles you see above to change them to gray, and turn the gray tiles back into white tiles.'
+        ]);
+    } else if (levelId === 2) {
+        showHelper([
+            'In any part of the map, there should not be more than four tiles of the same color in a row or column. Change the corner tiles to meet this condition.'
+        ]);
+    } else if (levelId === 3) {
+        showHelper([
+            'If you look closely, each tile belongs to a specific area.',
+            'Additionally, each area has an assigned number.',
+            'You must turn that many tiles gray according to the number.',
+            'However, remember that you cannot have more than four tiles of the same color in the same direction.'
+        ]);
+    } else if (levelId === 4) {
+        showHelper([
+           'Now for the final additional condition.',
+           'All gray blocks must be connected.',
+           'Diagonals are considered not connected.',
+           'Satisfy all conditions along with the other requirements.'
+        ]);
+    } else {
+        hideHelper();
+    }
 }
 
 // 게임 정보 업데이트
@@ -206,9 +243,11 @@ function renderBoard() {
             const cell = document.createElement('div');
             cell.className = 'cell';
             
-            // 셀의 색상 설정
+            // 블럭 상태에 따라 클래스 추가
             if (gameBoard[row][col] === 1) {
                 cell.classList.add('gray');
+            } else if (gameBoard[row][col] === 2) {
+                cell.classList.add('black');
             }
             
             // 각 셀에 데이터셋 추가
@@ -259,6 +298,10 @@ function handleCellClick(event) {
     if (!gameStarted) return;
     
     const cell = event.target;
+    
+    // 검정색 블럭은 클릭 이벤트 무시
+    if (cell.classList.contains('black')) return;
+    
     const row = parseInt(cell.dataset.row);
     const col = parseInt(cell.dataset.col);
 
@@ -329,8 +372,8 @@ function checkGameRules() {
                     sequence.push(color);
                 }
                 
-                // 4개 연속 같은 색상 체크 (흰색 포함)
-                if (sequence.every(color => color === sequence[0])) {
+                // 4개 연속 같은 색상 체크 (흰색 또는 회색만)
+                if (sequence.every(color => color === 0) || sequence.every(color => color === 1)) {
                     violations.consecutiveColors[dir.key] = true;
                     violationMessages.add(`${dir.name} 방향 4칸 연속 색상 위반`);
                     break;
@@ -459,6 +502,36 @@ function showMessage(text, type = 'info') {
             messageContainer.innerHTML = '';
         }, 300);
     }, 3000);
+}
+
+// 도움말 메시지 표시 함수
+function showHelper(messages, type = 'info') {
+    const helper = document.getElementById('helper');
+    const helperList = document.getElementById('helper-list');
+    
+    if (helper && helperList) {
+        // 기존 메시지 초기화
+        helperList.innerHTML = '';
+        
+        // 새 메시지 추가
+        messages.forEach(msg => {
+            const li = document.createElement('li');
+            li.textContent = msg;
+            li.className = type;
+            helperList.appendChild(li);
+        });
+        
+        // 헬퍼 표시
+        helper.style.display = 'block';
+    }
+}
+
+// 도움말 메시지 숨기기 함수
+function hideHelper() {
+    const helper = document.getElementById('helper');
+    if (helper) {
+        helper.style.display = 'none';
+    }
 }
 
 // 영역 제약 조건을 확인하는 함수
