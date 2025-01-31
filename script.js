@@ -106,8 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 레벨 선택 화면 생성
 function createLevelScreen() {
-    const levelGrid = document.getElementById('levelGrid');
-    levelGrid.innerHTML = ''; // 기존 내용 초기화
+    const basicLevelGrid = document.getElementById('basicLevelGrid');
+    const advancedLevelGrid = document.getElementById('advancedLevelGrid');
+    basicLevelGrid.innerHTML = ''; // 기존 내용 초기화
+    advancedLevelGrid.innerHTML = ''; // 기존 내용 초기화
 
     // 퍼즐 맵의 ID를 기반으로 레벨 버튼 생성
     PUZZLE_MAPS.forEach(puzzle => {
@@ -115,12 +117,16 @@ function createLevelScreen() {
         levelBtn.className = 'level-btn';
         levelBtn.dataset.level = puzzle.id;
         levelBtn.textContent = `${puzzle.id}`;
+
+        if(puzzle.id < 6) {
+            basicLevelGrid.appendChild(levelBtn);
+        } else {
+            advancedLevelGrid.appendChild(levelBtn);
+        }
         
         levelBtn.addEventListener('click', () => {
             checkLevel(puzzle.id);
         });
-        
-        levelGrid.appendChild(levelBtn);
     });
 }
 
