@@ -791,61 +791,95 @@ body {
     }
 }
 
-.tutorial-levels {
-    border: 3px dashed #3498db;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 12px;
+/* 튜토리얼 스타일 */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding-top: 100%;
+    pointer-events: none; /* 마우스 클릭 이벤트 방지 */
 }
 
-.basic-levels-container {
-    border: 2px solid var(--primary-color);
-    border-radius: var(--border-radius);
-    padding: 15px;
-    margin-bottom: 20px;
-    background: rgba(52, 152, 219, 0.1);
-    box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+.tutorial-overlay .tutorial-container {
+    pointer-events: auto; /* 컨테이너는 클릭 가능 */
 }
 
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
+.tutorial-container {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    padding: 5%;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border: 2px solid #333;
+    transform: translateY(-10%);
+}
 
-    .container {
-        padding: 1rem;
-    }
+.tutorial-container h2 {
+    margin-bottom: 0;
+    text-align: left;
+    color: #4CAF50;
+    font-size: 1.8em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
 
-    .rules ul {
-        padding-left: 20px;
-    }
+.tutorial-text {
+    margin-bottom: 25px;
+    color: #b0b0b0;
+    line-height: 1.7;
+    font-size: 1.1em;
+}
 
-    .game-board {
-        width: 100%;
-        max-width: 500px;
+.tutorial-next-button {
+    display: block;
+    margin: 0 auto;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+}
+
+.tutorial-next-button:hover {
+    background-color: #45a049;
+}
+
+.tutorial-next-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 튜토리얼 하이라이트 스타일 추가 */
+.tutorial-highlight {
+    border: 3px solid #FFD700 !important;
+    box-shadow: 0 0 10px #FFD700;
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        transform: scale(1); 
+        opacity: 0.7;
+    }
+    50% { 
+        transform: scale(1.05); 
+        opacity: 1;
     }
 }
 
-@media (max-width: 480px) {
-    body {
-        padding: 5px;
-    }
-
-    .container {
-        padding: 0.5rem;
-    }
-}
-
-@media screen and (max-width: 768px) {
-    :root {
-        --cell-size: min(50px, calc((100vw - 40px) / 6));
-    }
-
-    .game-board {
-        width: 100%;
-        max-width: 500px;
-    }
-}
+/* 튜토리얼 관련 CSS 제거됨 */
 
 #resetLevelButton {
     display: none;
@@ -929,4 +963,44 @@ body {
     border-left-color: #4ecdc4;
     text-align: center;
     font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .rules ul {
+        padding-left: 20px;
+    }
+
+    .game-board {
+        width: 100%;
+        max-width: 500px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    .container {
+        padding: 0.5rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    :root {
+        --cell-size: min(50px, calc((100vw - 40px) / 6));
+    }
+
+    .game-board {
+        width: 100%;
+        max-width: 500px;
+    }
 }

@@ -8,6 +8,9 @@ let gameBoard = [];
 let moves = 0;
 let gameStarted = false;
 
+// 현재 튜토리얼 허용 타일 목록
+let tutorialAllowedCells = [];
+
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('startButton');
@@ -140,32 +143,40 @@ function checkLevel(levelId) {
 
 // 게임 초기화
 function startGame(levelId = 11) {
-    // 레벨 ID로 퍼즐 찾기
-    const puzzle = PUZZLE_MAPS.find(p => p.id === levelId);
+    // 현재 레벨 설정
+    currentLevel = levelId - 1;
     
-    // 퍼즐을 찾지 못한 경우 첫 번째 퍼즐로 폴백
-    if (!puzzle) {
-        console.warn(`레벨 ${levelId}을 찾을 수 없습니다. 기본 퍼즐로 대체합니다.`);
-        puzzle = PUZZLE_MAPS[0];
-    }
+    // 현재 퍼즐 데이터 로드
+    const puzzle = PUZZLE_MAPS[currentLevel];
     
-    currentLevel = levelId;
-    moves = 0;
+    // 게임 보드 초기화
+    gameBoard = puzzle.initialState.map(row => [...row]);
+    
+    // 게임 시작 상태 설정
     gameStarted = true;
+    moves = 0;
     
-    // initialState가 없는 경우 기본 게임판 생성
-    gameBoard = puzzle.initialState || Array.from({ length: puzzle.size }, () => 
-        Array(puzzle.size).fill(0)
-    );
-    
-    updateGameInfo();
+    // 게임 보드 렌더링
     renderBoard();
-    updateViolationDisplay();
+    
+    // 게임 정보 업데이트
+    updateGameInfo();
+    
+    // 게임 화면으로 전환
+    showScreen('gameScreen');
+    
+    // 영역 오버레이 렌더링
+    renderAreaOverlays(puzzle.areas);
+    
+    // 튜토리얼 생성 (레벨 1일 경우)
+    if (levelId === 1) {
+        createTutorial();
+    }
 }
 
 // 게임 정보 업데이트
 function updateGameInfo() {
-    const puzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
+    const puzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
     const infoElement = document.querySelector('.level-info');
     if (infoElement && puzzle) {
         infoElement.innerHTML = `
@@ -187,7 +198,7 @@ function renderBoard() {
     board.innerHTML = '';
     
     // 현재 퍼즐의 영역 정보 가져오기
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
     
     // 퍼즐의 size 속성 사용
     const BOARD_SIZE = currentPuzzle.size || 6;
@@ -264,20 +275,55 @@ function renderBoard() {
 
 // 셀 클릭 처리
 function handleCellClick(event) {
-    if (!gameStarted) return;
-    
-    const cell = event.target;
-    
-    // 검정색 블럭은 클릭 이벤트 무시
-    if (cell.classList.contains('black')) return;
-    
-    const row = parseInt(cell.dataset.row);
-    const col = parseInt(cell.dataset.col);
+    // 튜토리얼 모드일 때 특정 타일만 조작 허용
+    if (document.querySelector('.tutorial-overlay')) {
+        const clickedCell = event.target.closest('.cell');
+        if (!clickedCell) return;
 
-    toggleCellColor(cell, row, col);
+        const row = parseInt(clickedCell.getAttribute('data-row'));
+        const col = parseInt(clickedCell.getAttribute('data-col'));
+
+        console.log('튜토리얼 모드 - 클릭된 타일:', { row, col });
+        console.log('허용된 타일:', tutorialAllowedCells);
+
+        // 허용된 타일이 아니면 클릭 무시
+        const isAllowedCell = tutorialAllowedCells.some(
+            cell => cell.row === row && cell.col === col
+        );
+
+        console.log('허용된 타일 여부:', isAllowedCell);
+
+        if (!isAllowedCell) {
+            return;
+        }
+    }
+
+    // 게임 시작 전이면 클릭 무시
+    if (!gameStarted) return;
+
+    const clickedCell = event.target.closest('.cell');
+    if (!clickedCell) return;
+
+    const row = parseInt(clickedCell.getAttribute('data-row'));
+    const col = parseInt(clickedCell.getAttribute('data-col'));
+
+    // 검정색 블럭은 클릭 이벤트 무시
+    if (clickedCell.classList.contains('black')) return;
+
+    // 기본 타일 색상 토글 로직
+    if (clickedCell.classList.contains('white')) {
+        clickedCell.classList.remove('white');
+        clickedCell.classList.add('gray');
+    } else if (clickedCell.classList.contains('gray')) {
+        clickedCell.classList.remove('gray');
+        clickedCell.classList.add('white');
+    }
+    
+    toggleCellColor(clickedCell, row, col);
     moves++;
     updateGameInfo();
     updateViolationDisplay();
+    // checkLevelCompletion();
 }
 
 // 셀 색상 변경
@@ -299,7 +345,7 @@ function checkGameRules() {
         cellConnectivity: false
     };
     const violationMessages = new Set();
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
     
     // 1. 각 영역의 회색 칸 수 확인
     for (const area of currentPuzzle.areas) {
@@ -368,7 +414,7 @@ function checkGameRules() {
 
 // 회색 칸 연결성 확인 함수
 function checkGrayCellConnectivity() {
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
     const grayCells = [];
     
     // 회색 칸 위치 찾기
@@ -432,6 +478,12 @@ function updateViolationDisplay() {
     if (ruleCheck.violationMessages.length === 0) {
         violationList.innerHTML = '<li>규칙 위반 없음</li>';
         showGameClearPopup(); // 게임 클리어 팝업 표시
+
+        // 튜토리얼 오버레이 제거
+        const tutorialOverlay = document.querySelector('.tutorial-overlay');
+        if (tutorialOverlay) {
+            tutorialOverlay.remove();
+        }
         return;
     }
     
@@ -580,6 +632,7 @@ function showGameClearPopup() {
     gameClearPopup.style.display = 'flex';
 }
 
+
 // 화면 전환 함수들
 function showScreen(screenId) {
     // 모든 화면 숨기기
@@ -632,7 +685,7 @@ function onload() {
     if (gameBoard) {
         gameBoard.addEventListener('click', () => {
             // 현재 레벨 다시 시작
-            startGame(currentLevel);
+            startGame(currentLevel + 1);
         });
     }
 }
@@ -657,3 +710,174 @@ function testClear() {
 
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
+
+// 레벨 1 튜토리얼 생성 함수
+function createTutorial() {
+    // 허용된 타일 초기화
+    tutorialAllowedCells = [];
+
+    // 튜토리얼 오버레이 생성
+    const tutorialOverlay = document.createElement('div');
+    tutorialOverlay.classList.add('tutorial-overlay');
+
+    // 튜토리얼 컨테이너 생성
+    const tutorialContainer = document.createElement('div');
+    tutorialContainer.classList.add('tutorial-container');
+
+    // 튜토리얼 제목
+    const tutorialTitle = document.createElement('h2');
+    tutorialTitle.textContent = '레벨 1 튜토리얼';
+    tutorialContainer.appendChild(tutorialTitle);
+
+    // 튜토리얼 텍스트
+    const tutorialText = document.createElement('p');
+    tutorialText.classList.add('tutorial-text');
+    tutorialContainer.appendChild(tutorialText);
+
+    // 다음 버튼
+    const nextButton = document.createElement('button');
+    nextButton.textContent = '다음';
+    nextButton.classList.add('tutorial-next-button');
+    tutorialContainer.appendChild(nextButton);
+
+    tutorialOverlay.appendChild(tutorialContainer);
+
+    // 튜토리얼 단계 정의
+    const tutorialSteps = [
+        {
+            title: 'Tutorial',
+            text: '간단하게 게임 룰을 설명해 드리겠습니다.',
+            highlight: null,
+            condition: null,
+            showNextButton: true
+        },
+        {
+            title: 'step 1',
+            text: '하이라이트 된 타일을 선택해서 타일의 색을 바꿀 수 있습니다. 흰색 타일을 눌러 회색으로 바꾸어 보시기 바랍니다.',
+            highlight: {
+                type: 'mixed',
+                cells: [
+                    {row: 2, col: 1}
+                ]
+            },
+            condition: {
+                row: 2,
+                col: 1,
+                expectedState: 1 // 회색(1)으로 변경
+            },
+            showNextButton: false
+        },
+        {
+            title: 'step 2',
+            text: '이번에는 우측에 있는 회색 타일을 눌러 흰색으로 바꾸어 보시기 바랍니다.',
+            highlight: {
+                type: 'mixed',
+                cells: [
+                    {row: 2, col: 3}
+                ]
+            },
+            condition: {
+                row: 2,
+                col: 1,
+                expectedState: 0 // 흰색(0)으로 변경
+            },
+            showNextButton: false
+        }
+    ];
+
+    let currentStep = 0;
+
+    function updateTutorialStep() {
+        // 허용된 타일 초기화
+        tutorialAllowedCells = [];
+
+        // 이전 하이라이트 제거
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
+        });
+
+        // 현재 단계의 정보로 업데이트
+        tutorialTitle.textContent = tutorialSteps[currentStep].title;
+        tutorialText.textContent = tutorialSteps[currentStep].text;
+
+        // 하이라이트 로직
+        if (tutorialSteps[currentStep].highlight) {
+            const gameBoardCells = document.querySelectorAll('.cell');
+            
+            if (tutorialSteps[currentStep].highlight.type === 'mixed') {
+                tutorialSteps[currentStep].highlight.cells.forEach(({row, col}) => {
+                    const cell = Array.from(gameBoardCells).find(
+                        cell => 
+                            parseInt(cell.getAttribute('data-row')) === row && 
+                            parseInt(cell.getAttribute('data-col')) === col
+                    );
+                    
+                    if (cell) {
+                        cell.classList.add('tutorial-highlight');
+                        tutorialAllowedCells.push({ row, col });
+                    }
+                });
+            }
+        }
+
+        // 다음 버튼 표시/숨김 처리
+        nextButton.style.display = tutorialSteps[currentStep].showNextButton ? 'block' : 'none';
+
+        // 다음 버튼 텍스트 업데이트
+        nextButton.textContent = currentStep === tutorialSteps.length - 1 ? '시작하기' : '다음';
+    }
+
+    // 타일 조작 조건 확인 함수
+    function checkTutorialStepCondition(row, col, state) {
+        const currentStepCondition = tutorialSteps[currentStep].condition;
+        
+        if (!currentStepCondition) return false;
+        
+        return (
+            currentStepCondition.row === row && 
+            currentStepCondition.col === col && 
+            currentStepCondition.expectedState === state
+        );
+    }
+
+    // 타일 클릭 이벤트 리스너 수정
+    function handleTutorialCellClick(event) {
+        const clickedCell = event.target.closest('.cell');
+        if (!clickedCell) return;
+
+        const row = parseInt(clickedCell.getAttribute('data-row'));
+        const col = parseInt(clickedCell.getAttribute('data-col'));
+        const state = clickedCell.classList.contains('white') ? 0 : 1;
+
+        // 현재 단계의 조건 확인
+        if (checkTutorialStepCondition(row, col, state)) {
+            // 다음 단계로 진행
+            if (currentStep < tutorialSteps.length - 1) {
+                currentStep++;
+                updateTutorialStep();
+            } else {
+                // 튜토리얼 종료
+                tutorialOverlay.remove();
+                document.removeEventListener('click', handleTutorialCellClick);
+            }
+        }
+    }
+
+    // 다음 버튼 이벤트 리스너
+    nextButton.addEventListener('click', () => {
+        if (currentStep < tutorialSteps.length - 1) {
+            currentStep++;
+            updateTutorialStep();
+        } else {
+            // 튜토리얼 종료
+            tutorialOverlay.remove();
+        }
+    });
+
+    // 클릭 이벤트 리스너 추가
+    document.addEventListener('click', handleTutorialCellClick);
+
+    // 초기 설정
+    updateTutorialStep();
+    document.body.appendChild(tutorialOverlay);
+}
