@@ -47,6 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (backToLevels) {
         backToLevels.addEventListener('click', () => {
+            // 레벨 선택 화면으로 돌아갈 때 튜토리얼 완전히 제거
+            const tutorialOverlay = document.getElementById('tutorialOverlay');
+            if (tutorialOverlay) {
+                tutorialOverlay.remove();
+            }
             showScreen('levelScreen');
         });
     }
@@ -97,6 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showScreen('levelScreen');
         });
     }
+
+    // Refresh Level Button
+    document.getElementById('refreshLevel').addEventListener('click', () => {
+        startGame(currentLevel + 1);
+    });
 });
 
 // 레벨 선택 화면 생성
@@ -162,6 +172,9 @@ function startGame(levelId = 11) {
     // 게임 정보 업데이트
     updateGameInfo();
     
+    // 현재 레벨 표시 업데이트
+    updateCurrentLevelDisplay(levelId);
+    
     // 게임 화면으로 전환
     showScreen('gameScreen');
     
@@ -171,6 +184,17 @@ function startGame(levelId = 11) {
     // 튜토리얼 생성 (레벨 1일 경우)
     if (levelId === 1) {
         createTutorial();
+    }
+    
+    // 규칙 위반 체크
+    updateViolationDisplay();
+}
+
+// 현재 레벨 표시 업데이트 함수
+function updateCurrentLevelDisplay(level) {
+    const levelDisplay = document.getElementById('currentLevelDisplayInGame');
+    if (levelDisplay) {
+        levelDisplay.textContent = `Level ${level}`;
     }
 }
 
@@ -713,13 +737,20 @@ window.testClear = testClear;
 
 // 레벨 1 튜토리얼 생성 함수
 function createTutorial() {
+    // 기존 튜토리얼 오버레이 제거
+    const existingTutorial = document.getElementById('tutorialOverlay');
+    if (existingTutorial) {
+        existingTutorial.remove();
+    }
+
     // 허용된 타일 초기화
     tutorialAllowedCells = [];
 
     // 튜토리얼 오버레이 생성
     const tutorialOverlay = document.createElement('div');
+    tutorialOverlay.id = 'tutorialOverlay';  // 고유 ID 추가
     tutorialOverlay.classList.add('tutorial-overlay');
-
+    
     // 튜토리얼 컨테이너 생성
     const tutorialContainer = document.createElement('div');
     tutorialContainer.classList.add('tutorial-container');
