@@ -11,6 +11,10 @@ let gameStarted = false;
 // 현재 튜토리얼 허용 타일 목록
 let tutorialAllowedCells = [];
 
+// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
+window.testClear = testClear;
+
+
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('startButton');
@@ -181,10 +185,7 @@ function startGame(levelId = 11) {
     // 영역 오버레이 렌더링
     renderAreaOverlays(puzzle.areas);
     
-    // 튜토리얼 생성 (레벨 1일 경우)
-    if (levelId === 1) {
-        createTutorial();
-    }
+    tutorialOpen(levelId);
     
     // 규칙 위반 체크
     updateViolationDisplay();
@@ -715,9 +716,7 @@ function onload() {
 }
 
 // 게임 클리어 테스트 함수
-function testClear() {
-    console.log('testClear 함수 호출');
-    
+function testClear() {    
     // 팝업 요소 직접 확인
     const gameClearPopup = document.getElementById('gameClearPopup');
     if (!gameClearPopup) {
@@ -727,16 +726,20 @@ function testClear() {
     
     // 강제로 팝업 표시
     gameClearPopup.style.display = 'flex';
-    console.log('팝업 강제 표시');
     
     return true;
 }
 
-// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
-window.testClear = testClear;
+// 튜토리얼 생성 함수 (범용적으로 사용 가능)
+function createTutorial(config = {}) {
 
-// 레벨 1 튜토리얼 생성 함수
-function createTutorial() {
+    // config가 없으면 튜토리얼 발동 안함
+    if (!config) {
+        return null;
+    }
+
+    steps = config.steps;
+
     // 기존 튜토리얼 오버레이 제거
     const existingTutorial = document.getElementById('tutorialOverlay');
     if (existingTutorial) {
@@ -748,7 +751,7 @@ function createTutorial() {
 
     // 튜토리얼 오버레이 생성
     const tutorialOverlay = document.createElement('div');
-    tutorialOverlay.id = 'tutorialOverlay';  // 고유 ID 추가
+    tutorialOverlay.id = 'tutorialOverlay';
     tutorialOverlay.classList.add('tutorial-overlay');
     
     // 튜토리얼 컨테이너 생성
@@ -757,7 +760,7 @@ function createTutorial() {
 
     // 튜토리얼 제목
     const tutorialTitle = document.createElement('h2');
-    tutorialTitle.textContent = '레벨 1 튜토리얼';
+    tutorialTitle.textContent = `레벨 ${config.levelId} 튜토리얼`;
     tutorialContainer.appendChild(tutorialTitle);
 
     // 튜토리얼 텍스트
@@ -773,49 +776,6 @@ function createTutorial() {
 
     tutorialOverlay.appendChild(tutorialContainer);
 
-    // 튜토리얼 단계 정의
-    const tutorialSteps = [
-        {
-            title: 'Tutorial',
-            text: '간단하게 게임 룰을 설명해 드리겠습니다.',
-            highlight: null,
-            condition: null,
-            showNextButton: true
-        },
-        {
-            title: 'step 1',
-            text: '하이라이트 된 타일을 선택해서 타일의 색을 바꿀 수 있습니다. 흰색 타일을 눌러 회색으로 바꾸어 보시기 바랍니다.',
-            highlight: {
-                type: 'mixed',
-                cells: [
-                    {row: 2, col: 1}
-                ]
-            },
-            condition: {
-                row: 2,
-                col: 1,
-                expectedState: 1 // 회색(1)으로 변경
-            },
-            showNextButton: false
-        },
-        {
-            title: 'step 2',
-            text: '이번에는 우측에 있는 회색 타일을 눌러 흰색으로 바꾸어 보시기 바랍니다.',
-            highlight: {
-                type: 'mixed',
-                cells: [
-                    {row: 2, col: 3}
-                ]
-            },
-            condition: {
-                row: 2,
-                col: 1,
-                expectedState: 0 // 흰색(0)으로 변경
-            },
-            showNextButton: false
-        }
-    ];
-
     let currentStep = 0;
 
     function updateTutorialStep() {
@@ -828,50 +788,68 @@ function createTutorial() {
         });
 
         // 현재 단계의 정보로 업데이트
-        tutorialTitle.textContent = tutorialSteps[currentStep].title;
-        tutorialText.textContent = tutorialSteps[currentStep].text;
+        tutorialTitle.textContent = steps[currentStep].title;
+        tutorialText.innerHTML = steps[currentStep].text;
 
         // 하이라이트 로직
-        if (tutorialSteps[currentStep].highlight) {
+        if (steps[currentStep].highlight) {
             const gameBoardCells = document.querySelectorAll('.cell');
             
-            if (tutorialSteps[currentStep].highlight.type === 'mixed') {
-                tutorialSteps[currentStep].highlight.cells.forEach(({row, col}) => {
-                    const cell = Array.from(gameBoardCells).find(
-                        cell => 
-                            parseInt(cell.getAttribute('data-row')) === row && 
-                            parseInt(cell.getAttribute('data-col')) === col
-                    );
-                    
-                    if (cell) {
-                        cell.classList.add('tutorial-highlight');
-                        tutorialAllowedCells.push({ row, col });
-                    }
-                });
-            }
+            steps[currentStep].highlight.cells.forEach(({row, col}) => {
+                const cell = Array.from(gameBoardCells).find(
+                    cell => 
+                        parseInt(cell.getAttribute('data-row')) === row && 
+                        parseInt(cell.getAttribute('data-col')) === col
+                );
+                
+                if (cell) {
+                    cell.classList.add('tutorial-highlight');
+                    tutorialAllowedCells.push({ row, col });
+                }
+            });
         }
 
         // 다음 버튼 표시/숨김 처리
-        nextButton.style.display = tutorialSteps[currentStep].showNextButton ? 'block' : 'none';
+        nextButton.style.display = steps[currentStep].showNextButton ? 'block' : 'none';
 
         // 다음 버튼 텍스트 업데이트
-        nextButton.textContent = currentStep === tutorialSteps.length - 1 ? '시작하기' : '다음';
+        nextButton.textContent = currentStep === steps.length - 1 ? '시작하기' : '다음';
     }
 
     // 타일 조작 조건 확인 함수
     function checkTutorialStepCondition(row, col, state) {
-        const currentStepCondition = tutorialSteps[currentStep].condition;
+        // 튜토리얼 오버레이가 존재하는지 확인
+        const tutorialOverlay = document.getElementById('tutorialOverlay');
+        if (!tutorialOverlay) return false;
+
+        // 현재 단계의 조건 확인
+        const currentStepCondition = steps[currentStep].condition;
         
-        if (!currentStepCondition) return false;
+        // 조건이 없으면 true 반환 (다음 단계로 진행)
+        if (!currentStepCondition) return true;
         
-        return (
-            currentStepCondition.row === row && 
-            currentStepCondition.col === col && 
-            currentStepCondition.expectedState === state
-        );
+        // 단일 조건일 경우
+        if (currentStepCondition.row !== undefined) {
+            return (
+                currentStepCondition.row === row &&
+                currentStepCondition.col === col &&
+                currentStepCondition.expectedState === state
+            );
+        }
+        
+        // 다중 조건일 경우
+        if (currentStepCondition.conditions) {
+            return currentStepCondition.conditions.some(condition => 
+                condition.row === row &&
+                condition.col === col &&
+                condition.expectedState === state
+            );
+        }
+        
+        return false;
     }
 
-    // 타일 클릭 이벤트 리스너 수정
+    // 타일 클릭 이벤트 리스너
     function handleTutorialCellClick(event) {
         const clickedCell = event.target.closest('.cell');
         if (!clickedCell) return;
@@ -882,33 +860,206 @@ function createTutorial() {
 
         // 현재 단계의 조건 확인
         if (checkTutorialStepCondition(row, col, state)) {
-            // 다음 단계로 진행
-            if (currentStep < tutorialSteps.length - 1) {
-                currentStep++;
-                updateTutorialStep();
-            } else {
-                // 튜토리얼 종료
+            currentStep++;
+            
+            if (currentStep >= steps.length) {
+                // 튜토리얼 완료
                 tutorialOverlay.remove();
-                document.removeEventListener('click', handleTutorialCellClick);
+                return;
             }
+            
+            updateTutorialStep();
         }
     }
 
-    // 다음 버튼 이벤트 리스너
+    // 다음 버튼 클릭 이벤트
     nextButton.addEventListener('click', () => {
-        if (currentStep < tutorialSteps.length - 1) {
-            currentStep++;
-            updateTutorialStep();
-        } else {
-            // 튜토리얼 종료
+        currentStep++;
+        
+        if (currentStep >= steps.length) {
+            // 튜토리얼 완료
             tutorialOverlay.remove();
+            return;
         }
+        
+        updateTutorialStep();
     });
 
-    // 클릭 이벤트 리스너 추가
+    // 초기 단계 설정
+    updateTutorialStep();
+
+    // 이벤트 리스너 추가
     document.addEventListener('click', handleTutorialCellClick);
 
-    // 초기 설정
-    updateTutorialStep();
+    // DOM에 추가
     document.body.appendChild(tutorialOverlay);
+
+    return {
+        close: () => {
+            tutorialOverlay.remove();
+            document.removeEventListener('click', handleTutorialCellClick);
+        }
+    };
+}
+
+// 레벨 1 기본 튜토리얼 함수
+function tutorialOpen(levelId) {
+    if(levelId === 1) {
+        createTutorial({
+            levelId: 1,
+            steps: [
+                {
+                    title: 'Tutorial',
+                    text: '간단하게 게임 룰을 설명해 드리겠습니다.',
+                    highlight: {
+                        cells: []
+                    },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'step 1',
+                    text: '하이라이트 된 타일을 선택해서 타일의 색을 바꿀 수 있습니다. 흰색 타일을 눌러 회색으로 바꾸어 보시기 바랍니다.',
+                    highlight: {
+                        cells: [
+                            {row: 2, col: 1}
+                        ]
+                    },
+                    condition: {
+                        row: 2,
+                        col: 1,
+                        expectedState: 1 // 회색(1)으로 변경
+                    },
+                    showNextButton: false
+                },
+                {
+                    title: 'step 2',
+                    text: '이번에는 우측에 있는 회색 타일을 눌러 흰색으로 바꾸어 보시기 바랍니다.',
+                    highlight: {
+                        cells: [
+                            {row: 2, col: 3}
+                        ]
+                    },
+                    condition: {
+                        row: 2,
+                        col: 1,
+                        expectedState: 0 // 흰색(0)으로 변경
+                    },
+                    showNextButton: false
+                }
+            ]
+        });
+    }else if(levelId === 2) {
+        createTutorial({
+            levelId: 2,
+            steps: [
+                {
+                    title: 'Tutorial',
+                    text: 'AQRE의 첫번째 규칙입니다. <br> 가로든 세로든 4개 이상의 같은 색의 타일이 연속되서는 안됩니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'step 1',
+                    text: '현재 표시된 타일을 보면 세로로 4개 이상의 타일이 같은 색임을 알 수 있습니다.',
+                    highlight: {
+                        cells: [
+                            {row: 0, col: 0},
+                            {row: 1, col: 0},
+                            {row: 2, col: 0},
+                            {row: 3, col: 0}
+                        ]
+                    },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'step 2',
+                    text: '표시된 타일을 전환해 흰색으로 바꾸어 규칙을 지키세요.',
+                    highlight: {
+                        cells: [
+                            {row: 3, col: 0}
+                        ]
+                    },
+                    condition: {
+                        row: 3,
+                        col: 0,
+                        expectedState: 0 
+                    },
+                    showNextButton: false
+                },
+                {
+                    title: 'step 3',
+                    text: '여기도 흰색 타일이 4개 이상 연속되고 있습니다.',
+                    highlight: {
+                        cells: [
+                            {row: 0, col: 1},
+                            {row: 0, col: 2},
+                            {row: 0, col: 3},
+                            {row: 0, col: 4}
+                        ]
+                    },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'step 4',
+                    text: '이 타일도 전환해서 규칙을 지키세요.',
+                    highlight: {
+                        cells: [
+                            {row: 0, col: 1}
+                        ]
+                    },
+                    condition: {
+                        row: 0,
+                        col: 1,
+                        expectedState: 1 
+                    },
+                    showNextButton: false
+                }
+            ]
+        });
+    }else if(levelId === 3) {
+        createTutorial({
+            levelId: 3,
+            steps: [
+                {
+                    title: 'Tutorial',
+                    text: 'AQRE의 두번째 규칙입니다.<br>맵을 보면 각 타일은 특정 영역에 포함되어 있습니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'step 1',
+                    text: '또한 표시된 영역에는 숫자가 적혀 있습니다.<br> 그 숫자에 맞추어 해당 영역을 회색 블럭으로 바꾸세요.',
+                    highlight: {
+                        cells: [
+                            {row: 1, col: 2},
+                            {row: 2, col: 2},
+                            {row: 3, col: 2}
+                        ]
+                    },
+                    condition: {
+                        conditions: [
+                            { row: 3, col: 0, expectedState: 1 },
+                            { row: 3, col: 1, expectedState: 1 },
+                            { row: 3, col: 2, expectedState: 1 }
+                        ]
+                    },
+                    showNextButton: false
+                },
+                {
+                    title: 'step 2',
+                    text: '좋습니다.<br>이제 나머지 영역도 다 칠해보실까요?<br>앞에서 배운 규칙 잊지 마시고요.',
+                    highlight: {
+                        cells: []
+                    },
+                    condition: null,
+                    showNextButton: true
+                }
+            ]
+        });
+    }
 }

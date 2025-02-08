@@ -233,19 +233,19 @@ body {
 }
 
 .cell.area-boundary[data-border-top="true"] {
-    border-top: 2px solid blue;  /* 파랑색으로 변경 */
+    border-top: 5px solid deepskyblue;
 }
 
 .cell.area-boundary[data-border-bottom="true"] {
-    border-bottom: 2px solid blue;  /* 파랑색으로 변경 */
+    border-bottom: 5px solid deepskyblue;
 }
 
 .cell.area-boundary[data-border-left="true"] {
-    border-left: 2px solid blue;  /* 파랑색으로 변경 */
+    border-left: 5px solid deepskyblue;
 }
 
 .cell.area-boundary[data-border-right="true"] {
-    border-right: 2px solid blue;  /* 파랑색으로 변경 */
+    border-right: 5px solid deepskyblue;
 }
 
 .cell {
@@ -253,7 +253,11 @@ body {
 }
 
 .area-overlay {
+    border: none;
+    border-radius: 10px;
+    pointer-events: none;
     position: absolute;
+    z-index: 1;
     top: 2px;
     left: 2px;
     background-color: rgba(0, 0, 0, 0.7);
@@ -261,10 +265,7 @@ body {
     font-size: 12px;
     font-weight: bold;
     padding: 3px;
-    border-radius: 4px;
-    z-index: 10;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    pointer-events: none;
     user-select: none;
 }
 
@@ -877,6 +878,8 @@ body {
     color: #b0b0b0;
     line-height: 1.7;
     font-size: 1.1em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .tutorial-next-button {
@@ -903,19 +906,32 @@ body {
 
 /* 튜토리얼 하이라이트 스타일 추가 */
 .tutorial-highlight {
-    border: 3px solid #FFD700 !important;
-    box-shadow: 0 0 10px #FFD700;
-    animation: pulse 1.2s infinite;
+    position: relative;
+    z-index: 10;
 }
 
-@keyframes pulse {
-    0%, 100% { 
-        transform: scale(1); 
-        opacity: 0.7;
+.tutorial-highlight::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border: 4px solid #FFD700;
+    border-radius: 15px;
+    animation: tutorial-pulse 1.2s infinite alternate;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes tutorial-pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.6;
     }
-    50% { 
-        transform: scale(1.05); 
-        opacity: 1;
+    100% {
+        transform: scale(1.1);
+        opacity: 0.9;
     }
 }
 
