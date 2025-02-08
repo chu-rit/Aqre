@@ -822,6 +822,11 @@ function createTutorial(config = {}) {
         const tutorialOverlay = document.getElementById('tutorialOverlay');
         if (!tutorialOverlay) return false;
 
+        // steps 배열과 현재 단계가 존재하는지 확인
+        if (!steps || steps.length === 0 || currentStep === undefined || currentStep === null) {
+            return false;
+        }
+
         // 현재 단계의 조건 확인
         const currentStepCondition = steps[currentStep].condition;
         
@@ -1033,7 +1038,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 2',
-                    text: '또한 표시된 영역에는 숫자가 적혀 있습니다.<br> 그 숫자에 맞추어 해당 영역을 회색 블럭으로 바꾸세요.',
+                    text: '또한 표시된 영역에는 숫자가 적혀 있습니다.<br> 그 숫자에 맞추어 때영 영역을 회색 블럭으로 바꾸습니다.',
                     highlight: {
                         cells: [
                             {row: 1, col: 2},
