@@ -759,7 +759,7 @@ function createTutorial(config = {}) {
     tutorialContainer.classList.add('tutorial-container');
 
     // 튜토리얼 제목
-    const tutorialTitle = document.createElement('h2');
+    const tutorialTitle = document.createElement('h3');
     tutorialTitle.textContent = `레벨 ${config.levelId} 튜토리얼`;
     tutorialContainer.appendChild(tutorialTitle);
 
@@ -918,7 +918,7 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'step 1',
+                    title: 'Tutorial',
                     text: '하이라이트 된 타일을 선택해서 타일의 색을 바꿀 수 있습니다. 흰색 타일을 눌러 회색으로 바꾸어 보시기 바랍니다.',
                     highlight: {
                         cells: [
@@ -933,7 +933,7 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'step 2',
+                    title: 'Tutorial',
                     text: '이번에는 우측에 있는 회색 타일을 눌러 흰색으로 바꾸어 보시기 바랍니다.',
                     highlight: {
                         cells: [
@@ -954,14 +954,14 @@ function tutorialOpen(levelId) {
             levelId: 2,
             steps: [
                 {
-                    title: 'Tutorial',
+                    title: 'Rule 1',
                     text: 'AQRE의 첫번째 규칙입니다. <br> 가로든 세로든 4개 이상의 같은 색의 타일이 연속되서는 안됩니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'step 1',
+                    title: 'Rule 1',
                     text: '현재 표시된 타일을 보면 세로로 4개 이상의 타일이 같은 색임을 알 수 있습니다.',
                     highlight: {
                         cells: [
@@ -975,7 +975,7 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'step 2',
+                    title: 'Rule 1',
                     text: '표시된 타일을 전환해 흰색으로 바꾸어 규칙을 지키세요.',
                     highlight: {
                         cells: [
@@ -990,7 +990,7 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'step 3',
+                    title: 'Rule 1',
                     text: '여기도 흰색 타일이 4개 이상 연속되고 있습니다.',
                     highlight: {
                         cells: [
@@ -1004,7 +1004,7 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'step 4',
+                    title: 'Rule 1',
                     text: '이 타일도 전환해서 규칙을 지키세요.',
                     highlight: {
                         cells: [
@@ -1025,14 +1025,14 @@ function tutorialOpen(levelId) {
             levelId: 3,
             steps: [
                 {
-                    title: 'Tutorial',
+                    title: 'Rule 2',
                     text: 'AQRE의 두번째 규칙입니다.<br>맵을 보면 각 타일은 특정 영역에 포함되어 있습니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'step 1',
+                    title: 'Rule 2',
                     text: '또한 표시된 영역에는 숫자가 적혀 있습니다.<br> 그 숫자에 맞추어 해당 영역을 회색 블럭으로 바꾸세요.',
                     highlight: {
                         cells: [
@@ -1051,11 +1051,60 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'step 2',
+                    title: 'Rule 2',
                     text: '좋습니다.<br>이제 나머지 영역도 다 칠해보실까요?<br>앞에서 배운 규칙 잊지 마시고요.',
                     highlight: {
                         cells: []
                     },
+                    condition: null,
+                    showNextButton: true
+                }
+            ]
+        });
+    }else if(levelId === 4) {
+        createTutorial({
+            levelId: 4,
+            steps: [
+                {
+                    title: 'Rule 3',
+                    text: '벌써 마지막 세번째 규칙입니다.<br>회색 타일은 가로나 세로로 연결되어 있어야 합니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Rule 3',
+                    text: '앞서 배운 규칙에 따라 색칠한 영역들을 연결해 보세요.',
+                    highlight: {
+                        cells: []
+                    },
+                    condition: null,
+                    showNextButton: true
+                }
+            ]
+        });   
+    }else if(levelId === 5) {
+        createTutorial({
+            levelId: 5,
+            steps: [
+                {
+                    title: 'Tutorial',
+                    text: '이제 모든 규칙을 배웠습니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Tutorial',
+                    text: '참고로 우측 위의 버튼을 사용하면 게임을 원상태로 되돌릴 수 있습니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Tutorial',
+                    text: '즐거운 게임 되시길 바랍니다.',
+                    highlight: null,
                     condition: null,
                     showNextButton: true
                 }

@@ -873,6 +873,12 @@ body {
     letter-spacing: 1px;
 }
 
+.tutorial-container h3 {
+    color: #4CAF50;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
 .tutorial-text {
     margin-bottom: 25px;
     color: #b0b0b0;
@@ -880,6 +886,7 @@ body {
     font-size: 1.1em;
     white-space: pre-wrap;
     word-wrap: break-word;
+    text-align: left;
 }
 
 .tutorial-next-button {
