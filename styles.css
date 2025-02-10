@@ -1210,3 +1210,36 @@ body {
     color: rgba(255, 255, 255, 0.7);
     margin: 0;
 }
+
+.violation-highlight {
+    background-color: rgba(255, 220, 180, 1) !important;
+}
+
+#violation-list li {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left: 4px solid #F44336;
+    border-radius: 5px;
+    padding: 10px;
+    color: white;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+#violation-list li:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#violation-list li.area-violation {
+    border-left-color: #4ecdc4;
+}
+
+#violation-list li.color-violation {
+    border-left-color: #ff6b6b;
+}
+
+#violation-list li.no-violation {
+    color: #4ecdc4;
+    border-left-color: #4ecdc4;
+    text-align: center;
+    font-weight: 500;
+}

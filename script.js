@@ -616,6 +616,9 @@ function handleViolationItemLeave() {
     // 모든 하이라이트 제거
     document.querySelectorAll('.cell').forEach(cell => {
         cell.classList.remove('tutorial-highlight');
+        cell.classList.remove('violation-highlight');
+        cell.classList.remove('with-z-index');
+        cell.style.zIndex = ''; // z-index 초기화
     });
 }
 
@@ -648,6 +651,25 @@ function handleViolationItemClick(event) {
             cell.classList.add('tutorial-highlight');
             cell.classList.add('violation-highlight');
         }
+    });
+}
+
+function handleViolationItemClick(event) {
+    const violationIndex = event.target.dataset.violationIndex;
+    const violationCells = JSON.parse(event.target.dataset.violationCells || '[]');
+    
+    violationCells.forEach(({row, col}) => {
+        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+            cell.classList.add('violation-highlight');
+        }
+    });
+}
+
+function handleViolationItemLeave() {
+    const highlightedCells = document.querySelectorAll('.violation-highlight');
+    highlightedCells.forEach(cell => {
+        cell.classList.remove('violation-highlight');
     });
 }
 
