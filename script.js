@@ -2,6 +2,9 @@
 const BOARD_SIZE = 6;
 const COLOR_STATES = ['white', 'gray'];
 
+// 베이스 URL 설정 (GitHub Pages 또는 로컬)
+const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
+
 // 퍼즐 데이터 
 let currentLevel = 0;
 let gameBoard = [];
@@ -14,13 +17,10 @@ let tutorialAllowedCells = [];
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
 
-
-// 이벤트 리스너 설정
-document.addEventListener('DOMContentLoaded', () => {
-    // 앱 버전 동적 설정
-    const appVersionElement = document.getElementById('appVersion');
-    if (appVersionElement && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/Aqre/service-worker.js')
+// Service Worker 등록 함수
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register(`${BASE_URL}/service-worker.js`)
             .then(registration => {
                 // Service Worker가 활성화될 때까지 대기
                 if (registration.active) {
@@ -35,18 +35,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Service Worker 등록 실패:', error);
             });
     }
+}
 
-    function requestVersion(registration) {
-        const channel = new MessageChannel();
-        channel.port1.onmessage = (event) => {
-            if (event.data.type === 'VERSION_INFO') {
+// 앱 버전 요청 함수
+function requestVersion(registration) {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (event) => {
+        if (event.data.type === 'VERSION_INFO') {
+            const appVersionElement = document.getElementById('appVersion');
+            if (appVersionElement) {
                 appVersionElement.textContent = `v${event.data.version}`;
             }
-        };
-        
-        registration.active.postMessage({
-            type: 'GET_VERSION'
-        }, [channel.port2]);
+        }
+    };
+    
+    registration.active.postMessage({
+        type: 'GET_VERSION'
+    }, [channel.port2]);
+}
+
+// 이벤트 리스너 설정
+document.addEventListener('DOMContentLoaded', () => {
+    // 앱 버전 동적 설정
+    const appVersionElement = document.getElementById('appVersion');
+    if (appVersionElement && 'serviceWorker' in navigator) {
+        registerServiceWorker();
     }
 
     const startButton = document.getElementById('startButton');

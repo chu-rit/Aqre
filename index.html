@@ -6,12 +6,45 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="mobile-web-app-capable" content="yes">
     
-    <link rel="manifest" href="/Aqre/manifest.json">
-    <link rel="apple-touch-icon" href="/Aqre/icons/icon-192x192.png">
-    <link rel="icon" href="/Aqre/icons/icon-192x192.png">
+    <script>
+        // 화면 회전 감지 및 처리
+        function handleOrientation() {
+            if (window.orientation === 90 || window.orientation === -90) {
+                document.body.style.opacity = '0';
+                alert('이 게임은 세로 모드에서만 플레이할 수 있습니다.\n화면을 세로로 돌려주세요.');
+            } else {
+                document.body.style.opacity = '1';
+            }
+        }
+
+        // 화면 회전 이벤트 리스너 등록
+        window.addEventListener('orientationchange', handleOrientation);
+        window.addEventListener('load', handleOrientation);
+        
+        // 베이스 URL 설정
+        const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
+        
+        // 동적으로 리소스 경로 설정
+        function setResourcePaths() {
+            const resources = document.querySelectorAll('link[data-dynamic-path], script[data-dynamic-path]');
+            resources.forEach(resource => {
+                const path = resource.getAttribute('href') || resource.getAttribute('src');
+                if (resource.getAttribute('href')) {
+                    resource.setAttribute('href', `${BASE_URL}${path}`);
+                } else {
+                    resource.setAttribute('src', `${BASE_URL}${path}`);
+                }
+            });
+        }
+    </script>
     
-    <link rel="stylesheet" href="/Aqre/styles.css">
+    <link rel="manifest" href="manifest.json" data-dynamic-path>
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png" data-dynamic-path>
+    <link rel="icon" href="icons/icon-192x192.png" data-dynamic-path>
+    <link rel="stylesheet" href="styles.css" data-dynamic-path>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <title>Aqre Puzzle Game</title>
 </head>
@@ -100,13 +133,13 @@
         </div>
     </div>
 
-    <script src="/Aqre/puzzles.js"></script>
-    <script src="/Aqre/script.js"></script>
+    <script src="puzzles.js" data-dynamic-path></script>
+    <script src="script.js" data-dynamic-path></script>
     <script>
         // PWA Service Worker 등록
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/Aqre/service-worker.js')
+                navigator.serviceWorker.register('service-worker.js')
                     .then((registration) => {
                         console.log('Service Worker 등록 성공:', registration.scope);
 
@@ -132,6 +165,10 @@
                     });
             });
         }
+    </script>
+    <script>
+        // 페이지 로드 시 리소스 경로 설정
+        window.addEventListener('DOMContentLoaded', setResourcePaths);
     </script>
 </body>
 </html>

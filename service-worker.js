@@ -1,14 +1,18 @@
 const APP_VERSION = '1.0.02'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
+
+// 베이스 URL 설정
+const BASE_URL = self.location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
+
 const urlsToCache = [
-    '/Aqre/',
-    '/Aqre/index.html',
-    '/Aqre/script.js',
-    '/Aqre/puzzles.js',
-    '/Aqre/styles.css',
-    '/Aqre/manifest.json',
-    '/Aqre/icons/icon-192x192.png',
-    '/Aqre/icons/icon-512x512.png'
+    `${BASE_URL}/`,
+    `${BASE_URL}/index.html`,
+    `${BASE_URL}/script.js`,
+    `${BASE_URL}/puzzles.js`,
+    `${BASE_URL}/styles.css`,
+    `${BASE_URL}/manifest.json`,
+    `${BASE_URL}/icons/icon-192x192.png`,
+    `${BASE_URL}/icons/icon-512x512.png`
 ];
 
 self.addEventListener('install', (event) => {

@@ -1260,3 +1260,29 @@ body {
         max-width: 500px;
     }
 }
+
+/* 가로 모드 제한 */
+@media screen and (orientation: landscape) {
+    body::before {
+        content: "이 게임은 세로 모드에서만 플레이할 수 있습니다.\A화면을 세로로 돌려주세요.";
+        white-space: pre;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #000;
+        color: #fff;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-size: 1.2em;
+        padding: 20px;
+    }
+
+    body > * {
+        display: none !important;
+    }
+}
