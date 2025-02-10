@@ -139,29 +139,12 @@
         // PWA Service Worker 등록
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
+                navigator.serviceWorker.register(`${BASE_URL}/service-worker.js`)
                     .then((registration) => {
                         console.log('Service Worker 등록 성공:', registration.scope);
-
-                        // 새로운 서비스 워커 감지 및 업데이트
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed') {
-                                    if (navigator.serviceWorker.controller) {
-                                        // 새로운 서비스 워커가 대기 중
-                                        if (confirm('새로운 버전의 앱이 사용 가능합니다. 지금 업데이트하시겠습니까?')) {
-                                            newWorker.postMessage('skipWaiting');
-                                            window.location.reload();
-                                        }
-                                    }
-                                }
-                            });
-                        });
                     })
                     .catch((error) => {
-                        console.log('Service Worker 등록 실패:', error);
+                        console.error('Service Worker 등록 실패:', error);
                     });
             });
         }

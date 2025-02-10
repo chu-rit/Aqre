@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.02'; // 앱 버전 명시
+const APP_VERSION = '1.0.03'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 
 // 베이스 URL 설정
