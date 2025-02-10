@@ -979,6 +979,14 @@ function createTutorial(config = {}) {
         
         // 다중 조건일 경우
         if (currentStepCondition.conditions) {
+            // ALL_GRAY 타입 처리
+            if (currentStepCondition.type === 'ALL_GRAY') {
+                return currentStepCondition.conditions.every(condition => 
+                    gameBoard[condition.row][condition.col] === 1
+                );
+            }
+            
+            // 기본 다중 조건 처리
             return currentStepCondition.conditions.some(condition => 
                 condition.row === row &&
                 condition.col === col &&
@@ -1004,6 +1012,11 @@ function createTutorial(config = {}) {
             
             if (currentStep >= steps.length) {
                 // 튜토리얼 완료
+                // 하이라이트된 모든 셀의 하이라이트 제거
+                document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {
+                    cell.classList.remove('tutorial-highlight');
+                });
+                
                 tutorialOverlay.remove();
                 return;
             }
@@ -1018,6 +1031,11 @@ function createTutorial(config = {}) {
         
         if (currentStep >= steps.length) {
             // 튜토리얼 완료
+            // 하이라이트된 모든 셀의 하이라이트 제거
+            document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {
+                cell.classList.remove('tutorial-highlight');
+            });
+            
             tutorialOverlay.remove();
             return;
         }
@@ -1182,6 +1200,7 @@ function tutorialOpen(levelId) {
                         ]
                     },
                     condition: {
+                        type: 'ALL_GRAY',
                         conditions: [
                             { row: 1, col: 2, expectedState: 1 },
                             { row: 2, col: 2, expectedState: 1 },
