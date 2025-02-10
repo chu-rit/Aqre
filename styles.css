@@ -834,17 +834,17 @@ body {
 
 /* 튜토리얼 스타일 */
 .tutorial-overlay {
+    z-index: 10;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
     padding-top: 100%;
-    pointer-events: none; /* 마우스 클릭 이벤트 방지 */
 }
 
 .tutorial-overlay .tutorial-container {
@@ -914,7 +914,10 @@ body {
 /* 튜토리얼 하이라이트 스타일 추가 */
 .tutorial-highlight {
     position: relative;
-    z-index: 10;
+}
+
+.tutorial-highlight.with-z-index {
+    z-index: 12 !important;
 }
 
 .tutorial-highlight::before {
@@ -928,7 +931,6 @@ body {
     border-radius: 15px;
     animation: tutorial-pulse 1.2s infinite alternate;
     pointer-events: none;
-    z-index: -1;
 }
 
 @keyframes tutorial-pulse {

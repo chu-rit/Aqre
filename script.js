@@ -785,6 +785,8 @@ function createTutorial(config = {}) {
         // 이전 하이라이트 제거
         document.querySelectorAll('.tutorial-highlight').forEach(el => {
             el.classList.remove('tutorial-highlight');
+            el.classList.remove('with-z-index');
+            el.style.zIndex = ''; // z-index 초기화
         });
 
         // 현재 단계의 정보로 업데이트
@@ -803,6 +805,10 @@ function createTutorial(config = {}) {
                 );
                 
                 if (cell) {
+                    // showNextButton이 false일 때만 z-index 클래스 추가
+                    if (steps[currentStep].highlight.cells.length > 0 && !steps[currentStep].showNextButton) {
+                        cell.classList.add('with-z-index');
+                    }
                     cell.classList.add('tutorial-highlight');
                     tutorialAllowedCells.push({ row, col });
                 }
@@ -960,7 +966,7 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 1',
-                    text: 'AQRE의 첫번째 규칙입니다. <br> 가로든 세로든 4개 이상의 같은 색의 타일이 연속되서는 안됩니다.',
+                    text: 'AQRE의 첫번째은 가로든 세로든 4개 이상의 같은 색의 타일이 연속되지 않게 하는 것입니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
@@ -996,7 +1002,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 1',
-                    text: '여기도 흰색 타일이 4개 이상 연속되고 있습니다.',
+                    text: '이 규칙은 흰색에도 적용됩니다. <br> 여기 흰색 타일이 4개 이상 연속되고 있습니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 1},
@@ -1010,7 +1016,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 1',
-                    text: '이 타일도 전환해서 규칙을 지키세요.',
+                    text: '이 타일도 전환해 규칙을 지키도록 해볼까요?',
                     highlight: {
                         cells: [
                             {row: 0, col: 1}
@@ -1031,14 +1037,14 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 2',
-                    text: 'AQRE의 두번째 규칙입니다.<br>맵을 보면 각 타일은 특정 영역에 포함되어 있습니다.',
+                    text: 'AQRE의 두번째 규칙은 각 영역에 적혀있는 숫자만큼 회색으로 바꾸는 것입니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Rule 2',
-                    text: '또한 표시된 영역에는 숫자가 적혀 있습니다.<br> 그 숫자에 맞추어 때영 영역을 회색 블럭으로 바꾸습니다.',
+                    text: '맵을 보시면 하늘색으로 타일 3개를 감싸서 영역을 표시하고 있고 숫자 3이 쓰여져 있습니다.<br> 그에 맞추어 3개의 타일을 회색으로 바꾸어 보실까요?',
                     highlight: {
                         cells: [
                             {row: 1, col: 2},
@@ -1057,7 +1063,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 2',
-                    text: '좋습니다.<br>이제 나머지 영역도 다 칠해보실까요?<br>앞에서 배운 규칙 잊지 마시고요.',
+                    text: '좋습니다.<br>이제 같은 색으로 4개 연속되면 안된다는 규칙을 지키면서 나머지 영역도 숫자에 맞추어 바꾸어보세요.',
                     highlight: {
                         cells: []
                     },
@@ -1072,16 +1078,25 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 3',
-                    text: '벌써 마지막 세번째 규칙입니다.<br>회색 타일은 가로나 세로로 연결되어 있어야 합니다.',
+                    text: '마지막 세번째 규칙은 회색 타일은 가로나 세로로 연결되어 맵 전체에 하나만 있어야 합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Rule 3',
-                    text: '앞서 배운 규칙에 따라 색칠한 영역들을 연결해 보세요.',
+                    text: '현재는 표시된 대로 회색 타일은 4개로 되어 있습니다. 하나가 되도록 연결하세요.',
                     highlight: {
-                        cells: []
+                        cells: [
+                            {row: 0, col: 0},
+                            {row: 1, col: 0},
+                            {row: 0, col: 2},
+                            {row: 1, col: 2},
+                            {row: 2, col: 1},
+                            {row: 3, col: 1},
+                            {row: 2, col: 3},
+                            {row: 3, col: 3},
+                        ]
                     },
                     condition: null,
                     showNextButton: true
