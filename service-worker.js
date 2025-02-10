@@ -8,10 +8,7 @@ const urlsToCache = [
     '/Aqre/styles.css',
     '/Aqre/manifest.json',
     '/Aqre/icons/icon-192x192.png',
-    '/Aqre/icons/icon-512x512.png',
-    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap',
-    'https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff2',
-    'https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2'
+    '/Aqre/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -19,10 +16,15 @@ self.addEventListener('install', (event) => {
         caches.open(CACHE_NAME)
             .then((cache) => {
                 console.log(`Cache opened: ${CACHE_NAME}`);
-                return cache.addAll(urlsToCache);
+                return Promise.all(
+                    urlsToCache.map(url => {
+                        return cache.add(url).catch(err => {
+                            console.error(`Failed to cache ${url}:`, err);
+                        });
+                    })
+                );
             })
             .then(() => {
-                // 새로운 서비스 워커 즉시 활성화
                 return self.skipWaiting();
             })
     );
@@ -33,50 +35,19 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    // 현재 버전과 다른 캐시 삭제
                     if (cacheName !== CACHE_NAME) {
                         console.log(`Deleting old cache: ${cacheName}`);
                         return caches.delete(cacheName);
                     }
-                }).filter(Boolean) // null 값 제거
+                }).filter(Boolean)
             );
         }).then(() => {
-            // 모든 열린 페이지의 서비스 워커 즉시 제어
             return self.clients.claim();
         })
     );
 });
 
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // 캐시에 있으면 캐시 응답 반환
-                if (response) {
-                    return response;
-                }
-
-                // 네트워크 요청
-                return fetch(event.request).then((response) => {
-                    // 유효한 응답만 캐시
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-
-                    // 응답 복제 후 캐시
-                    const responseToCache = response.clone();
-                    caches.open(CACHE_NAME)
-                        .then((cache) => {
-                            cache.put(event.request, responseToCache);
-                        });
-
-                    return response;
-                });
-            })
-    );
-});
-
-// 버전 정보 요청에 대한 메시지 핸들러 추가
+// 버전 정보 요청에 대한 메시지 핸들러
 self.addEventListener('message', (event) => {
     if (event.data.type === 'GET_VERSION') {
         event.ports[0].postMessage({
@@ -84,4 +55,34 @@ self.addEventListener('message', (event) => {
             version: APP_VERSION
         });
     }
+});
+
+// 네트워크 요청 처리
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+                // 캐시에 있으면 캐시된 응답 반환
+                if (response) {
+                    return response;
+                }
+
+                // 캐시에 없으면 네트워크 요청
+                return fetch(event.request).then(response => {
+                    // 유효한 응답이 아니면 그대로 반환
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                        return response;
+                    }
+
+                    // 응답을 복제하여 캐시에 저장
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            cache.put(event.request, responseToCache);
+                        });
+
+                    return response;
+                });
+            })
+    );
 });
