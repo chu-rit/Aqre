@@ -4,10 +4,14 @@ const urlsToCache = [
     '/Aqre/',
     '/Aqre/index.html',
     '/Aqre/script.js',
+    '/Aqre/puzzles.js',
     '/Aqre/styles.css',
     '/Aqre/manifest.json',
     '/Aqre/icons/icon-192x192.png',
-    '/Aqre/icons/icon-512x512.png'
+    '/Aqre/icons/icon-512x512.png',
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap',
+    'https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff2',
+    'https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2'
 ];
 
 self.addEventListener('install', (event) => {
