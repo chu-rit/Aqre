@@ -2,50 +2,19 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=portrait">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="screen-orientation" content="portrait">
     <meta name="mobile-web-app-capable" content="yes">
-    
-    <script>
-        // 베이스 URL 설정
-        const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : 
-                        location.hostname === '127.0.0.1' ? '' : '';
-        
-        // 리소스 URL 생성 함수
-        function getResourceUrl(path) {
-            return path.startsWith('http') ? path : `${BASE_URL}/${path.replace(/^\//, '')}`;
-        }
-
-        // 화면 회전 감지 및 처리
-        function handleOrientation() {
-            if (window.orientation === 90 || window.orientation === -90) {
-                document.body.style.opacity = '0';
-                alert('이 게임은 세로 모드에서만 플레이할 수 있습니다.\n화면을 세로로 돌려주세요.');
-            } else {
-                document.body.style.opacity = '1';
-            }
-        }
-
-        // 화면 회전 이벤트 리스너 등록
-        window.addEventListener('orientationchange', handleOrientation);
-        window.addEventListener('load', handleOrientation);
-    </script>
+    <meta http-equiv="ScreenOrientation" content="autoLock:portrait">
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="icon" href="icons/icon-192x192.png">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    
-    <script>
-        // 동적으로 리소스 경로 설정
-        document.querySelectorAll('link[href]:not([href^="http"])').forEach(link => {
-            link.href = getResourceUrl(link.getAttribute('href'));
-        });
-    </script>
     
     <title>Aqre Puzzle Game</title>
 </head>
@@ -136,24 +105,5 @@
 
     <script src="puzzles.js"></script>
     <script src="script.js"></script>
-    <script>
-        // 스크립트 리소스 경로 설정
-        document.querySelectorAll('script[src]:not([src^="http"])').forEach(script => {
-            script.src = getResourceUrl(script.getAttribute('src'));
-        });
-
-        // PWA Service Worker 등록
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register(getResourceUrl('/service-worker.js'))
-                    .then((registration) => {
-                        console.log('Service Worker 등록 성공:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.error('Service Worker 등록 실패:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>
