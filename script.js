@@ -17,6 +17,23 @@ window.testClear = testClear;
 
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
+    // 앱 버전 동적 설정
+    const appVersionElement = document.getElementById('appVersion');
+    if (appVersionElement && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+            const channel = new MessageChannel();
+            channel.port1.onmessage = (event) => {
+                if (event.data.type === 'VERSION_INFO') {
+                    appVersionElement.textContent = `v${event.data.version}`;
+                }
+            };
+            
+            registration.active.postMessage({
+                type: 'GET_VERSION'
+            }, [channel.port2]);
+        });
+    }
+
     const startButton = document.getElementById('startButton');
     const optionsButton = document.getElementById('optionsButton');
     const backToStart = document.getElementById('backToStart');

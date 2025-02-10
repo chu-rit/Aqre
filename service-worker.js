@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.01'; // 앱 버전 명시
+const APP_VERSION = '1.0.02'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 const urlsToCache = [
     '/',
@@ -79,6 +79,15 @@ self.addEventListener('message', (event) => {
         event.ports[0].postMessage({
             version: APP_VERSION,
             type: 'VERSION_INFO'
+        });
+    }
+});
+
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GET_VERSION') {
+        event.ports[0].postMessage({
+            type: 'VERSION_INFO',
+            version: APP_VERSION
         });
     }
 });
