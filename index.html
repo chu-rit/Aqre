@@ -15,7 +15,10 @@
         
         // 리소스 URL 생성 함수
         function getResourceUrl(path) {
-            return `${BASE_URL}${path}`;
+            if (path.startsWith('/')) {
+                path = path.substring(1);
+            }
+            return `${BASE_URL}/${path}`;
         }
 
         // 화면 회전 감지 및 처리
@@ -33,10 +36,10 @@
         window.addEventListener('load', handleOrientation);
     </script>
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" href="icons/icon-192x192.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="/Aqre/manifest.json">
+    <link rel="apple-touch-icon" href="/Aqre/icons/icon-192x192.png">
+    <link rel="icon" href="/Aqre/icons/icon-192x192.png">
+    <link rel="stylesheet" href="/Aqre/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     
     <script>
