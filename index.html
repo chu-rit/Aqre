@@ -10,6 +10,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     
     <script>
+        // 베이스 URL 설정
+        const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
+        
+        // 리소스 URL 생성 함수
+        function getResourceUrl(path) {
+            return `${BASE_URL}${path}`;
+        }
+
         // 화면 회전 감지 및 처리
         function handleOrientation() {
             if (window.orientation === 90 || window.orientation === -90) {
@@ -23,29 +31,21 @@
         // 화면 회전 이벤트 리스너 등록
         window.addEventListener('orientationchange', handleOrientation);
         window.addEventListener('load', handleOrientation);
-        
-        // 베이스 URL 설정
-        const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
-        
-        // 동적으로 리소스 경로 설정
-        function setResourcePaths() {
-            const resources = document.querySelectorAll('link[data-dynamic-path], script[data-dynamic-path]');
-            resources.forEach(resource => {
-                const path = resource.getAttribute('href') || resource.getAttribute('src');
-                if (resource.getAttribute('href')) {
-                    resource.setAttribute('href', `${BASE_URL}${path}`);
-                } else {
-                    resource.setAttribute('src', `${BASE_URL}${path}`);
-                }
-            });
-        }
     </script>
     
-    <link rel="manifest" href="manifest.json" data-dynamic-path>
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png" data-dynamic-path>
-    <link rel="icon" href="icons/icon-192x192.png" data-dynamic-path>
-    <link rel="stylesheet" href="styles.css" data-dynamic-path>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="icon" href="icons/icon-192x192.png">
+    <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script>
+        // 동적으로 리소스 경로 설정
+        document.querySelectorAll('link[href]:not([href^="http"])').forEach(link => {
+            link.href = getResourceUrl(link.getAttribute('href'));
+        });
+    </script>
+    
     <title>Aqre Puzzle Game</title>
 </head>
 <body>
@@ -133,13 +133,18 @@
         </div>
     </div>
 
-    <script src="puzzles.js" data-dynamic-path></script>
-    <script src="script.js" data-dynamic-path></script>
+    <script src="puzzles.js"></script>
+    <script src="script.js"></script>
     <script>
+        // 스크립트 리소스 경로 설정
+        document.querySelectorAll('script[src]:not([src^="http"])').forEach(script => {
+            script.src = getResourceUrl(script.getAttribute('src'));
+        });
+
         // PWA Service Worker 등록
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register(`${BASE_URL}/service-worker.js`)
+                navigator.serviceWorker.register(getResourceUrl('/service-worker.js'))
                     .then((registration) => {
                         console.log('Service Worker 등록 성공:', registration.scope);
                     })
@@ -148,10 +153,6 @@
                     });
             });
         }
-    </script>
-    <script>
-        // 페이지 로드 시 리소스 경로 설정
-        window.addEventListener('DOMContentLoaded', setResourcePaths);
     </script>
 </body>
 </html>
