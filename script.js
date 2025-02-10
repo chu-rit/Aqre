@@ -26,6 +26,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
 
+    // 더블 클릭 확대 방지
+    document.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    // 터치 이벤트에서 더블 탭 확대 방지
+    let lastTap = 0;
+    document.addEventListener('touchstart', (e) => {
+        const now = new Date().getTime();
+        const timeSinceLastTap = now - lastTap;
+        
+        if (timeSinceLastTap < 300) {
+            e.preventDefault();
+        }
+        
+        lastTap = now;
+    }, { passive: false });
+
     // 시작 화면 버튼들
     if (startButton) {
         startButton.addEventListener('click', () => {
