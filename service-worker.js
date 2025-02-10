@@ -72,19 +72,9 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// 업데이트 알림 및 처리
+// 버전 정보 요청에 대한 메시지 핸들러 추가
 self.addEventListener('message', (event) => {
-    if (event.data === 'CHECK_VERSION') {
-        // 클라이언트에 현재 앱 버전 전송
-        event.ports[0].postMessage({
-            version: APP_VERSION,
-            type: 'VERSION_INFO'
-        });
-    }
-});
-
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'GET_VERSION') {
+    if (event.data.type === 'GET_VERSION') {
         event.ports[0].postMessage({
             type: 'VERSION_INFO',
             version: APP_VERSION
