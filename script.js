@@ -20,18 +20,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // 앱 버전 동적 설정
     const appVersionElement = document.getElementById('appVersion');
     if (appVersionElement && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(registration => {
-            const channel = new MessageChannel();
-            channel.port1.onmessage = (event) => {
-                if (event.data.type === 'VERSION_INFO') {
-                    appVersionElement.textContent = `v${event.data.version}`;
+        navigator.serviceWorker.register('/Aqre/service-worker.js')
+            .then(registration => {
+                // Service Worker가 활성화될 때까지 대기
+                if (registration.active) {
+                    requestVersion(registration);
+                } else {
+                    registration.addEventListener('activate', () => {
+                        requestVersion(registration);
+                    });
                 }
-            };
-            
-            registration.active.postMessage({
-                type: 'GET_VERSION'
-            }, [channel.port2]);
-        });
+            })
+            .catch(error => {
+                console.error('Service Worker 등록 실패:', error);
+            });
+    }
+
+    function requestVersion(registration) {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = (event) => {
+            if (event.data.type === 'VERSION_INFO') {
+                appVersionElement.textContent = `v${event.data.version}`;
+            }
+        };
+        
+        registration.active.postMessage({
+            type: 'GET_VERSION'
+        }, [channel.port2]);
     }
 
     const startButton = document.getElementById('startButton');
