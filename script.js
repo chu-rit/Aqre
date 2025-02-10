@@ -1183,8 +1183,8 @@ function tutorialOpen(levelId) {
                     },
                     condition: {
                         conditions: [
-                            { row: 3, col: 0, expectedState: 1 },
-                            { row: 3, col: 1, expectedState: 1 },
+                            { row: 1, col: 2, expectedState: 1 },
+                            { row: 2, col: 2, expectedState: 1 },
                             { row: 3, col: 2, expectedState: 1 }
                         ]
                     },
