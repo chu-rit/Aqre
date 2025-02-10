@@ -1,18 +1,16 @@
-const APP_VERSION = '1.0.03'; // 앱 버전 명시
+const APP_VERSION = '1.0.04'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 
-// 베이스 URL 설정
-const BASE_URL = self.location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
-
+// 상대 경로로 캐시할 리소스 목록 정의
 const urlsToCache = [
-    `${BASE_URL}/`,
-    `${BASE_URL}/index.html`,
-    `${BASE_URL}/script.js`,
-    `${BASE_URL}/puzzles.js`,
-    `${BASE_URL}/styles.css`,
-    `${BASE_URL}/manifest.json`,
-    `${BASE_URL}/icons/icon-192x192.png`,
-    `${BASE_URL}/icons/icon-512x512.png`
+    './',
+    './index.html',
+    './script.js',
+    './puzzles.js',
+    './styles.css',
+    './manifest.json',
+    './icons/icon-192x192.png',
+    './icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -22,9 +20,10 @@ self.addEventListener('install', (event) => {
                 console.log(`Cache opened: ${CACHE_NAME}`);
                 return Promise.all(
                     urlsToCache.map(url => {
-                        return cache.add(url).catch(err => {
-                            console.error(`Failed to cache ${url}:`, err);
-                        });
+                        return cache.add(new Request(url, {cache: 'no-cache'}))
+                            .catch(err => {
+                                console.error(`Failed to cache ${url}:`, err);
+                            });
                     })
                 );
             })
@@ -63,30 +62,42 @@ self.addEventListener('message', (event) => {
 
 // 네트워크 요청 처리
 self.addEventListener('fetch', (event) => {
+    // 상대 경로로 요청 URL 변환
+    const url = new URL(event.request.url);
+    const isLocalResource = url.origin === location.origin;
+
+    if (!isLocalResource) {
+        return; // 외부 리소스는 기본 동작 사용
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                // 캐시에 있으면 캐시된 응답 반환
                 if (response) {
-                    return response;
+                    return response; // 캐시에서 찾음
                 }
 
-                // 캐시에 없으면 네트워크 요청
-                return fetch(event.request).then(response => {
-                    // 유효한 응답이 아니면 그대로 반환
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                // 캐시에 없으면 네트워크에서 가져오기
+                return fetch(event.request.clone())
+                    .then(response => {
+                        // 유효한 응답이 아니면 그대로 반환
+                        if (!response || response.status !== 200 || response.type !== 'basic') {
+                            return response;
+                        }
+
+                        // 응답을 복제하여 캐시에 저장
+                        const responseToCache = response.clone();
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                cache.put(event.request, responseToCache);
+                            });
+
                         return response;
-                    }
-
-                    // 응답을 복제하여 캐시에 저장
-                    const responseToCache = response.clone();
-                    caches.open(CACHE_NAME)
-                        .then(cache => {
-                            cache.put(event.request, responseToCache);
-                        });
-
-                    return response;
-                });
+                    });
+            })
+            .catch(() => {
+                // 오프라인이고 캐시에도 없는 경우
+                return caches.match('./index.html');
             })
     );
 });
