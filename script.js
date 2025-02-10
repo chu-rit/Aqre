@@ -37,8 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (optionsButton) {
         optionsButton.addEventListener('click', () => {
             // 옵션 메뉴 표시 로직
-            console.log('옵션 메뉴 열기');
-            // TODO: 옵션 메뉴 구현
         });
     }
 
@@ -308,15 +306,10 @@ function handleCellClick(event) {
         const row = parseInt(clickedCell.getAttribute('data-row'));
         const col = parseInt(clickedCell.getAttribute('data-col'));
 
-        console.log('튜토리얼 모드 - 클릭된 타일:', { row, col });
-        console.log('허용된 타일:', tutorialAllowedCells);
-
         // 허용된 타일이 아니면 클릭 무시
         const isAllowedCell = tutorialAllowedCells.some(
             cell => cell.row === row && cell.col === col
         );
-
-        console.log('허용된 타일 여부:', isAllowedCell);
 
         if (!isAllowedCell) {
             return;
@@ -348,11 +341,14 @@ function handleCellClick(event) {
     moves++;
     updateGameInfo();
     updateViolationDisplay();
-    // checkLevelCompletion();
 }
 
 // 셀 색상 변경
 function toggleCellColor(cell, row, col) {
+    if (!gameBoard) {
+        return;
+    }
+    
     gameBoard[row][col] = (gameBoard[row][col] + 1) % COLOR_STATES.length;
     
     // 클래스를 한 번만 토글
@@ -405,11 +401,22 @@ function checkGameRules() {
         for (let i = 0; i < currentPuzzle.size; i++) {
             for (let j = 0; j <= currentPuzzle.size - 4; j++) {
                 const sequence = [];
+                const currentHighlightCells = [];
+                
                 for (let k = 0; k < 4; k++) {
+                    const row = dir.dy === 1 ? j + k : i;
+                    const col = dir.dx === 1 ? j + k : i;
+                    
+                    // 보드 범위 체크
+                    if (row < 0 || row >= currentPuzzle.size || col < 0 || col >= currentPuzzle.size) {
+                        continue;
+                    }
+                    
                     const color = dir.dx === 1 
                         ? gameBoard[i][j + k] 
                         : gameBoard[j + k][i];
                     sequence.push(color);
+                    currentHighlightCells.push({row, col});
                 }
                 
                 // 4개 연속 같은 색상 체크 (흰색 또는 회색만)
@@ -512,10 +519,135 @@ function updateViolationDisplay() {
         return;
     }
     
-    ruleCheck.violationMessages.forEach(violation => {
+    ruleCheck.violationMessages.forEach((violation, index) => {
         const li = document.createElement('li');
         li.textContent = violation;
+        li.dataset.violationIndex = index;
+
+        // 방향 정보 추가
+        if (violation.includes('가로')) {
+            li.dataset.direction = 'horizontal';
+        } else if (violation.includes('세로')) {
+            li.dataset.direction = 'vertical';
+        }
+
+        // 위반된 셀의 정보 추가
+        let violationCells = [];
+
+        // 연속된 같은 색상 위반 (가로)
+        if (ruleCheck.violations.consecutiveColors.horizontal && violation.includes('가로')) {
+            for (let i = 0; i < gameBoard.length; i++) {
+                for (let j = 0; j <= gameBoard.length - 4; j++) {
+                    const sequence = gameBoard[i].slice(j, j + 4);
+                    const isUniformColor = sequence.every(color => color === sequence[0]);
+                    
+                    if (isUniformColor) {
+                        violationCells = [
+                            {row: i, col: j},
+                            {row: i, col: j + 1},
+                            {row: i, col: j + 2},
+                            {row: i, col: j + 3}
+                        ];
+                        break;
+                    }
+                }
+                if (violationCells.length > 0) break;
+            }
+        }
+
+        // 연속된 같은 색상 위반 (세로)
+        if (ruleCheck.violations.consecutiveColors.vertical && violation.includes('세로')) {
+            for (let j = 0; j < gameBoard.length; j++) {
+                for (let i = 0; i <= gameBoard.length - 4; i++) {
+                    const sequence = [
+                        gameBoard[i][j], 
+                        gameBoard[i+1][j], 
+                        gameBoard[i+2][j], 
+                        gameBoard[i+3][j]
+                    ];
+                    const isUniformColor = sequence.every(color => color === sequence[0]);
+                    
+                    if (isUniformColor) {
+                        violationCells = [
+                            {row: i, col: j},
+                            {row: i + 1, col: j},
+                            {row: i + 2, col: j},
+                            {row: i + 3, col: j}
+                        ];
+                        break;
+                    }
+                }
+                if (violationCells.length > 0) break;
+            }
+        }
+
+        // 영역 위반 처리
+        if (ruleCheck.violations.areaOverflow && violation.includes('영역')) {
+            const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+            if (currentPuzzle) {
+                for (const area of currentPuzzle.areas) {
+                    const grayCount = area.cells.reduce((count, [row, col]) => {
+                        return count + (gameBoard[row][col] === 1 ? 1 : 0);
+                    }, 0);
+                    
+                    if (area.required !== 'J') {
+                        const requiredCount = parseInt(area.required);
+                        if (grayCount > requiredCount || grayCount < requiredCount) {
+                            violationCells = area.cells.map(([row, col]) => ({row, col}));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 위반된 셀 정보 저장
+        if (violationCells.length > 0) {
+            li.dataset.violationCells = JSON.stringify(violationCells);
+        }
+
+        li.addEventListener('click', handleViolationItemClick);
+        li.addEventListener('mouseleave', handleViolationItemLeave);
         violationList.appendChild(li);
+    });
+}
+
+function handleViolationItemLeave() {
+    // 모든 하이라이트 제거
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.remove('tutorial-highlight');
+    });
+}
+
+function handleViolationItemClick(event) {
+    // 모든 하이라이트 제거
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.remove('tutorial-highlight');
+        cell.classList.remove('violation-highlight');
+        cell.classList.remove('with-z-index');
+        cell.style.zIndex = ''; // z-index 초기화
+    });
+
+    // 클릭된 위반 항목의 방향 확인
+    const direction = event.target.dataset.direction;
+    
+    // 위반된 셀의 정보 가져오기
+    let highlightCells = [];
+    if (event.target.dataset.violationCells) {
+        highlightCells = JSON.parse(event.target.dataset.violationCells);
+    }
+
+    // 중복된 셀 방지
+    const uniqueCells = new Set(highlightCells.map(cell => JSON.stringify(cell)));
+    highlightCells = Array.from(uniqueCells).map(cell => JSON.parse(cell));
+
+    // 하이라이트 적용
+    highlightCells.forEach(({row, col}) => {
+        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+            cell.classList.add('tutorial-highlight');
+            cell.classList.add('violation-highlight');
+        }
     });
 }
 
@@ -523,7 +655,6 @@ function updateViolationDisplay() {
 function showMessage(text, type = 'info') {
     const messageContainer = document.getElementById('messageContainer');
     if (!messageContainer) {
-        console.error('메시지 컨테이너를 찾을 수 없습니다.');
         return;
     }
 
@@ -646,7 +777,6 @@ function showGameClearPopup() {
 
     // 요소 중 하나라도 없으면 경고 로그
     if (!gameClearPopup || !clearMoves || !backToLevelsButton) {
-        console.error('게임 클리어 팝업 요소 중 일부가 누락되었습니다.');
         return;
     }
 
@@ -656,7 +786,6 @@ function showGameClearPopup() {
     // 팝업 표시
     gameClearPopup.style.display = 'flex';
 }
-
 
 // 화면 전환 함수들
 function showScreen(screenId) {
@@ -720,7 +849,6 @@ function testClear() {
     // 팝업 요소 직접 확인
     const gameClearPopup = document.getElementById('gameClearPopup');
     if (!gameClearPopup) {
-        console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
         return false;
     }
     
@@ -797,7 +925,8 @@ function createTutorial(config = {}) {
         if (steps[currentStep].highlight) {
             const gameBoardCells = document.querySelectorAll('.cell');
             
-            steps[currentStep].highlight.cells.forEach(({row, col}) => {
+            const uniqueCells = Array.from(new Set(steps[currentStep].highlight.cells.map(cell => JSON.stringify(cell)))).map(cell => JSON.parse(cell));
+            uniqueCells.forEach(({row, col}) => {
                 const cell = Array.from(gameBoardCells).find(
                     cell => 
                         parseInt(cell.getAttribute('data-row')) === row && 
@@ -1109,14 +1238,21 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Tutorial',
-                    text: '이제 모든 규칙을 배웠습니다.',
+                    text: '이제 모든 규칙을 배웠습니다.<br>추가로 몇 가지 부가기능을 알려드리겠습니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Tutorial',
-                    text: '참고로 우측 위의 버튼을 사용하면 게임을 원상태로 되돌릴 수 있습니다.',
+                    text: ' 우측 위의 버튼을 사용하면 게임을 원상태로 되돌릴 수 있습니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Tutorial',
+                    text: '아래의 규칙 위반의 항목을 선택하면 위반된 타일을 표시해줍니다.<br>(회색칸의 연결성 규칙은 예외)',
                     highlight: null,
                     condition: null,
                     showNextButton: true

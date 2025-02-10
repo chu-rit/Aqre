@@ -911,7 +911,7 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* 튜토리얼 하이라이트 스타일 추가 */
+/* 튜토리얼 하이라이트 스타일 */
 .tutorial-highlight {
     position: relative;
 }
@@ -931,6 +931,14 @@ body {
     border-radius: 15px;
     animation: tutorial-pulse 1.2s infinite alternate;
     pointer-events: none;
+    z-index: 1;
+}
+
+.cell.area-boundary.tutorial-highlight::before {
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
 }
 
 @keyframes tutorial-pulse {
@@ -944,7 +952,81 @@ body {
     }
 }
 
-/* 튜토리얼 관련 CSS 제거됨 */
+/* 규칙 위반 하이라이트 스타일 */
+.tutorial-highlight.violation-highlight {
+    position: relative;
+    overflow: hidden;
+}
+
+.tutorial-highlight.violation-highlight::before,
+.tutorial-highlight.violation-highlight::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+}
+
+.tutorial-highlight.violation-highlight::before {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg, 
+        rgba(255, 69, 0, 0.4) 0%, 
+        rgba(255, 165, 0, 0.4) 100%
+    );
+    z-index: 1;
+    animation: violation-highlight-pulse 1.5s ease-in-out infinite alternate;
+    border-radius: 8px;
+}
+
+.tutorial-highlight.violation-highlight::after {
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        circle closest-side, 
+        rgba(255, 0, 0, 0.5), 
+        transparent 70%
+    );
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0;
+    z-index: 2;
+    animation: 
+        violation-highlight-rotate 3s linear infinite,
+        violation-highlight-fade 3s ease-in-out infinite alternate;
+    border-radius: 50%;
+}
+
+@keyframes violation-highlight-pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+}
+
+@keyframes violation-highlight-rotate {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes violation-highlight-fade {
+    0%, 50% {
+        opacity: 0;
+    }
+    70%, 100% {
+        opacity: 0.3;
+    }
+}
 
 #resetLevelButton {
     display: none;
