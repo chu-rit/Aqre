@@ -19,6 +19,9 @@ let gameStarted = false;
 
 // 초기화 함수
 function initializeApp() {
+    // 화면 방향 잠금 시도
+    lockScreenOrientation();
+    
     // 리소스 경로 설정
     setResourcePaths();
 
@@ -27,6 +30,30 @@ function initializeApp() {
 
     // 게임 이벤트 리스너 설정
     setupGameEventListeners();
+}
+
+// 화면 방향 잠금 함수
+async function lockScreenOrientation() {
+    try {
+        // Screen Orientation API
+        if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('portrait');
+        }
+        // Older Android API
+        else if (screen.lockOrientation) {
+            screen.lockOrientation('portrait');
+        }
+        // iOS Webapp
+        else if (window.orientation !== undefined) {
+            window.addEventListener('orientationchange', function() {
+                if (window.orientation !== 0) {
+                    window.orientation = 0;
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('화면 방향 잠금을 지원하지 않는 기기입니다:', e);
+    }
 }
 
 // 리소스 경로 설정 함수
