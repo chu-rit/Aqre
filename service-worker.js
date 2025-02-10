@@ -1,13 +1,13 @@
 const APP_VERSION = '1.0.02'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/script.js',
-    '/styles.css',
-    '/manifest.json',
-    '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
+    '/Aqre/',
+    '/Aqre/index.html',
+    '/Aqre/script.js',
+    '/Aqre/styles.css',
+    '/Aqre/manifest.json',
+    '/Aqre/icons/icon-192x192.png',
+    '/Aqre/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', (event) => {
