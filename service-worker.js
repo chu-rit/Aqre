@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.04'; // 앱 버전 명시
+const APP_VERSION = '1.0.05'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 
 // GitHub Pages 기반 URL
