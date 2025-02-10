@@ -17,14 +17,24 @@ window.testClear = testClear;
 
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
-    const startButton = document.getElementById('startButton');
-    const optionsButton = document.getElementById('optionsButton');
-    const backToStart = document.getElementById('backToStart');
-    const backToLevels = document.getElementById('backToLevels');
-    const showRules = document.getElementById('showRules');
-    const closeRules = document.getElementById('closeRules');
-    const rulesPopup = document.getElementById('rulesPopup');
-    const gameClearPopup = document.getElementById('gameClearPopup');
+    // 화면 방향 고정 시도
+    if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait')
+            .catch(error => {
+                console.warn('Screen orientation lock failed:', error);
+            });
+    }
+
+    // 화면 방향 변경 감지 및 강제 세로 모드
+    window.addEventListener('orientationchange', () => {
+        if (window.orientation !== 0) {
+            // 강제로 세로 모드로 회전
+            window.scrollTo(0, 0);
+            document.body.style.transform = 'rotate(0deg)';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
+        }
+    });
 
     // 더블 클릭 확대 방지
     document.addEventListener('dblclick', (e) => {
@@ -43,6 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         lastTap = now;
     }, { passive: false });
+
+    const startButton = document.getElementById('startButton');
+    const optionsButton = document.getElementById('optionsButton');
+    const backToStart = document.getElementById('backToStart');
+    const backToLevels = document.getElementById('backToLevels');
+    const showRules = document.getElementById('showRules');
+    const closeRules = document.getElementById('closeRules');
+    const rulesPopup = document.getElementById('rulesPopup');
+    const gameClearPopup = document.getElementById('gameClearPopup');
 
     // 시작 화면 버튼들
     if (startButton) {
