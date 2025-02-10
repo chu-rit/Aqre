@@ -1,16 +1,20 @@
 const APP_VERSION = '1.0.04'; // 앱 버전 명시
 const CACHE_NAME = `aqre-game-v${APP_VERSION}`;
 
-// 상대 경로로 캐시할 리소스 목록 정의
+// GitHub Pages 기반 URL
+const BASE_URL = self.location.hostname === 'chu-rit.github.io' ? '/Aqre' : 
+                self.location.hostname === '127.0.0.1' ? '' : '';
+
+// 캐시할 리소스 목록 정의
 const urlsToCache = [
-    './',
-    './index.html',
-    './script.js',
-    './puzzles.js',
-    './styles.css',
-    './manifest.json',
-    './icons/icon-192x192.png',
-    './icons/icon-512x512.png'
+    `${BASE_URL}/`,
+    `${BASE_URL}/index.html`,
+    `${BASE_URL}/script.js`,
+    `${BASE_URL}/puzzles.js`,
+    `${BASE_URL}/styles.css`,
+    `${BASE_URL}/manifest.json`,
+    `${BASE_URL}/icons/icon-192x192.png`,
+    `${BASE_URL}/icons/icon-512x512.png`
 ];
 
 self.addEventListener('install', (event) => {
@@ -97,7 +101,7 @@ self.addEventListener('fetch', (event) => {
             })
             .catch(() => {
                 // 오프라인이고 캐시에도 없는 경우
-                return caches.match('./index.html');
+                return caches.match(`${BASE_URL}/index.html`);
             })
     );
 });

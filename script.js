@@ -2,9 +2,6 @@
 const BOARD_SIZE = 6;
 const COLOR_STATES = ['white', 'gray'];
 
-// 베이스 URL 설정 (GitHub Pages 또는 로컬)
-const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : '';
-
 // 퍼즐 데이터 
 let currentLevel = 0;
 let gameBoard = [];
