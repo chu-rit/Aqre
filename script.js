@@ -1,12 +1,3 @@
-// 베이스 URL 설정
-const BASE_URL = location.hostname === 'chu-rit.github.io' ? '/Aqre' : 
-                location.hostname === '127.0.0.1' ? '' : '';
-
-// 리소스 URL 생성 함수
-function getResourceUrl(path) {
-    return path.startsWith('http') ? path : `${BASE_URL}/${path.replace(/^\//, '')}`;
-}
-
 // 게임 상수
 const BOARD_SIZE = 6;
 const COLOR_STATES = ['white', 'gray'];
@@ -17,100 +8,15 @@ let gameBoard = [];
 let moves = 0;
 let gameStarted = false;
 
-// 초기화 함수
-function initializeApp() {
-    // 화면 방향 잠금 시도
-    lockScreenOrientation();
-    
-    // 리소스 경로 설정
-    setResourcePaths();
+// 현재 튜토리얼 허용 타일 목록
+let tutorialAllowedCells = [];
 
-    // Service Worker 등록
-    registerServiceWorker();
+// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
+window.testClear = testClear;
 
-    // 게임 이벤트 리스너 설정
-    setupGameEventListeners();
-}
 
-// 화면 방향 잠금 함수
-async function lockScreenOrientation() {
-    try {
-        // Screen Orientation API
-        if (screen.orientation && screen.orientation.lock) {
-            await screen.orientation.lock('portrait');
-        }
-        // Older Android API
-        else if (screen.lockOrientation) {
-            screen.lockOrientation('portrait');
-        }
-        // iOS Webapp
-        else if (window.orientation !== undefined) {
-            window.addEventListener('orientationchange', function() {
-                if (window.orientation !== 0) {
-                    window.orientation = 0;
-                }
-            });
-        }
-    } catch (e) {
-        console.warn('화면 방향 잠금을 지원하지 않는 기기입니다:', e);
-    }
-}
-
-// 리소스 경로 설정 함수
-function setResourcePaths() {
-    // 링크 태그 경로 설정
-    document.querySelectorAll('link[href]:not([href^="http"])').forEach(link => {
-        link.href = getResourceUrl(link.getAttribute('href'));
-    });
-
-    // 스크립트 태그 경로 설정
-    document.querySelectorAll('script[src]:not([src^="http"])').forEach(script => {
-        script.src = getResourceUrl(script.getAttribute('src'));
-    });
-}
-
-// Service Worker 등록 함수
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register(getResourceUrl('service-worker.js'))
-                .then(registration => {
-                    console.log('Service Worker 등록 성공:', registration.scope);
-                    // Service Worker가 활성화될 때까지 대기
-                    if (registration.active) {
-                        requestVersion(registration);
-                    } else {
-                        registration.addEventListener('activate', () => {
-                            requestVersion(registration);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Service Worker 등록 실패:', error);
-                });
-        });
-    }
-}
-
-// 앱 버전 요청 함수
-function requestVersion(registration) {
-    const channel = new MessageChannel();
-    channel.port1.onmessage = (event) => {
-        if (event.data.type === 'VERSION_INFO') {
-            const appVersionElement = document.getElementById('appVersion');
-            if (appVersionElement) {
-                appVersionElement.textContent = `v${event.data.version}`;
-            }
-        }
-    };
-    
-    registration.active.postMessage({
-        type: 'GET_VERSION'
-    }, [channel.port2]);
-}
-
-// 게임 이벤트 리스너 설정
-function setupGameEventListeners() {
+// 이벤트 리스너 설정
+document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('startButton');
     const optionsButton = document.getElementById('optionsButton');
     const backToStart = document.getElementById('backToStart');
@@ -119,36 +25,6 @@ function setupGameEventListeners() {
     const closeRules = document.getElementById('closeRules');
     const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
-
-    if (startButton) startButton.addEventListener('click', () => showScreen('levelScreen'));
-    if (optionsButton) optionsButton.addEventListener('click', () => showScreen('optionsScreen'));
-    if (backToStart) backToStart.addEventListener('click', () => showScreen('startScreen'));
-    if (backToLevels) backToLevels.addEventListener('click', () => showScreen('levelScreen'));
-    if (showRules) showRules.addEventListener('click', () => showRulesPopup());
-    if (closeRules) closeRules.addEventListener('click', () => closeRulesPopup());
-    if (rulesPopup) rulesPopup.addEventListener('click', (e) => {
-        if (e.target === rulesPopup) {
-            closeRulesPopup();
-        }
-    });
-    if (gameClearPopup) gameClearPopup.addEventListener('click', (e) => {
-        if (e.target === gameClearPopup) {
-            gameClearPopup.style.display = 'none';
-        }
-    });
-
-    const backToLevelsButton = document.getElementById('backToLevelsButton');
-    if (backToLevelsButton) backToLevelsButton.addEventListener('click', () => {
-        if (gameClearPopup) {
-            gameClearPopup.style.display = 'none';
-        }
-        showScreen('levelScreen');
-    });
-
-    const refreshLevel = document.getElementById('refreshLevel');
-    if (refreshLevel) refreshLevel.addEventListener('click', () => {
-        startGame(currentLevel + 1);
-    });
 
     // 더블 클릭 확대 방지
     document.addEventListener('dblclick', (e) => {
@@ -168,25 +44,90 @@ function setupGameEventListeners() {
         lastTap = now;
     }, { passive: false });
 
-    // 게임 보드 클릭 이벤트
-    const gameBoard = document.getElementById('gameBoard');
-    if (gameBoard) {
-        gameBoard.addEventListener('click', handleCellClick);
+    // 시작 화면 버튼들
+    if (startButton) {
+        startButton.addEventListener('click', () => {
+            showScreen('levelScreen');
+            createLevelScreen();
+        });
     }
 
-    // 위반 항목 이벤트
-    const violationList = document.getElementById('violation-list');
-    if (violationList) {
-        violationList.addEventListener('mouseleave', handleViolationItemLeave);
-        violationList.addEventListener('click', handleViolationItemClick);
+    if (optionsButton) {
+        optionsButton.addEventListener('click', () => {
+            // 옵션 메뉴 표시 로직
+        });
     }
-}
 
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', initializeApp);
+    // 뒤로 가기 버튼들
+    if (backToStart) {
+        backToStart.addEventListener('click', () => {
+            showScreen('startScreen');
+        });
+    }
 
-// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
-window.testClear = testClear;
+    if (backToLevels) {
+        backToLevels.addEventListener('click', () => {
+            // 레벨 선택 화면으로 돌아갈 때 튜토리얼 완전히 제거
+            const tutorialOverlay = document.getElementById('tutorialOverlay');
+            if (tutorialOverlay) {
+                tutorialOverlay.remove();
+            }
+            showScreen('levelScreen');
+        });
+    }
+
+    // 규칙 보기 버튼 이벤트
+    if (showRules) {
+        showRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.add('show');
+            }
+        });
+    }
+
+    if (closeRules) {
+        closeRules.addEventListener('click', () => {
+            if (rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+
+    // 팝업 외부 클릭시 닫기
+    if (rulesPopup) {
+        rulesPopup.addEventListener('click', (e) => {
+            if (e.target === rulesPopup) {
+                rulesPopup.classList.remove('show');
+            }
+        });
+    }
+
+    // 게임 클리어 팝업 외부 클릭시 닫기
+    if (gameClearPopup) {
+        gameClearPopup.addEventListener('click', (e) => {
+            if (e.target === gameClearPopup) {
+                gameClearPopup.style.display = 'none';
+            }
+        });
+    }
+
+    // 게임 클리어 팝업 이벤트 리스너 추가
+    const backToLevelsButton = document.getElementById('backToLevelsButton');
+
+    if (backToLevelsButton) {
+        backToLevelsButton.addEventListener('click', () => {
+            if (gameClearPopup) {
+                gameClearPopup.style.display = 'none';
+            }
+            showScreen('levelScreen');
+        });
+    }
+
+    // Refresh Level Button
+    document.getElementById('refreshLevel').addEventListener('click', () => {
+        startGame(currentLevel + 1);
+    });
+});
 
 // 레벨 선택 화면 생성
 function createLevelScreen() {
