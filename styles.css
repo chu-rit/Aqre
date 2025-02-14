@@ -21,6 +21,8 @@ html, body {
     height: 100%;
     overscroll-behavior: none;
     background-color: #000000;
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
 }
 
 body {
