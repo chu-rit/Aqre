@@ -1121,14 +1121,13 @@ body {
     font-weight: 500;
 }
 
-.app-version {
-    font-size: 0.8rem;
+.version-tag {
+    margin-top: 20px;
+    margin-bottom: 20px;
     color: rgba(255, 255, 255, 0.5);
-    margin-top: 10px;
+    font-size: 12px;
+    font-family: 'Poppins', sans-serif;
     text-align: center;
-    margin-bottom: 1.5em;
-    opacity: 0.7;
-    font-size: 0.8em;
 }
 
 .game-controls {
