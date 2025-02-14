@@ -31,17 +31,33 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     }, { passive: false });
 
-    // 터치 이벤트에서 더블 탭 확대 방지
+    // 터치 이벤트에서 더블 탭 확대 방지 및 성능 최적화
     let lastTap = 0;
+    let touchThrottle = false;
+
     document.addEventListener('touchstart', (e) => {
+        if (touchThrottle) return;
+        
         const now = new Date().getTime();
         const timeSinceLastTap = now - lastTap;
         
         if (timeSinceLastTap < 300) {
             e.preventDefault();
+            e.stopPropagation();
         }
         
         lastTap = now;
+        touchThrottle = true;
+        
+        setTimeout(() => {
+            touchThrottle = false;
+        }, 50);  // 50ms 간격으로 터치 이벤트 제한
+    }, { passive: false });
+
+    // 추가: 터치 이동 이벤트에서도 기본 동작 방지
+    document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
     }, { passive: false });
 
     // 시작 화면 버튼들
