@@ -31,33 +31,41 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     }, { passive: false });
 
-    // 터치 이벤트에서 더블 탭 확대 방지 및 성능 최적화
+    // 터치 이벤트에서 더블 탭 확대 방지 및 빠른 클릭 허용
     let lastTap = 0;
-    let touchThrottle = false;
+    let tapCount = 0;
+    let tapTimeout;
 
     document.addEventListener('touchstart', (e) => {
-        if (touchThrottle) return;
-        
         const now = new Date().getTime();
         const timeSinceLastTap = now - lastTap;
         
+        // 300ms 이내 연속 탭 카운트
         if (timeSinceLastTap < 300) {
+            tapCount++;
+        } else {
+            tapCount = 1;
+        }
+        
+        // 두 번 연속 탭하면 확대 방지
+        if (tapCount === 2) {
             e.preventDefault();
-            e.stopPropagation();
         }
         
         lastTap = now;
-        touchThrottle = true;
         
-        setTimeout(() => {
-            touchThrottle = false;
-        }, 50);  // 50ms 간격으로 터치 이벤트 제한
+        // 탭 카운트 초기화 타임아웃
+        clearTimeout(tapTimeout);
+        tapTimeout = setTimeout(() => {
+            tapCount = 0;
+        }, 300);
     }, { passive: false });
 
-    // 추가: 터치 이동 이벤트에서도 기본 동작 방지
+    // 터치 이동 이벤트에서 스크롤 및 확대 방지
     document.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        if (tapCount > 1) {
+            e.preventDefault();
+        }
     }, { passive: false });
 
     // 시작 화면 버튼들
