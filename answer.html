@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="stylesheet" href="styles.css">
+    <script src="puzzles.js"></script>
+
     <title>레벨 8 퍼즐 솔버</title>
     <style>
         #startScreen {
@@ -23,7 +25,6 @@
             padding: 20px;
             max-height: 65vh;
             min-height: auto;
-            /* height: calc(100vh - 200px); startScreen 높이 제외 */
             overflow-y: auto; /* 세로 스크롤 추가 */
             scrollbar-width: thin; /* 파이어폭스용 얇은 스크롤바 */
             scrollbar-color: rgba(255,255,255,0.3) transparent; /* 스크롤바 색상 */
@@ -48,37 +49,32 @@
             justify-content: center;
             width: 100%;
         }
-        .puzzle-cell {
+        .cell {
             aspect-ratio: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: min(1.2rem, 40px / var(--grid-size));
             font-weight: bold;
             transition: background-color 0.3s ease;
             border-radius: 4px;
+            font-size: 20px;
+            text-shadow:
+                -1px 0px 0 #000,
+                1px 0px 0 #000,
+                -1px  1px 0 #000,
+                1px  1px 0 #000;
+            
+            color: white; /* 숫자 색상을 흰색으로 */
         }
-        .puzzle-solution {
-            width: 100%;
-            max-width: 500px; /* 솔루션 최대 너비 조정 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .puzzle-cell.white {
+        .cell.white {
             background-color: rgba(255,255,255,0.2);
             color: black;
         }
-        .puzzle-cell.gray {
+        .cell.gray {
             background-color: rgba(128,128,128,0.3);
             color: white;
         }
-        .puzzle-cell.blocked {
+        .cell.black {
             background-color: rgba(0,0,0,0.3);
         }
         /* 퍼즐 선택 화면 스타일 */
@@ -119,6 +115,18 @@
             background-color: rgba(0,255,0,0.2);
             border: 1px solid rgba(0,255,0,0.5);
         }
+        .puzzle-solution {
+            width: 100%;
+            max-width: 500px; /* 솔루션 최대 너비 조정 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -132,7 +140,6 @@
     </div>
     <div id="puzzleContainer"></div>
 
-    <script src="puzzles.js"></script>
     <script>
     // 현재 선택된 퍼즐
     let currentPuzzle = null;
@@ -255,18 +262,19 @@
         solution.forEach((row, rowIndex) => {
             row.forEach((cellValue, colIndex) => {
                 const cell = document.createElement('div');
-                cell.className = 'puzzle-cell';
+                cell.className = 'cell';
                 cell.dataset.row = rowIndex;
                 cell.dataset.col = colIndex;
                 
                 // 셀 상태 설정
                 if (cellValue === 2) {
-                    cell.classList.add('blocked');
-                } else {
-                    // 숫자 표시 (0과 1 모두)
-                    cell.textContent = cellValue;
-                    cell.classList.add(cellValue === 0 ? 'white' : 'gray');
+                    cell.classList.add('black');
+                } else if (cellValue === 1) {
+                    cell.classList.add('gray');
                 }
+                
+                // 숫자 표시 (0과 1 모두)
+                cell.textContent = cellValue;
                 
                 boardWrapper.appendChild(cell);
             });
@@ -316,19 +324,57 @@
             }
 
             // 다음 셀 위치 계산
-            const nextRow = col === size - 1 ? row + 1 : row;
-            const nextCol = (col + 1) % size;
+            let nextRow = row;
+            let nextCol = col;
+
+            // 다음 유효한 셀 찾기 (2가 아닌 셀)
+            while (nextRow < size) {
+                // 현재 셀이 2인 타일이거나 초기 상태가 2인 경우 건너뛰기
+                if (puzzle.initialState[nextRow][nextCol] === 2) {
+                    board[nextRow][nextCol] = 2;
+                    
+                    // 다음 셀로 이동
+                    nextCol++;
+                    if (nextCol >= size) {
+                        nextRow++;
+                        nextCol = 0;
+                    }
+                    continue;
+                }
+
+                // 유효한 셀 찾음
+                break;
+            }
+
+            // 모든 셀을 탐색했으면 종료
+            if (nextRow >= size) {
+                // 최종 영역 제약 조건 확인
+                if (!checkAreaConstraints(board, puzzle)) return false;
+                
+                // 회색 셀 연결성 확인
+                if (!checkGrayCellConnectivity(board, puzzle)) return false;
+                
+                // 솔루션 배열에 추가 (깊은 복사)
+                solutions.push(board.map(r => [...r]));
+                
+                // 최대 3개의 솔루션 찾으면 중단
+                return solutions.length >= 3;
+            }
 
             // 두 가지 색상 시도
             for (const color of [0, 1]) {
-                if (isValidColor(board, row, col, color)) {
-                    board[row][col] = color;
+                if (isValidColor(board, nextRow, nextCol, color)) {
+                    board[nextRow][nextCol] = color;
 
-                    const result = backtrack(board, nextRow, nextCol);
+                    // 다음 셀로 이동
+                    const finalNextCol = nextCol + 1 >= size ? 0 : nextCol + 1;
+                    const finalNextRow = nextCol + 1 >= size ? nextRow + 1 : nextRow;
+
+                    const result = backtrack(board, finalNextRow, finalNextCol);
                     if (result) return true;
 
                     // 백트래킹
-                    board[row][col] = -1;
+                    board[nextRow][nextCol] = -1;
                 }
             }
 

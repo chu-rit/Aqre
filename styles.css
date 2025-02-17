@@ -1340,21 +1340,6 @@ body {
     margin-bottom: 20px;
 }
 
-.cell {
-    aspect-ratio: 1;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-}
-
-.cell.white {
-    background-color: white;
-}
-
-.cell.gray {
-    background-color: #666;
-}
-
 #findSolutionButton {
     background: linear-gradient(145deg, #4CAF50, #45a049);
     color: white;
