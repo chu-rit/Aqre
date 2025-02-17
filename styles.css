@@ -1037,6 +1037,38 @@ body {
     }
 }
 
+.violation-highlight {
+    position: relative;
+}
+
+.violation-highlight::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background-color: rgba(255, 0, 0, 0.5);
+    border-radius: 50%;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+}
+
 #resetLevelButton {
     display: none;
 }
@@ -1121,13 +1153,44 @@ body {
     font-weight: 500;
 }
 
-.version-tag {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 12px;
-    font-family: 'Poppins', sans-serif;
-    text-align: center;
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .rules ul {
+        padding-left: 20px;
+    }
+
+    .game-board {
+        width: 100%;
+        max-width: 500px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    .container {
+        padding: 0.5rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    :root {
+        --cell-size: min(50px, calc((100vw - 40px) / 6));
+    }
+
+    .game-board {
+        width: 100%;
+        max-width: 500px;
+    }
 }
 
 .game-controls {
@@ -1190,7 +1253,7 @@ body {
 }
 
 .violation-highlight {
-    background-color: rgba(255, 220, 180, 1) !important;
+    position: relative;
 }
 
 #violation-list li {
@@ -1222,42 +1285,98 @@ body {
     font-weight: 500;
 }
 
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-
-    .container {
-        padding: 1rem;
-    }
-
-    .rules ul {
-        padding-left: 20px;
-    }
-
-    .game-board {
-        width: 100%;
-        max-width: 500px;
-    }
+/* 퍼즐 솔버 페이지 스타일 */
+#puzzleContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: var(--background-color, #121212);
+    padding: 20px;
 }
 
-@media (max-width: 480px) {
-    body {
-        padding: 5px;
-    }
-
-    .container {
-        padding: 0.5rem;
-    }
+.solution-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    background-color: rgba(30, 30, 30, 0.8);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-@media screen and (max-width: 768px) {
-    :root {
-        --cell-size: min(50px, calc((100vw - 40px) / 6));
-    }
+#solverStatus {
+    font-size: 1.2rem;
+    color: var(--text-color, #ffffff);
+    margin-bottom: 20px;
+    text-align: center;
+}
 
-    .game-board {
-        width: 100%;
-        max-width: 500px;
-    }
+#progressBar {
+    width: 100%;
+    height: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+#progressBarFill {
+    width: 0;
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.5s ease;
+}
+
+.puzzle-board {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 20px;
+}
+
+.cell {
+    aspect-ratio: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.cell.white {
+    background-color: white;
+}
+
+.cell.gray {
+    background-color: #666;
+}
+
+#findSolutionButton {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#findSolutionButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+#answerContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--background-color, #121212);
+    padding: 20px;
 }

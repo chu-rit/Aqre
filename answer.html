@@ -2,235 +2,317 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="stylesheet" href="styles.css">
     <title>레벨 8 퍼즐 솔버</title>
     <style>
-        body {
+        #startScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #puzzleContainer {
+            display: none; /* 기본적으로 숨김 */
+            max-width: 700px; /* 너비 더 증가 */
+            margin: 0 auto;
+            padding: 20px;
+            max-height: 65vh;
+            min-height: auto;
+            /* height: calc(100vh - 200px); startScreen 높이 제외 */
+            overflow-y: auto; /* 세로 스크롤 추가 */
+            scrollbar-width: thin; /* 파이어폭스용 얇은 스크롤바 */
+            scrollbar-color: rgba(255,255,255,0.3) transparent; /* 스크롤바 색상 */
+        }
+        /* 웹킷 브라우저용 스크롤바 스타일 */
+        #puzzleContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+        #puzzleContainer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #puzzleContainer::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        .puzzle-grid {
+            display: grid;
+            gap: 4px;
+            background-color: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 4px;
+            justify-content: center;
+            width: 100%;
+        }
+        .puzzle-cell {
+            aspect-ratio: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #000;
-            font-family: Arial, sans-serif;
+            font-size: min(1.2rem, 40px / var(--grid-size));
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            border-radius: 4px;
         }
-        #puzzleContainer {
+        .puzzle-solution {
+            width: 100%;
+            max-width: 500px; /* 솔루션 최대 너비 조정 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .puzzle-cell.white {
+            background-color: rgba(255,255,255,0.2);
+            color: black;
+        }
+        .puzzle-cell.gray {
+            background-color: rgba(128,128,128,0.3);
+            color: white;
+        }
+        .puzzle-cell.blocked {
+            background-color: rgba(0,0,0,0.3);
+        }
+        /* 퍼즐 선택 화면 스타일 */
+        .puzzle-selection {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .puzzle-selection h2 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        .puzzle-list {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
+            gap: 10px;
         }
-        .solution-wrapper {
-            text-align: center;
-        }
-        .puzzle-board {
-            display: grid;
-            grid-template-columns: repeat(6, 50px);
-            background-color: #333;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        .cell {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid #666;
-            font-size: 12px;
-        }
-        .white {
-            background-color: white;
-            color: black;
-        }
-        .gray {
-            background-color: gray;
+        .puzzle-item {
+            background-color: rgba(255,255,255,0.05);
             color: white;
-        }
-        .board-wrapper {
-            display: grid;
-            grid-template-columns: repeat(6, 50px);
-            grid-template-rows: repeat(6, 50px);
-            gap: 2px;
-            justify-content: center;
-            align-content: center;
-            border: 1px solid #333;
-            padding: 5px;
-        }
-        .cell {
+            width: 40px;
+            height: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
-            border: 1px solid #999;
-            font-size: 10px;
-            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: bold;
         }
-        .cell.white {
-            background-color: white;
+        .puzzle-item:hover {
+            background-color: rgba(255,255,255,0.1);
         }
-        .cell.gray {
-            background-color: #888;
+        .puzzle-item.selected {
+            background-color: rgba(0,255,0,0.2);
+            border: 1px solid rgba(0,255,0,0.5);
         }
     </style>
 </head>
 <body>
+    <div id="startScreen">
+        <div class="puzzle-selection">
+            <h2>퍼즐 선택</h2>
+            <div id="puzzleList" class="puzzle-list">
+                <!-- 퍼즐 목록은 JavaScript로 동적 생성 -->
+            </div>
+        </div>
+    </div>
     <div id="puzzleContainer"></div>
 
-    <script>        
-    // 레벨 8 퍼즐 솔버
-    function solveLevel8() {
-        const puzzle = {
-            id: 8,
-            name: "level 8",
-            size: 6,
-            areas: [
-                {
-                    cells: [[0,0], [1,0], [2,0]],
-                    required: 2
-                },
-                {
-                    cells: [[0,5], [1,5], [2,5]],
-                    required: 2
-                },
-                {
-                    cells: [[3,0], [4,0], [5,0]],
-                    required: 2
-                },
-                {
-                    cells: [[3,5], [4,5], [5,5]],
-                    required: 2
-                },
-                {
-                    cells: [[2,2], [2,3], [3,2], [3,3]],
-                    required: 2
-                }
-            ]
-        };
+    <script src="puzzles.js"></script>
+    <script>
+    // 현재 선택된 퍼즐
+    let currentPuzzle = null;
 
-        const solution = solvePuzzle(puzzle);
+    // 퍼즐 목록 생성
+    function createPuzzleList() {
+        const puzzleList = document.getElementById('puzzleList');
+        puzzleList.innerHTML = ''; // 기존 퍼즐 목록 초기화
         
-        if (solution) {
-            renderPuzzle(solution);
-        } else {
-            console.log("솔루션을 찾을 수 없습니다.");
+        PUZZLE_MAPS.forEach((puzzle, index) => {
+            const puzzleItem = document.createElement('div');
+            puzzleItem.className = 'puzzle-item';
+            
+            // 퍼즐 이름에서 숫자만 추출
+            const levelNumber = puzzle.name.replace(/[^0-9]/g, '');
+            puzzleItem.textContent = levelNumber;
+            
+            puzzleItem.dataset.puzzleId = puzzle.id;
+            
+            puzzleItem.addEventListener('click', () => {
+                // 이전에 선택된 퍼즐 선택 해제
+                const prevSelected = puzzleList.querySelector('.selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+                
+                // 현재 퍼즐 선택
+                puzzleItem.classList.add('selected');
+                currentPuzzle = puzzle;
+
+                // 퍼즐 컨테이너 초기화
+                const puzzleContainer = document.getElementById('puzzleContainer');
+                puzzleContainer.innerHTML = ''; // 이전 솔루션 제거
+                puzzleContainer.style.display = 'none'; // 컨테이너 숨기기
+
+                // 퍼즐 선택 즉시 솔버 실행
+                solveLevel();
+            });
+            
+            puzzleList.appendChild(puzzleItem);
+        });
+    }
+
+    // 페이지 로드 시 퍼즐 목록 생성
+    createPuzzleList();
+
+    // 진행 상황 표시 함수
+    function updateProgressDisplay(message) {
+        const progressDisplay = document.getElementById('progressDisplay') || 
+            (() => {
+                const display = document.createElement('div');
+                display.id = 'progressDisplay';
+                display.style.position = 'fixed';
+                display.style.bottom = '20px';
+                display.style.left = '50%';
+                display.style.transform = 'translateX(-50%)';
+                display.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                display.style.color = 'white';
+                display.style.padding = '10px 20px';
+                display.style.borderRadius = '10px';
+                display.style.zIndex = '1000';
+                document.body.appendChild(display);
+                return display;
+            })();
+        
+        progressDisplay.textContent = message;
+    }
+
+    // 전역 변수로 반복 횟수와 마지막 업데이트 시간 추적
+    let globalIterationCount = 0;
+    let globalLastUpdateTime = Date.now();
+
+    // 시작 시 로그 출력 함수
+    function logProgress(message) {
+        const currentTime = new Date().toLocaleTimeString();
+        console.log(`[${currentTime}] ${message}`);
+    }
+
+    // 전역 진행 상황 업데이트 함수
+    function updateProgress() {
+        globalIterationCount++;
+        
+        // 10초마다 진행 상황 업데이트
+        const currentTime = Date.now();
+        if (currentTime - globalLastUpdateTime >= 10000) {
+            updateProgressDisplay(`퍼즐 해결 중... 반복 횟수: ${globalIterationCount}`);
+            logProgress(`퍼즐 해결 중... 반복 횟수: ${globalIterationCount}`);
+            globalLastUpdateTime = currentTime;
         }
+    }
+
+    // 퍼즐 HTML 렌더링
+    function renderPuzzle(solution, title = '솔루션') {
+        const container = document.getElementById('puzzleContainer');
+        
+        // 첫 번째 솔루션일 경우에만 컨테이너 초기화
+        if (container.children.length === 0) {
+            container.style.display = 'block';
+        }
+
+        // 솔루션 래퍼 생성
+        const solutionWrapper = document.createElement('div');
+        solutionWrapper.className = 'puzzle-solution';
+
+        // 타이틀 추가
+        const titleElement = document.createElement('h2');
+        titleElement.textContent = title;
+        solutionWrapper.appendChild(titleElement);
+
+        // 보드 래퍼 생성
+        const boardWrapper = document.createElement('div');
+        boardWrapper.className = 'puzzle-grid';
+        
+        // 그리드 동적 크기 설정
+        const size = solution.length;
+        boardWrapper.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+        boardWrapper.style.setProperty('--grid-size', size);
+
+        // 보드 생성
+        solution.forEach((row, rowIndex) => {
+            row.forEach((cellValue, colIndex) => {
+                const cell = document.createElement('div');
+                cell.className = 'puzzle-cell';
+                cell.dataset.row = rowIndex;
+                cell.dataset.col = colIndex;
+                
+                // 셀 상태 설정
+                if (cellValue === 2) {
+                    cell.classList.add('blocked');
+                } else {
+                    // 숫자 표시 (0과 1 모두)
+                    cell.textContent = cellValue;
+                    cell.classList.add(cellValue === 0 ? 'white' : 'gray');
+                }
+                
+                boardWrapper.appendChild(cell);
+            });
+        });
+
+        solutionWrapper.appendChild(boardWrapper);
+        container.appendChild(solutionWrapper);
+
+        // 스크롤을 맨 아래로 이동
+        container.scrollTop = container.scrollHeight;
     }
 
     // 퍼즐 솔버 알고리즘
     function solvePuzzle(puzzle) {
+        // 반복 횟수 초기화
+        globalIterationCount = 0;
+        const startTime = Date.now();
+
         const size = puzzle.size;
         const board = Array.from({ length: size }, () => 
             Array(size).fill(-1)  // -1: 미정, 0: 흰색, 1: 회색
         );
 
-        function isValidColor(board, row, col, color) {
-            // 가로 연속 색상 체크 (4개 이상 금지)
-            if (col >= 3) {
-                const horizontalCheck = board[row].slice(col-3, col).concat(color);
-                if (horizontalCheck.filter(c => c !== -1).every(c => c === color)) {
-                    return false;
-                }
-            }
+        // 초기 진행 상황 표시
+        updateProgressDisplay('퍼즐 해결 시작...');
+        logProgress('퍼즐 해결 시작...');
 
-            // 세로 연속 색상 체크
-            if (row >= 3) {
-                const verticalCheck = [
-                    board[row-3][col], 
-                    board[row-2][col], 
-                    board[row-1][col], 
-                    color
-                ];
-                if (verticalCheck.filter(c => c !== -1).every(c => c === color)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        function checkAreaConstraints(board, puzzle) {
-            for (const area of puzzle.areas) {
-                const grayCount = area.cells.filter(([r, c]) => 
-                    board[r][c] === 1
-                ).length;
-
-                // 'J' 영역은 제약 조건 무시
-                if (area.required === 'J') continue;
-
-                // 회색 셀 개수 제약 조건 확인
-                if (grayCount !== parseInt(area.required)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
-            const directions = [
-                [0, 1], [0, -1], [1, 0], [-1, 0]
-            ];
-            
-            // 방문 체크 및 회색 셀 표시
-            visited[startRow][startCol] = true;
-            
-            // 4방향 탐색
-            for (const [dx, dy] of directions) {
-                const newRow = startRow + dx;
-                const newCol = startCol + dy;
-                
-                // 보드 범위 체크
-                if (newRow < 0 || newRow >= puzzle.size || 
-                    newCol < 0 || newCol >= puzzle.size) {
-                    continue;
-                }
-                
-                // 이미 방문했거나 흰색 셀이면 스킵
-                if (visited[newRow][newCol] || board[newRow][newCol] === 0) {
-                    continue;
-                }
-                
-                // 회색 셀이면 재귀 탐색
-                if (board[newRow][newCol] === 1) {
-                    dfsConnectivity(board, newRow, newCol, visited, puzzle);
-                }
-            }
-        }
-
-        function checkGrayCellConnectivity(board, puzzle) {
-            // 회색 셀 찾기
-            const grayCells = [];
-            for (let row = 0; row < puzzle.size; row++) {
-                for (let col = 0; col < puzzle.size; col++) {
-                    if (board[row][col] === 1) {
-                        grayCells.push([row, col]);
-                    }
-                }
-            }
-
-            // 회색 셀이 없으면 연결성 체크 불필요
-            if (grayCells.length === 0) return true;
-
-            // 방문 배열 초기화
-            const visited = Array.from({ length: puzzle.size }, () => 
-                Array(puzzle.size).fill(false)
-            );
-            
-            // 첫 번째 회색 셀부터 DFS 시작
-            const [startRow, startCol] = grayCells[0];
-            dfsConnectivity(board, startRow, startCol, visited, puzzle);
-            
-            // 모든 회색 셀 방문 확인
-            return grayCells.every(([row, col]) => visited[row][col]);
-        }
+        // 솔루션 배열 생성
+        const solutions = [];
 
         function backtrack(board, row, col) {
+            updateProgress();
+
             // 보드 완성 체크
             if (row === size) {
                 // 최종 영역 제약 조건 확인
-                if (!checkAreaConstraints(board, puzzle)) return null;
+                if (!checkAreaConstraints(board, puzzle)) return false;
                 
                 // 회색 셀 연결성 확인
-                if (!checkGrayCellConnectivity(board, puzzle)) return null;
+                if (!checkGrayCellConnectivity(board, puzzle)) return false;
                 
-                return board;
+                // 솔루션 배열에 추가 (깊은 복사)
+                solutions.push(board.map(r => [...r]));
+                
+                // 최대 3개의 솔루션 찾으면 중단
+                return solutions.length >= 3;
             }
 
             // 다음 셀 위치 계산
@@ -243,56 +325,155 @@
                     board[row][col] = color;
 
                     const result = backtrack(board, nextRow, nextCol);
-                    if (result) return result;
+                    if (result) return true;
 
                     // 백트래킹
                     board[row][col] = -1;
                 }
             }
 
-            return null;
+            return false;
         }
 
-        return backtrack(board, 0, 0);
+        // 솔루션 찾기
+        backtrack(board, 0, 0);
+
+        // 총 소요 시간 계산
+        const endTime = Date.now();
+        const totalTime = (endTime - startTime) / 1000; // 초 단위로 변환
+
+        // 최종 진행 상황 표시
+        if (solutions.length > 0) {
+            const displayMessage = `퍼즐 해결 완료! 총 솔루션 수: ${solutions.length}, 총 반복 횟수: ${globalIterationCount}, 총 소요 시간: ${totalTime.toFixed(2)}초`;
+            updateProgressDisplay(displayMessage);
+            logProgress(displayMessage);
+        } else {
+            updateProgressDisplay('퍼즐 해결 실패');
+            logProgress('퍼즐 해결 실패');
+        }
+
+        return solutions;
     }
 
-    // 퍼즐 HTML 렌더링
-    function renderPuzzle(solution, title = '솔루션') {
-        const container = document.getElementById('puzzleContainer');
-        container.innerHTML = ''; // 기존 내용 초기화
+    function isValidColor(board, row, col, color) {
+        updateProgress();
+        const size = board.length;
 
-        // 타이틀 추가
-        const titleElement = document.createElement('h2');
-        titleElement.textContent = title;
-        container.appendChild(titleElement);
-
-        // 보드 래퍼 생성
-        const boardWrapper = document.createElement('div');
-        boardWrapper.className = 'board-wrapper';
-
-        // 보드 생성
-        for (let row = 0; row < solution.length; row++) {
-            for (let col = 0; col < solution[row].length; col++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-                
-                // 셀 색상 설정 (0: 흰색, 1: 회색)
-                cell.classList.add(solution[row][col] === 0 ? 'white' : 'gray');
-                
-                // 좌표 표시
-                cell.textContent = `(${row},${col})`;
-                
-                boardWrapper.appendChild(cell);
+        // 가로 연속 색상 체크 (4개 이상 금지)
+        if (col >= 3) {
+            const horizontalCheck = board[row].slice(Math.max(0, col-3), col).concat(color);
+            if (horizontalCheck.filter(c => c !== -1).every(c => c === color)) {
+                return false;
             }
         }
 
-        container.appendChild(boardWrapper);
+        // 세로 연속 색상 체크
+        if (row >= 3) {
+            const verticalCheck = [
+                board[Math.max(0, row-3)][col], 
+                board[Math.max(0, row-2)][col], 
+                board[Math.max(0, row-1)][col], 
+                color
+            ];
+            if (verticalCheck.filter(c => c !== -1).every(c => c === color)) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    // 페이지 로드 시 솔버 실행
-    document.addEventListener('DOMContentLoaded', solveLevel8);
+    function checkAreaConstraints(board, puzzle) {
+        updateProgress();
+
+        for (const area of puzzle.areas) {
+            const grayCount = area.cells.filter(([r, c]) => 
+                board[r][c] === 1
+            ).length;
+
+            // 'J' 영역은 제약 조건 무시
+            if (area.required === 'J') continue;
+
+            // 회색 셀 개수 제약 조건 확인
+            if (grayCount !== parseInt(area.required)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function checkGrayCellConnectivity(board, puzzle) {
+        updateProgress();
+
+        // 회색 셀 찾기
+        const grayCells = [];
+        for (let row = 0; row < puzzle.size; row++) {
+            for (let col = 0; col < puzzle.size; col++) {
+                if (board[row][col] === 1) {
+                    grayCells.push([row, col]);
+                }
+            }
+        }
+
+        // 회색 셀이 없으면 연결성 체크 불필요
+        if (grayCells.length === 0) return true;
+
+        // 방문 배열 초기화
+        const visited = Array.from({ length: puzzle.size }, () => 
+            Array(puzzle.size).fill(false)
+        );
+        
+        // 첫 번째 회색 셀부터 DFS 시작
+        const [startRow, startCol] = grayCells[0];
+        dfsConnectivity(board, startRow, startCol, visited, puzzle);
+        
+        // 모든 회색 셀 방문 확인
+        return grayCells.every(([row, col]) => visited[row][col]);
+    }
+
+    function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
+        updateProgress();
+
+        const directions = [
+            [0, 1], [0, -1], [1, 0], [-1, 0]
+        ];
+        
+        // 방문 체크 및 회색 셀 표시
+        visited[startRow][startCol] = true;
+        
+        // 4방향 탐색
+        for (const [dx, dy] of directions) {
+            const newRow = startRow + dx;
+            const newCol = startCol + dy;
+            
+            // 보드 범위 체크
+            if (newRow < 0 || newRow >= puzzle.size || 
+                newCol < 0 || newCol >= puzzle.size) {
+                continue;
+            }
+            
+            // 이미 방문했거나 흰색 셀이면 스킵
+            if (visited[newRow][newCol] || board[newRow][newCol] === 0) {
+                continue;
+            }
+            
+            // 회색 셀이면 재귀 탐색
+            if (board[newRow][newCol] === 1) {
+                dfsConnectivity(board, newRow, newCol, visited, puzzle);
+            }
+        }
+    }
+
+    function solveLevel() {
+        const puzzleContainer = document.getElementById('puzzleContainer');
+        puzzleContainer.style.display = 'block'; // 컨테이너 표시
+
+        const solutions = solvePuzzle(currentPuzzle);
+
+        // 솔루션 렌더링
+        solutions.forEach((solution, index) => {
+            renderPuzzle(solution, `솔루션 ${index + 1}`);
+        });
+    }
     </script>
 </body>
 </html>
