@@ -655,6 +655,7 @@ function handleViolationItemClick(event) {
         if (cell) {
             cell.classList.add('tutorial-highlight');
             cell.classList.add('violation-highlight');
+            cell.classList.add('with-z-index');
         }
     });
 }

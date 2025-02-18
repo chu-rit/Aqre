@@ -981,8 +981,8 @@ body {
     bottom: 0;
     background: linear-gradient(
         135deg, 
-        rgba(255, 69, 0, 0.4) 0%, 
-        rgba(255, 165, 0, 0.4) 100%
+        rgba(46, 204, 113, 0.4) 0%, 
+        rgba(46, 204, 113, 0.4) 100%
     );
     z-index: 1;
     animation: violation-highlight-pulse 1.5s ease-in-out infinite alternate;
@@ -996,7 +996,7 @@ body {
     height: 200%;
     background: radial-gradient(
         circle closest-side, 
-        rgba(255, 0, 0, 0.5), 
+        rgba(46, 204, 113, 0.5), 
         transparent 70%
     );
     transform: translate(-50%, -50%) rotate(0deg);
@@ -1047,24 +1047,25 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 6px;
-    height: 6px;
-    background-color: rgba(255, 0, 0, 0.5);
+    width: 10px; /* 크기 증가 */
+    height: 10px; /* 크기 증가 */
+    background-color: rgba(46, 204, 113, 0.8); /* 그린 색상으로 변경 */
     border-radius: 50%;
     animation: pulse-dot 1.5s ease-in-out infinite;
+    box-shadow: 0 0 5px 2px rgba(46, 204, 113, 0.5); /* 그린 색상 그림자 */
 }
 
 @keyframes pulse-dot {
     0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0);
+        opacity: 0.6; /* 초기 불투명도 증가 */
+        transform: translate(-50%, -50%) scale(0.5);
     }
     50% {
-        opacity: 0.5;
-        transform: translate(-50%, -50%) scale(1);
+        opacity: 1; /* 최대 불투명도 증가 */
+        transform: translate(-50%, -50%) scale(1.2);
     }
     100% {
-        opacity: 0;
+        opacity: 0.6; /* 최종 불투명도 증가 */
         transform: translate(-50%, -50%) scale(1.5);
     }
 }
@@ -1105,15 +1106,8 @@ body {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-}
-
-#rule-violations h3 {
-    color: #F44336;
-    font-size: 1rem;
-    text-align: center;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    max-height: 250px; /* 최대 높이 추가 */
+    overflow-y: auto; /* 세로 스크롤 활성화 */
 }
 
 #violation-list {
@@ -1122,6 +1116,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-height: 200px; /* 최대 높이 추가 */
+    overflow-y: auto; /* 세로 스크롤 활성화 */
 }
 
 #violation-list li {
