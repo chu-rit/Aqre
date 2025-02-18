@@ -347,15 +347,101 @@
         // 솔루션 배열 생성
         const solutions = [];
 
+        // 영역 제약조건 조기 체크
+        function checkAreaPossible(board, row, col, color) {
+            for (const area of puzzle.areas) {
+                // 현재 셀이 이 영역에 속하는지 확인
+                if (!area.cells.some(([r, c]) => r === row && c === col)) continue;
+
+                // 현재 영역의 회색 타일 수 계산
+                let grayCount = 0;
+                let emptyCount = 0;
+                for (const [r, c] of area.cells) {
+                    if (board[r][c] === 1) grayCount++;
+                    else if (board[r][c] === -1 && !(r === row && c === col)) emptyCount++;
+                }
+
+                // 현재 타일이 회색이면 grayCount 증가
+                if (color === 1) grayCount++;
+
+                // 숫자가 있는 영역
+                if (typeof area.required === 'number') {
+                    // 이미 필요한 수를 초과했거나
+                    // 남은 칸으로 필요한 수를 채울 수 없으면 실패
+                    if (grayCount > area.required || 
+                        grayCount + emptyCount < area.required) {
+                        return false;
+                    }
+                }
+                // J 영역은 아무 제약 없음
+                else if (area.required === 'J') {
+                    // 아무 제약 없음
+                    continue;
+                }
+                // 숫자가 없는 영역
+                else {
+                    // 회색이 하나도 없을 가능성이 있으면 실패
+                    if (grayCount + emptyCount === 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 회색 타일 연결 가능성 체크
+        function canConnectToGray(board, row, col) {
+            // 주변에 회색 타일이나 빈 칸이 있는지 체크
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            let hasGrayNearby = false;
+            let hasEmptyNearby = false;
+
+            for (const [dx, dy] of directions) {
+                const newRow = row + dx;
+                const newCol = col + dy;
+                if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+                    if (board[newRow][newCol] === 1) {
+                        hasGrayNearby = true;
+                        break;
+                    } else if (board[newRow][newCol] === -1) {
+                        hasEmptyNearby = true;
+                    }
+                }
+            }
+
+            // 주변에 회색 타일이 있으면 OK
+            if (hasGrayNearby) return true;
+
+            // 주변에 빈 칸이 없으면 연결 불가능
+            if (!hasEmptyNearby) return false;
+
+            // 기존 회색 타일이 있는지 체크
+            let hasExistingGray = false;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (board[i][j] === 1) {
+                        hasExistingGray = true;
+                        break;
+                    }
+                }
+                if (hasExistingGray) break;
+            }
+
+            // 기존 회색 타일이 없으면 첫 회색 타일이므로 true
+            // 기존 회색 타일이 있고 주변에 빈 칸이 있으면 true (나중에 연결될 수 있음)
+            return !hasExistingGray || hasEmptyNearby;
+        }
+
         function backtrack(board, row, col) {
             updateProgress();
-
+            globalIterationCount++;
+            
             // 보드 완성 체크
             if (row === size) {
                 // 최종 영역 제약 조건 확인
                 if (!checkAreaConstraints(board, puzzle)) return false;
                 
-                // 회색 셀 연결성 확인
+                // 회색 셀 연결성 확인 (최종 확인)
                 if (!checkGrayCellConnectivity(board, puzzle)) return false;
                 
                 // 솔루션 배열에 추가 (깊은 복사)
@@ -383,39 +469,37 @@
                     }
                     continue;
                 }
-
-                // 유효한 셀 찾음
                 break;
             }
 
-            // 모든 셀을 탐색했으면 종료
             if (nextRow >= size) {
-                // 최종 영역 제약 조건 확인
                 if (!checkAreaConstraints(board, puzzle)) return false;
-                
-                // 회색 셀 연결성 확인
                 if (!checkGrayCellConnectivity(board, puzzle)) return false;
-                
-                // 솔루션 배열에 추가 (깊은 복사)
                 solutions.push(board.map(r => [...r]));
-                
-                // 최대 3개의 솔루션 찾으면 중단
                 return solutions.length >= 3;
             }
 
-            // 두 가지 색상 시도
-            for (const color of [0, 1]) {
+            // 두 가지 색상 시도 (회색부터 시도)
+            for (const color of [1, 0]) {
                 if (isValidColor(board, nextRow, nextCol, color)) {
+                    // 회색 타일을 놓을 때는 연결 가능성 체크
+                    if (color === 1 && !canConnectToGray(board, nextRow, nextCol)) {
+                        continue;
+                    }
+
+                    // 영역 제약조건 조기 체크
+                    if (!checkAreaPossible(board, nextRow, nextCol, color)) {
+                        continue;
+                    }
+
                     board[nextRow][nextCol] = color;
 
-                    // 다음 셀로 이동
                     const finalNextCol = nextCol + 1 >= size ? 0 : nextCol + 1;
                     const finalNextRow = nextCol + 1 >= size ? nextRow + 1 : nextRow;
 
                     const result = backtrack(board, finalNextRow, finalNextCol);
                     if (result) return true;
 
-                    // 백트래킹
                     board[nextRow][nextCol] = -1;
                 }
             }
@@ -423,14 +507,11 @@
             return false;
         }
 
-        // 솔루션 찾기
         backtrack(board, 0, 0);
 
-        // 총 소요 시간 계산
         const endTime = Date.now();
-        const totalTime = (endTime - startTime) / 1000; // 초 단위로 변환
+        const totalTime = (endTime - startTime) / 1000;
 
-        // 최종 진행 상황 표시
         if (solutions.length > 0) {
             const displayMessage = `퍼즐 해결 완료! 총 솔루션 수: ${solutions.length}, 총 반복 횟수: ${globalIterationCount}, 총 소요 시간: ${totalTime.toFixed(2)}초`;
             updateProgressDisplay(displayMessage);
@@ -478,8 +559,11 @@
                 board[r][c] === 1
             ).length;
 
-            // 'J' 영역은 제약 조건 무시
-            if (area.required === 'J') continue;
+            // 'J' 영역은 아무 제약 없음
+            if (area.required === 'J') {
+                // 아무 제약 없음
+                continue;
+            }
 
             // 회색 셀 개수 제약 조건 확인
             if (grayCount !== parseInt(area.required)) {
@@ -520,15 +604,13 @@
 
     function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
         updateProgress();
-
-        const directions = [
-            [0, 1], [0, -1], [1, 0], [-1, 0]
-        ];
         
         // 방문 체크 및 회색 셀 표시
         visited[startRow][startCol] = true;
         
         // 4방향 탐색
+        const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        
         for (const [dx, dy] of directions) {
             const newRow = startRow + dx;
             const newCol = startCol + dy;
