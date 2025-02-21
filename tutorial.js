@@ -409,26 +409,47 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 3',
-                    text: '마지막 세번째 규칙은 회색 타일은 가로나 세로로 연결되어 맵 전체에 하나만 있어야 합니다.',
+                    text: '마지막 세번째 규칙은 회색 타일은 가로나 세로로 연결되어 하나의 길처럼 되어야 합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Rule 3',
-                    text: '현재는 표시된 대로 회색 타일은 4개로 되어 있습니다. 하나가 되도록 연결하세요.',
+                    text: '현재는 표시된 대로 회색 타일이 3군데 뭉쳐있습니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 0},
                             {row: 1, col: 0},
-                            {row: 0, col: 2},
-                            {row: 1, col: 2},
-                            {row: 2, col: 1},
-                            {row: 3, col: 1},
-                            {row: 2, col: 3},
-                            {row: 3, col: 3},
+                            {row: 2, col: 0},
+                            {row: 2, col: 2},
+                            {row: 3, col: 2},
+                            {row: 0, col: 4},
+                            {row: 1, col: 4}
                         ]
                     },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Rule 3',
+                    text: '이 타일을 바꾸어 회색 타일들을 연결하세요.',
+                    highlight: {
+                        cells: [
+                            {row: 2, col: 1}
+                        ]
+                    },
+                    condition: {
+                        row: 2,
+                        col: 1,
+                        expectedState: 1 
+                    },
+                    showNextButton: false
+                },
+                {
+                    title: 'Rule 3',
+                    text: '아직 우측의 연결되지 않은 회색 타일도 연결해보세요.',
+                    highlight: null,
                     condition: null,
                     showNextButton: true
                 }

@@ -76,34 +76,40 @@ const PUZZLE_MAPS = [
     {    // 4
         id: 4,
         name: "Tutorial 4",
-        size: 4,
+        size: 5,
         areas: [
             {
-                cells: [[0,0], [1,0]],
-                required: 2
-            },
-            {
-                cells: [[0,1], [1,1]],
+                cells: [[0,1], [0,2], [0,3]],
                 required: 0
             },
             {
-                cells: [[0,2], [1,2]],
-                required: 2
+                cells: [[3,0], [3,1]],
+                required: 0
             },
             {
-                cells: [[2,1],[3,1]],
-                required: 2
+                cells: [[2,3], [2,4],
+                        [3,3], [3,4]],
+                required: 0
+            },
+            {  
+                cells: [[0,0]],
+                required: 1
+            },
+            {  
+                cells: [[3,2]],
+                required: 1
             },
             {
-                cells: [[2,3], [3,3]],
-                required: 2
+                cells: [[0,4]],
+                required: 1
             }
         ],
         initialState: [
-            [1, 0, 1, 2],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [2, 1, 0, 1]
+            [1, 0, 0, 0, 1],
+            [1, 2, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0],
+            [2, 2, 2, 2, 2]
         ]
     },
     {   // 5
