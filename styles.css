@@ -921,10 +921,6 @@ body {
 }
 
 /* 튜토리얼 하이라이트 스타일 */
-.tutorial-highlight {
-    position: relative;
-}
-
 .tutorial-highlight.with-z-index {
     z-index: 12 !important;
 }

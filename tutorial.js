@@ -348,14 +348,36 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 2',
-                    text: 'AQRE의 두번째 규칙은 각 영역에 적혀있는 숫자만큼 회색으로 바꾸는 것입니다.',
+                    text: '두번째 규칙은 각 영역에 적혀있는 숫자만큼 타일을 회색으로 바꾸는 것입니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Rule 2',
-                    text: '맵을 보시면 하늘색으로 타일 3개를 감싸서 영역을 표시하고 있고 숫자 3이 쓰여져 있습니다.<br> 그에 맞추어 3개의 타일을 회색으로 바꾸어 보실까요?',
+                    text: '맵을 표시된 부분을 보시면 하늘색으로 타일 3개를 감싸서 영역을 표시하고 있습니다.',
+                    highlight: {
+                        cells: [
+                            {row: 1, col: 2},
+                            {row: 2, col: 2},
+                            {row: 3, col: 2}
+                        ]
+                    },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Rule 2',
+                    text: '그리고 그 영역엔 숫자가 있음을 확인할 수 있습니다.',
+                    highlight: {
+                        selectors: ['.cell[data-row="1"][data-col="2"] .area-overlay']
+                    },
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    title: 'Rule 2',
+                    text: '이제 확인한 숫자만큼 해당영역을 회색 타일로 바꾸어보세요.',
                     highlight: {
                         cells: [
                             {row: 1, col: 2},
@@ -374,10 +396,8 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 2',
-                    text: '좋습니다.<br>이제 같은 색으로 4개 연속되면 안된다는 규칙을 지키면서 나머지 영역도 숫자에 맞추어 바꾸어보세요.',
-                    highlight: {
-                        cells: []
-                    },
+                    text: '좋습니다. 이제 나머지 영역도 같은 방법으로 바꾸세요. <br>단 첫번째 규칙에서 배웠던 것처럼 네 칸이 같은 색으로 연속되지 않게 하세요.',
+                    highlight: null,
                     condition: null,
                     showNextButton: true
                 }
