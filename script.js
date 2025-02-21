@@ -8,10 +8,11 @@ let gameBoard = [];
 let moves = 0;
 let gameStarted = false;
 
+// 클리어된 레벨 정보 (localStorage 사용)
+let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || '[]'));
 
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
-
 
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,6 +128,11 @@ function createLevelScreen() {
         levelBtn.className = 'level-btn';
         levelBtn.dataset.level = puzzle.id;
         levelBtn.textContent = `${puzzle.id}`;
+
+        // 클리어된 레벨인지 확인
+        if (isLevelCleared(puzzle.id)) {
+            levelBtn.classList.add('cleared');
+        }
 
         if(puzzle.id < 6) {
             basicLevelGrid.appendChild(levelBtn);
@@ -812,6 +818,58 @@ function showGameClearPopup() {
     // 팝업 표시
     gameClearPopup.style.display = 'flex';
 }
+
+// 레벨 클리어 메커니즘 전면 개선
+function markLevelCleared(levelId) {
+    clearedLevels.add(levelId);
+    localStorage.setItem('clearedLevels', JSON.stringify(Array.from(clearedLevels)));
+    
+    // 레벨 버튼에 클리어 클래스 추가
+    const levelBtn = document.querySelector(`.level-btn[data-level="${levelId}"]`);
+    if (levelBtn) {
+        levelBtn.classList.add('cleared');
+    }
+}
+
+// 클리어된 레벨 확인 함수 개선
+function isLevelCleared(levelId) {
+    return clearedLevels.has(levelId);
+}
+
+// 게임 클리어 팝업 표시 함수 개선
+function showGameClearPopup() {
+    const gameClearPopup = document.getElementById('gameClearPopup');
+    const clearMoves = document.getElementById('clearMoves');
+    const backToLevelsButton = document.getElementById('backToLevelsButton');
+
+    if (!gameClearPopup || !clearMoves || !backToLevelsButton) {
+        console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
+        return;
+    }
+
+    // 현재 레벨 클리어 처리
+    const currentLevelId = currentLevel + 1;
+    markLevelCleared(currentLevelId);
+
+    // 움직임 수 표시
+    clearMoves.textContent = moves;
+
+    // 팝업 표시
+    gameClearPopup.style.display = 'flex';
+
+    // 레벨 선택 화면 업데이트
+    createLevelScreen();
+}
+
+// 레벨 클리어 상태 초기화 함수 추가
+function resetClearedLevels() {
+    clearedLevels.clear();
+    localStorage.removeItem('clearedLevels');
+    createLevelScreen(); // 화면 새로고침
+}
+
+// 개발자 콘솔에서 테스트할 수 있도록 전역 함수로 노출
+window.resetClearedLevels = resetClearedLevels;
 
 // 화면 전환 함수들
 function showScreen(screenId) {
