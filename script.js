@@ -387,12 +387,15 @@ function handleCellClick(event) {
     const row = parseInt(cell.dataset.row);
     const col = parseInt(cell.dataset.col);
 
-    // 셀 색상 변경 (사운드 재생 제외)
-    toggleCellColor(cell, row, col, false);
+    // 사운드 재생
+    playTapSound();
+
+    // 셀 색상 변경
+    toggleCellColor(cell, row, col);
 }
 
 // 셀 색상 변경
-function toggleCellColor(cell, row, col, playSound = true) {
+function toggleCellColor(cell, row, col) {
     // 현재 색상 상태 확인
     const currentColorIndex = gameBoard[row][col];
     const nextColorIndex = (currentColorIndex + 1) % COLOR_STATES.length;
@@ -402,11 +405,6 @@ function toggleCellColor(cell, row, col, playSound = true) {
     
     // 셀 색상 업데이트
     cell.style.backgroundColor = COLOR_STATES[nextColorIndex];
-    
-    // 사운드 재생 옵션이 true일 때만 재생
-    if (playSound) {
-        playTapSound();
-    }
     
     // 움직임 카운트 증가
     moves++;
