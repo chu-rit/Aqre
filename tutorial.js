@@ -130,18 +130,9 @@ function createTutorial(config = {}) {
         
         // 다중 조건일 경우
         if (currentStepCondition.conditions) {
-            // ALL_GRAY 타입 처리
-            if (currentStepCondition.type === 'ALL_GRAY') {
-                return currentStepCondition.conditions.every(condition => 
-                    gameBoard[condition.row][condition.col] === 1
-                );
-            }
-            
-            // 기본 다중 조건 처리
-            return currentStepCondition.conditions.some(condition => 
-                condition.row === row &&
-                condition.col === col &&
-                condition.expectedState === state
+            // 모든 조건의 타일이 expectedState와 일치하는지 확인
+            return currentStepCondition.conditions.every(condition => 
+                gameBoard[condition.row][condition.col] === condition.expectedState
             );
         }
         
@@ -356,7 +347,6 @@ function tutorialOpen(levelId) {
                         ]
                     },
                     condition: {
-                        type: 'ALL_GRAY',
                         conditions: [
                             { row: 1, col: 2, expectedState: 1 },
                             { row: 2, col: 2, expectedState: 1 },
