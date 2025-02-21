@@ -103,9 +103,15 @@ function createTutorial(config = {}) {
                     document.querySelectorAll(selector).forEach(el => {
                         el.classList.add('tutorial-highlight');
                         
-                        // showNextButton이 false일 때만 z-index 클래스 추가
-                        if (!steps[currentStep].showNextButton) {
-                            el.classList.add('with-z-index');
+                        // 모든 하이라이트된 요소에 z-index 클래스 추가
+                        el.classList.add('with-z-index');
+                        
+                        // area-overlay인 경우 부모 셀의 z-index도 조정
+                        if (el.classList.contains('area-overlay')) {
+                            const parentCell = el.closest('.cell');
+                            if (parentCell) {
+                                parentCell.classList.add('with-z-index');
+                            }
                         }
                     });
                 });
@@ -461,15 +467,17 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Tutorial',
-                    text: '이제 모든 규칙을 배웠습니다.<br>추가로 몇 가지 부가기능을 알려드리겠습니다.',
+                    text: '모든 규칙을 배웠습니다.<br>이제 몇 가지 부가기능에 대해 알려드리겠습니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Tutorial',
-                    text: ' 우측 위의 버튼을 사용하면 게임을 원상태로 되돌릴 수 있습니다.',
-                    highlight: null,
+                    text: '우측 위의 버튼을 사용하면 게임을 초기상태로 되돌릴 수 있습니다.',
+                    highlight: {
+                        selectors: ['.refreshLevel']
+                    },
                     condition: null,
                     showNextButton: true
                 },
@@ -482,7 +490,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Tutorial',
-                    text: '즐거운 게임 되시길 바랍니다.',
+                    text: '규칙 위반을 확인해 가면서 타일을 바꾸어 퍼즐을 풀어보시기 바랍니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
