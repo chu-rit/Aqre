@@ -76,23 +76,40 @@ function createTutorial(config = {}) {
         if (steps[currentStep].highlight) {
             const gameBoardCells = document.querySelectorAll('.cell');
             
-            const uniqueCells = Array.from(new Set(steps[currentStep].highlight.cells.map(cell => JSON.stringify(cell)))).map(cell => JSON.parse(cell));
-            uniqueCells.forEach(({row, col}) => {
-                const cell = Array.from(gameBoardCells).find(
-                    cell => 
-                        parseInt(cell.getAttribute('data-row')) === row && 
-                        parseInt(cell.getAttribute('data-col')) === col
-                );
-                
-                if (cell) {
-                    // showNextButton이 false일 때만 z-index 클래스 추가
-                    if (steps[currentStep].highlight.cells.length > 0 && !steps[currentStep].showNextButton) {
-                        cell.classList.add('with-z-index');
+            // 셀 하이라이트
+            if (steps[currentStep].highlight.cells) {
+                const uniqueCells = Array.from(new Set(steps[currentStep].highlight.cells.map(cell => JSON.stringify(cell)))).map(cell => JSON.parse(cell));
+                uniqueCells.forEach(({row, col}) => {
+                    const cell = Array.from(gameBoardCells).find(
+                        cell => 
+                            parseInt(cell.getAttribute('data-row')) === row && 
+                            parseInt(cell.getAttribute('data-col')) === col
+                    );
+                    
+                    if (cell) {
+                        // showNextButton이 false일 때만 z-index 클래스 추가
+                        if (steps[currentStep].highlight.cells.length > 0 && !steps[currentStep].showNextButton) {
+                            cell.classList.add('with-z-index');
+                        }
+                        cell.classList.add('tutorial-highlight');
+                        tutorialAllowedCells.push({ row, col });
                     }
-                    cell.classList.add('tutorial-highlight');
-                    tutorialAllowedCells.push({ row, col });
-                }
-            });
+                });
+            }
+
+            // 선택자 하이라이트 추가
+            if (steps[currentStep].highlight.selectors) {
+                steps[currentStep].highlight.selectors.forEach(selector => {
+                    document.querySelectorAll(selector).forEach(el => {
+                        el.classList.add('tutorial-highlight');
+                        
+                        // showNextButton이 false일 때만 z-index 클래스 추가
+                        if (!steps[currentStep].showNextButton) {
+                            el.classList.add('with-z-index');
+                        }
+                    });
+                });
+            }
         }
 
         // 다음 버튼 표시/숨김 처리
@@ -215,7 +232,7 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Tutorial',
-                    text: '간단하게 게임 룰을 설명해 드리겠습니다.',
+                    text: '이 게임은 특정 규칙에 맞추어 타일을 바꾸어나가면서 퍼즐을 푸는 것이 목적입니다.',
                     highlight: {
                         cells: []
                     },
@@ -224,7 +241,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Tutorial',
-                    text: '하이라이트 된 타일을 선택해서 타일의 색을 바꿀 수 있습니다. 흰색 타일을 눌러 회색으로 바꾸어 보시기 바랍니다.',
+                    text: '먼저 표시된 흰색 타일을 눌러보시기 바랍니다.',
                     highlight: {
                         cells: [
                             {row: 2, col: 1}
@@ -239,7 +256,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Tutorial',
-                    text: '이번에는 우측에 있는 회색 타일을 눌러 흰색으로 바꾸어 보시기 바랍니다.',
+                    text: '색이 바뀐 것을 확인할 수 있습니다. 이번에는 우측에 있는 흰색 타일을 눌러보시기 바랍니다.',
                     highlight: {
                         cells: [
                             {row: 2, col: 3}
@@ -260,14 +277,14 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     title: 'Rule 1',
-                    text: 'AQRE의 첫번째은 가로든 세로든 4개 이상의 같은 색의 타일이 연속되지 않게 하는 것입니다.',
+                    text: '첫번째 규칙은 같은 색의 타일이 네 칸 이상 연속되지 않게 하는 것입니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
                     title: 'Rule 1',
-                    text: '현재 표시된 타일을 보면 세로로 4개 이상의 타일이 같은 색임을 알 수 있습니다.',
+                    text: '현재 표시된 타일을 보면 세로로 네 칸의 타일이 같은 색임을 알 수 있습니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 0},
@@ -281,7 +298,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 1',
-                    text: '표시된 타일을 전환해 흰색으로 바꾸어 규칙을 지키세요.',
+                    text: '표시된 타일을 클릭하여 연속되지 않게 할 수 있습니다.',
                     highlight: {
                         cells: [
                             {row: 3, col: 0}
@@ -296,7 +313,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 1',
-                    text: '이 규칙은 흰색에도 적용됩니다. <br> 여기 흰색 타일이 4개 이상 연속되고 있습니다.',
+                    text: '이 규칙은 흰색에도 적용됩니다. <br>여기도 흰색 타일이 4개 이상 연속되고 있습니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 1},
@@ -310,7 +327,7 @@ function tutorialOpen(levelId) {
                 },
                 {
                     title: 'Rule 1',
-                    text: '이 타일도 전환해 규칙을 지키도록 해볼까요?',
+                    text: '이 타일도 바꾸어 연속되는 곳이 없어지게 할 수 있습니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 1}
