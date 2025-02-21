@@ -144,10 +144,13 @@ function createTutorial(config = {}) {
         
         // 단일 조건일 경우
         if (currentStepCondition.row !== undefined) {
+            // 실제 게임보드의 상태와 비교 (state는 0: 흰색, 1: 회색)
+            const currentCellState = gameBoard[row][col];
+
             return (
                 currentStepCondition.row === row &&
                 currentStepCondition.col === col &&
-                currentStepCondition.expectedState === state
+                currentStepCondition.expectedState === currentCellState
             );
         }
         
