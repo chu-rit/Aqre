@@ -14,8 +14,78 @@ let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || 
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
 
+// 오디오 요소 생성 (여러 개의 오디오 요소로 동시 재생 최적화)
+const tapSounds = [
+    new Audio('sound/tap.mp3'),
+    new Audio('sound/tap.mp3'),
+    new Audio('sound/tap.mp3')
+];
+
+// 볼륨 설정
+tapSounds.forEach(sound => {
+    sound.volume = 0.3;
+    sound.preload = 'auto';
+});
+
+// 현재 사운드 인덱스 추적
+let currentSoundIndex = 0;
+
+// 클리어 사운드 생성 (여러 개의 오디오 요소로 동시 재생 최적화)
+const clearSounds = [
+    new Audio('sound/clear.mp3'),
+    new Audio('sound/clear.mp3'),
+    new Audio('sound/clear.mp3')
+];
+
+// 볼륨 설정
+clearSounds.forEach(sound => {
+    sound.volume = 0.5;
+    sound.preload = 'auto';
+});
+
+// 현재 클리어 사운드 인덱스 추적
+let currentClearSoundIndex = 0;
+
+// 즉시 재생 함수
+function playTapSound() {
+    try {
+        const sound = tapSounds[currentSoundIndex];
+        sound.currentTime = 0; // 항상 처음부터 재생
+        sound.play();
+
+        // 다음 사운드로 인덱스 변경 (순환)
+        currentSoundIndex = (currentSoundIndex + 1) % tapSounds.length;
+    } catch (error) {
+        console.warn('사운드 재생 실패:', error);
+    }
+}
+
+// 클리어 사운드 재생 함수
+function playClearSound() {
+    try {
+        const sound = clearSounds[currentClearSoundIndex];
+        sound.currentTime = 0; // 항상 처음부터 재생
+        sound.play();
+
+        // 다음 사운드로 인덱스 변경 (순환)
+        currentClearSoundIndex = (currentClearSoundIndex + 1) % clearSounds.length;
+    } catch (error) {
+        console.warn('클리어 사운드 재생 실패:', error);
+    }
+}
+
+// 페이지 로드 시 사운드 미리 로딩
+document.addEventListener('DOMContentLoaded', () => {
+    // 첫 번째 사운드 미리 로딩
+    tapSounds[0].load();
+});
+
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
+    // 사용자 상호작용 후 오디오 컨텍스트 초기화 (브라우저 정책)
+    document.body.addEventListener('click', () => {
+    }, { once: true });
+
     const startButton = document.getElementById('startButton');
     const optionsButton = document.getElementById('optionsButton');
     const backToStart = document.getElementById('backToStart');
@@ -307,61 +377,44 @@ function renderBoard() {
 
 // 셀 클릭 처리
 function handleCellClick(event) {
-    // 튜토리얼 모드일 때 특정 타일만 조작 허용
-    if (document.querySelector('.tutorial-overlay')) {
-        const clickedCell = event.target.closest('.cell');
-        if (!clickedCell) return;
-
-        const row = parseInt(clickedCell.getAttribute('data-row'));
-        const col = parseInt(clickedCell.getAttribute('data-col'));
-
-        // 허용된 타일이 아니면 클릭 무시
-        const isAllowedCell = tutorialAllowedCells.some(
-            cell => cell.row === row && cell.col === col
-        );
-
-        if (!isAllowedCell) {
-            return;
-        }
-    }
-
-    // 게임 시작 전이면 클릭 무시
+    // 게임이 시작되지 않았으면 무시
     if (!gameStarted) return;
 
-    const clickedCell = event.target.closest('.cell');
-    if (!clickedCell) return;
-
-    const row = parseInt(clickedCell.getAttribute('data-row'));
-    const col = parseInt(clickedCell.getAttribute('data-col'));
-
-    // 검정색 블럭은 클릭 이벤트 무시
-    if (clickedCell.classList.contains('black')) return;
-
-    // 기본 타일 색상 토글 로직
-    if (clickedCell.classList.contains('white')) {
-        clickedCell.classList.remove('white');
-        clickedCell.classList.add('gray');
-    } else if (clickedCell.classList.contains('gray')) {
-        clickedCell.classList.remove('gray');
-        clickedCell.classList.add('white');
-    }
+    // 클릭된 셀 요소
+    const cell = event.target;
     
-    toggleCellColor(clickedCell, row, col);
-    moves++;
-    updateGameInfo();
-    updateViolationDisplay();
+    // 데이터셋에서 행과 열 정보 추출
+    const row = parseInt(cell.dataset.row);
+    const col = parseInt(cell.dataset.col);
+
+    playTapSound();
+
+    // 셀 색상 변경
+    toggleCellColor(cell, row, col);
 }
 
 // 셀 색상 변경
 function toggleCellColor(cell, row, col) {
-    if (!gameBoard) {
-        return;
-    }
+    // 현재 색상 상태 확인
+    const currentColorIndex = gameBoard[row][col];
+    const nextColorIndex = (currentColorIndex + 1) % COLOR_STATES.length;
     
-    gameBoard[row][col] = (gameBoard[row][col] + 1) % COLOR_STATES.length;
+    // 보드 상태 업데이트
+    gameBoard[row][col] = nextColorIndex;
     
-    // 클래스를 한 번만 토글
-    cell.classList.toggle('gray', gameBoard[row][col] === 1);
+    // 셀 색상 업데이트
+    cell.style.backgroundColor = COLOR_STATES[nextColorIndex];
+    
+    playTapSound();
+    
+    // 움직임 카운트 증가
+    moves++;
+    
+    // 게임 정보 업데이트
+    updateGameInfo();
+    
+    // 규칙 위반 체크
+    updateViolationDisplay();
 }
 
 // 규칙 위반 사항 체크 함수
@@ -801,7 +854,7 @@ function checkAreaBoundaries(currentPuzzle) {
     }
 }
 
-// 게임 클리어 팝업 표시 함수
+// 게임 클리어 팝업 표시 함수 개선
 function showGameClearPopup() {
     const gameClearPopup = document.getElementById('gameClearPopup');
     const clearMoves = document.getElementById('clearMoves');
@@ -812,11 +865,21 @@ function showGameClearPopup() {
         return;
     }
 
+    // 현재 레벨 클리어 처리
+    const currentLevelId = currentLevel + 1;
+    markLevelCleared(currentLevelId);
+
     // 움직임 수 표시
     clearMoves.textContent = moves;
 
+    // 클리어 사운드 재생
+    playClearSound();
+
     // 팝업 표시
     gameClearPopup.style.display = 'flex';
+
+    // 레벨 선택 화면 업데이트
+    createLevelScreen();
 }
 
 // 레벨 클리어 메커니즘 전면 개선
@@ -836,40 +899,19 @@ function isLevelCleared(levelId) {
     return clearedLevels.has(levelId);
 }
 
-// 게임 클리어 팝업 표시 함수 개선
-function showGameClearPopup() {
+// 게임 클리어 테스트 함수
+function testClear() {    
+    // 팝업 요소 직접 확인
     const gameClearPopup = document.getElementById('gameClearPopup');
-    const clearMoves = document.getElementById('clearMoves');
-    const backToLevelsButton = document.getElementById('backToLevelsButton');
-
-    if (!gameClearPopup || !clearMoves || !backToLevelsButton) {
-        console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
-        return;
+    if (!gameClearPopup) {
+        return false;
     }
-
-    // 현재 레벨 클리어 처리
-    const currentLevelId = currentLevel + 1;
-    markLevelCleared(currentLevelId);
-
-    // 움직임 수 표시
-    clearMoves.textContent = moves;
-
-    // 팝업 표시
+    
+    // 강제로 팝업 표시
     gameClearPopup.style.display = 'flex';
-
-    // 레벨 선택 화면 업데이트
-    createLevelScreen();
+    
+    return true;
 }
-
-// 레벨 클리어 상태 초기화 함수 추가
-function resetClearedLevels() {
-    clearedLevels.clear();
-    localStorage.removeItem('clearedLevels');
-    createLevelScreen(); // 화면 새로고침
-}
-
-// 개발자 콘솔에서 테스트할 수 있도록 전역 함수로 노출
-window.resetClearedLevels = resetClearedLevels;
 
 // 화면 전환 함수들
 function showScreen(screenId) {
@@ -926,18 +968,4 @@ function onload() {
             startGame(currentLevel + 1);
         });
     }
-}
-
-// 게임 클리어 테스트 함수
-function testClear() {    
-    // 팝업 요소 직접 확인
-    const gameClearPopup = document.getElementById('gameClearPopup');
-    if (!gameClearPopup) {
-        return false;
-    }
-    
-    // 강제로 팝업 표시
-    gameClearPopup.style.display = 'flex';
-    
-    return true;
 }
