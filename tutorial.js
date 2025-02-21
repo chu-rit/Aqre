@@ -1,8 +1,16 @@
 // 현재 튜토리얼 허용 타일 목록
 let tutorialAllowedCells = [];
 
+// 전역 튜토리얼 이벤트 리스너 관리
+let globalTutorialCellClickHandler = null;
+
 // 튜토리얼 생성 함수 (범용적으로 사용 가능)
 function createTutorial(config = {}) {
+
+    // 기존 전역 이벤트 리스너 제거
+    if (globalTutorialCellClickHandler) {
+        document.removeEventListener('click', globalTutorialCellClickHandler);
+    }
 
     // config가 없으면 튜토리얼 발동 안함
     if (!config) {
@@ -141,7 +149,7 @@ function createTutorial(config = {}) {
     }
 
     // 타일 클릭 이벤트 리스너
-    function handleTutorialCellClick(event) {
+    globalTutorialCellClickHandler = function handleTutorialCellClick(event) {
         const clickedCell = event.target.closest('.cell');
         if (!clickedCell) return;
 
@@ -161,12 +169,14 @@ function createTutorial(config = {}) {
                 });
                 
                 tutorialOverlay.remove();
+                document.removeEventListener('click', globalTutorialCellClickHandler);
+                globalTutorialCellClickHandler = null;
                 return;
             }
             
             updateTutorialStep();
         }
-    }
+    };
 
     // 다음 버튼 클릭 이벤트
     nextButton.addEventListener('click', () => {
@@ -180,17 +190,19 @@ function createTutorial(config = {}) {
             });
             
             tutorialOverlay.remove();
+            document.removeEventListener('click', globalTutorialCellClickHandler);
+            globalTutorialCellClickHandler = null;
             return;
         }
         
         updateTutorialStep();
     });
 
+    // 이벤트 리스너 추가
+    document.addEventListener('click', globalTutorialCellClickHandler);
+
     // 초기 단계 설정
     updateTutorialStep();
-
-    // 이벤트 리스너 추가
-    document.addEventListener('click', handleTutorialCellClick);
 
     // DOM에 추가
     document.body.appendChild(tutorialOverlay);
@@ -198,7 +210,8 @@ function createTutorial(config = {}) {
     return {
         close: () => {
             tutorialOverlay.remove();
-            document.removeEventListener('click', handleTutorialCellClick);
+            document.removeEventListener('click', globalTutorialCellClickHandler);
+            globalTutorialCellClickHandler = null;
         }
     };
 }
