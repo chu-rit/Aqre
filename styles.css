@@ -225,6 +225,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    touch-action: none;
 }
 
 .cell.gray {
@@ -1373,4 +1374,4 @@ body {
     min-height: 100vh;
     background-color: var(--background-color, #121212);
     padding: 20px;
-}
+}   

@@ -297,7 +297,21 @@ function renderBoard() {
                 }
             }
             
-            cell.addEventListener('click', handleCellClick);
+            cell.addEventListener('click', (event) => {
+                // 게임이 시작되지 않았으면 무시
+                if (!gameStarted) return;
+
+                // 사운드 재생
+                playTapSound();
+
+                // 클릭된 셀 요소
+                const cell = event.target;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+
+                // 셀 색상 변경
+                toggleCellColor(cell, row, col);
+            });
             board.appendChild(cell);
         }
     }
@@ -307,25 +321,6 @@ function renderBoard() {
     
     // 영역 경계 체크
     checkAreaBoundaries(currentPuzzle);
-}
-
-// 셀 클릭 처리
-function handleCellClick(event) {
-    // 게임이 시작되지 않았으면 무시
-    if (!gameStarted) return;
-
-    // 클릭된 셀 요소
-    const cell = event.target;
-    
-    // 데이터셋에서 행과 열 정보 추출
-    const row = parseInt(cell.dataset.row);
-    const col = parseInt(cell.dataset.col);
-
-    // 사운드 재생
-    playTapSound();
-
-    // 셀 색상 변경
-    toggleCellColor(cell, row, col);
 }
 
 // 셀 색상 변경
