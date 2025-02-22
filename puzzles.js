@@ -332,6 +332,43 @@ const PUZZLE_MAPS = [
         size: 5,
         areas: [
             {
+                cells: [[0, 0], [0, 1]],
+                required: 1
+            },
+            {
+                cells: [[0, 3], [0, 4]],
+                required: 1
+            },
+            {
+                cells: [[1, 0], [1, 1], [1, 2], [1, 3], [1, 4]],
+                required: 2
+            },
+            {
+                cells: [[2, 0], [2, 1], [2, 2],
+                        [3, 1]],
+                required: 3
+            },
+            {
+                cells: [[2, 3], [2, 4],
+                        [3, 2], [3, 3],
+                        [4, 2]],
+                required: 4
+            }
+        ],
+        initialState: [
+            [0, 0, 2, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 2],
+            [2, 2, 0, 2, 2]
+        ]
+    },
+    {   // 12
+        id: 12,
+        name: "Level 12",
+        size: 5,
+        areas: [
+            {
                 cells: [[2, 0], [3, 0]],
                 required: 0
             },
@@ -363,11 +400,6 @@ const PUZZLE_MAPS = [
                 cells: [[0, 4]],
                 required: 1
             }
-
-            // ,{
-            //     cells: [[1, 2], [2, 1], [2, 2], [2, 3], [3, 2]],
-            //     required: 4
-            // }
         ],
         initialState: [
             [2, 0, 0, 0, 0],
@@ -377,9 +409,9 @@ const PUZZLE_MAPS = [
             [0, 0, 0, 0, 2]
         ]
     },
-    {   // 12
-        id: 12,
-        name: "Level 12",
+    {   // 13
+        id: 13,
+        name: "Level 13",
         size: 5,
         areas: [
             {

@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (optionsButton) {
         optionsButton.addEventListener('click', () => {
             // 옵션 메뉴 표시 로직
+            document.getElementById('startScreen').style.display = 'none'; // 스타트 스크린 숨기기
+            document.getElementById('option-screen').style.display = 'block'; // 옵션 스크린 보이기
         });
     }
 
@@ -116,6 +118,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh Level Button
     document.getElementById('refreshLevel').addEventListener('click', () => {
         startGame(currentLevel + 1);
+    });
+
+    // 옵션 화면 이벤트 리스너 추가
+    document.getElementById('optionsButton').addEventListener('click', function() {
+        document.getElementById('option-screen').style.display = 'flex';
+    });
+
+    document.getElementById('back-button').addEventListener('click', function() {
+        document.getElementById('option-screen').style.display = 'none';
+        document.getElementById('startScreen').style.display = 'flex'; // 스타트 스크린 보이기
+    });
+
+    document.getElementById('clear-data-button').addEventListener('click', function() {
+        // 데이터 초기화 로직 추가
+        clearedLevels.clear(); // clearedLevels Set 비우기
+        localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
+        showMessage('클리어된 레벨이 삭제되었습니다!'); // showMessage 함수 사용
     });
 });
 
@@ -897,3 +916,23 @@ function onload() {
         });
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 모든 이벤트 리스너 추가
+    document.getElementById('optionsButton').addEventListener('click', function() {
+        document.getElementById('startScreen').style.display = 'none'; // 스타트 스크린 숨기기
+        document.getElementById('option-screen').style.display = 'flex'; // 옵션 스크린 보이기
+    });
+
+    document.getElementById('back-button').addEventListener('click', function() {
+        document.getElementById('option-screen').style.display = 'none';
+        document.getElementById('startScreen').style.display = 'flex'; // 스타트 스크린 보이기
+    });
+
+    document.getElementById('clear-data-button').addEventListener('click', function() {
+        // 데이터 초기화 로직 추가
+        clearedLevels.clear(); // clearedLevels Set 비우기
+        localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
+        showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
+    });
+});
