@@ -467,44 +467,35 @@ const PUZZLE_MAPS = [
         size: 5,
         areas: [
             {
-                cells: [[0, 0], [1, 0], [2, 0]],
-                required: 2
-            },
-            {
-                cells: [[0, 1], [0, 2], [0, 3]],
-                required: 'J'
-            },
-            {
-                cells: [[0, 4], [1, 4]],
-                required: 0
-            },
-            {
-                cells: [[1, 1], [1, 2], [1, 3], 
-                        [2, 1]//, [2, 2]
-                    ],
-                required: 2
-            },
-            // {
-            //     cells: [[1, 3],// [1, 4],
-            //             [2, 3], [2, 4]],
-            //     required: 3
-            // },
-            {
-                cells: [[3, 0], [3, 1], [3, 2]],
+                cells: [[0, 0], [0, 1], [0, 2], [0, 3]],
                 required: 3
             },
             {
-                cells: [[2, 3], [2, 4],
-                        [3, 3], [3, 4]],
+                cells: [[3, 0], [3, 1], [3, 2],
+                        [4, 0]],
                 required: 3
             },
             {
-                cells: [[4, 0], [4, 1]],
+                cells: [[0, 4], [1, 4], [2, 4]],
+                required: 1
+            },
+            {
+                cells: [[3, 4]],
+                required: 1
+            },
+            {
+                cells: [[1, 2],
+                        [2, 1], [2, 2]],
                 required: 0
             },
             {
-                cells: [[4, 2], [4, 3]],
-                required: 2
+                cells: [[3, 3],
+                        [4, 3]],
+                required: 1
+            },
+            {  
+                cells: [[4, 1], [4, 2]],
+                required: 1
             },
             {
                 cells: [[4, 4]],
