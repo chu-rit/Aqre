@@ -162,7 +162,6 @@ body {
 .refreshLevel {
     position: absolute;
     right: 10px;
-    top: 10px;
     width: 40px;
     height: 40px;
     display: flex;
@@ -173,6 +172,7 @@ body {
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
+    border-radius: 12px;
 }
 
 .refreshLevel:hover {
@@ -344,6 +344,8 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    position: absolute;
+    left: 10px;
 }
 
 .back-button:hover {
@@ -413,22 +415,6 @@ body {
     text-align: center;
     margin-bottom: 1.5rem;
     text-transform: uppercase;
-}
-
-.back-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    border-radius: 12px;
-    padding: 8px 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.back-button:hover {
-    background: rgba(255, 255, 255, 0.2);
 }
 
 /* 팝업 스타일 */
@@ -571,7 +557,7 @@ body {
 .level-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: 20px;
+    padding-top: 20px;
 }
 
 .level-grid {
@@ -1200,10 +1186,6 @@ body {
         padding: 10px;
     }
 
-    .container {
-        padding: 1rem;
-    }
-
     .rules ul {
         padding-left: 20px;
     }
@@ -1217,10 +1199,6 @@ body {
 @media (max-width: 480px) {
     body {
         padding: 5px;
-    }
-
-    .container {
-        padding: 0.5rem;
     }
 }
 
