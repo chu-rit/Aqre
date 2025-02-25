@@ -390,6 +390,12 @@ const PUZZLE_MAPS = [
             {
                 cells: [[0, 4]],
                 required: 1
+            },
+            {
+                cells: [[1, 2],
+                        [2, 1], [2, 2], [2, 3],
+                        [3, 2]],
+                required: 'J'
             }
         ],
         initialState: [
@@ -528,20 +534,12 @@ const PUZZLE_MAPS = [
             },
             {
                 cells: [[5, 1], [5, 2]],
-                required: 0
+                required: 'J'
             },
-            // {
-            //     cells: [[0, 4]],
-            //     required: 1
-            // },
             {
                 cells: [[2, 0], [2, 1], [2, 2],[2, 3]],
                 required: 3
             },
-            // {
-            //     cells: [[3, 0]],
-            //     required: 1
-            // },
             {
                 cells: [[3, 2], [3, 3], [3, 4], [3, 5]],
                 required: 3
@@ -555,5 +553,64 @@ const PUZZLE_MAPS = [
             [2, 0, 0, 0, 0, 2],
             [2, 0, 0, 0, 0, 2],
         ],
-    }
+    },
+    {   // 16
+        id: 16,
+        name: "Level 16",
+        size: 6,
+        areas: [
+            { 
+                cells: [[0, 0], [0, 1],
+                        [1, 0]], 
+                required: 2
+            },
+            { 
+                cells: [[0, 2], [0, 3], 
+                        [1, 2]], 
+                required: 1
+            },
+            {
+                cells: [[1, 1],
+                        [2, 1], [2, 2]], 
+                required: 1
+            },
+            { 
+                cells: [[1, 3], 
+                        [2, 3], [2, 4]], 
+                required: 3
+            },
+            { 
+                cells: [[3, 0], [3, 1], 
+                        [4, 0]], 
+                required: 2
+            },
+            { 
+                cells: [[3, 2], [3, 3], 
+                        [4, 2]], 
+                required: 2
+            },
+            { 
+                cells: [[4, 3], 
+                        [5, 3], [5, 4]], 
+                required: 1
+            },
+            { 
+                cells: [[4, 1], 
+                        [5, 1], [5, 2]], 
+                required: 3 
+            },
+            {
+                cells: [[3, 4]],
+                required: 0
+            }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 2],
+            [0, 0, 0, 0, 0, 2],
+        ],
+    },
 ];
