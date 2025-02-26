@@ -936,3 +936,10 @@ document.addEventListener('DOMContentLoaded', function() {
         showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
     });
 });
+
+// 페이지가 로드될 때 17레벨로 이동
+// document.addEventListener("DOMContentLoaded", function() {
+//         console.log('Page loaded');
+//     const levelToLoad = 17;
+//     startGame(levelToLoad);
+// });
