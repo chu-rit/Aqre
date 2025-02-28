@@ -273,9 +273,31 @@
         const solutionWrapper = document.createElement('div');
         solutionWrapper.className = 'puzzle-solution';
 
-        // 타이틀 추가
+        // 값이 2가 아닌 타일의 총 개수 계산
+        let totalNonBlockedTiles = 0;
+        let totalGrayTiles = 0;
+        let totalWhiteTiles = 0;
+        
+        solution.forEach(row => {
+            row.forEach(cellValue => {
+                if (cellValue !== 2) {
+                    totalNonBlockedTiles++;
+                    if (cellValue === 1) {
+                        totalGrayTiles++;
+                    } else if (cellValue === 0) {
+                        totalWhiteTiles++;
+                    }
+                }
+            });
+        });
+
+        // 타이틀과 타일 정보 추가
         const titleElement = document.createElement('h2');
-        titleElement.textContent = title;
+        titleElement.textContent = `${title} (총 타일: ${totalNonBlockedTiles}, 회색: ${totalGrayTiles}, 흰색: ${totalWhiteTiles})`;
+        titleElement.style.fontSize = '0.9rem';
+        titleElement.style.fontWeight = '500';
+        titleElement.style.color = '#666';
+        titleElement.style.marginBottom = '10px';
         solutionWrapper.appendChild(titleElement);
 
         // 보드 래퍼 생성

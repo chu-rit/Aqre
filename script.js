@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Refresh Level Button
     document.getElementById('refreshLevel').addEventListener('click', () => {
-        startGame(currentLevel + 1);
+        startGame(currentLevel);
     });
 
     // 옵션 화면 이벤트 리스너 추가
@@ -188,10 +188,10 @@ function checkLevel(levelId) {
 // 게임 초기화
 function startGame(levelId = 11) {
     // 현재 레벨 설정
-    currentLevel = levelId - 1;
+    currentLevel = levelId;
     
-    // 현재 퍼즐 데이터 로드
-    const puzzle = PUZZLE_MAPS[currentLevel];
+    // 현재 퍼즐 데이터 로드 (id로 찾기)
+    const puzzle = PUZZLE_MAPS.find(p => p.id === levelId);
     
     // 게임 보드 초기화
     gameBoard = puzzle.initialState.map(row => [...row]);
@@ -231,7 +231,7 @@ function updateCurrentLevelDisplay(level) {
 
 // 게임 정보 업데이트
 function updateGameInfo() {
-    const puzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+    const puzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     const infoElement = document.querySelector('.level-info');
     if (infoElement && puzzle) {
         infoElement.innerHTML = `
@@ -253,7 +253,7 @@ function renderBoard() {
     board.innerHTML = '';
     
     // 현재 퍼즐의 영역 정보 가져오기
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     
     // 퍼즐의 size 속성 사용
     const BOARD_SIZE = currentPuzzle.size || 6;
@@ -375,7 +375,7 @@ function checkGameRules() {
         cellConnectivity: false
     };
     const violationMessages = new Set();
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     
     // 1. 각 영역의 회색 칸 수 확인
     for (const area of currentPuzzle.areas) {
@@ -455,7 +455,7 @@ function checkGameRules() {
 
 // 회색 칸 연결성 확인 함수
 function checkGrayCellConnectivity() {
-    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+    const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
     const grayCells = [];
     
     // 회색 칸 위치 찾기
@@ -592,7 +592,7 @@ function updateViolationDisplay() {
 
         // 영역 위반 처리
         if (ruleCheck.violations.areaOverflow && violation.includes('영역')) {
-            const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel + 1);
+            const currentPuzzle = PUZZLE_MAPS.find(p => p.id === currentLevel);
             if (currentPuzzle) {
                 for (const area of currentPuzzle.areas) {
                     const grayCount = area.cells.reduce((count, [row, col]) => {
@@ -813,7 +813,7 @@ function showGameClearPopup() {
     }
 
     // 현재 레벨 클리어 처리
-    const currentLevelId = currentLevel + 1;
+    const currentLevelId = currentLevel;
     markLevelCleared(currentLevelId);
 
     // 움직임 수 표시
@@ -912,7 +912,7 @@ function onload() {
     if (gameBoard) {
         gameBoard.addEventListener('click', () => {
             // 현재 레벨 다시 시작
-            startGame(currentLevel + 1);
+            startGame(currentLevel);
         });
     }
 }

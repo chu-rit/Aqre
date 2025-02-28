@@ -355,8 +355,8 @@ const PUZZLE_MAPS = [
         ]
     },
     {   // 12
-        id: 12,
-        name: "Level 12",
+        id: 14,
+        name: "Level 14",
         size: 5,
         areas: [
             {
@@ -407,8 +407,8 @@ const PUZZLE_MAPS = [
         ]
     },
     {   // 13
-        id: 13,
-        name: "Level 13",
+        id: 15,
+        name: "Level 15",
         size: 5,
         areas: [
             {
@@ -459,8 +459,8 @@ const PUZZLE_MAPS = [
         ]
     },
     {   // 14
-        id: 14,
-        name: "Level 14",
+        id: 16,
+        name: "Level 16",
         size: 5,
         areas: [
             {
@@ -508,8 +508,8 @@ const PUZZLE_MAPS = [
         ]
     },
     {   // 15
-        id: 15,
-        name: "Level 15",
+        id: 17,
+        name: "Level 17",
         size: 6,
         areas: [
             { 
@@ -555,48 +555,46 @@ const PUZZLE_MAPS = [
         ],
     },
     {   // 16
-        id: 16,
-        name: "Level 16",
+        id: 18,
+        name: "Level 18",
         size: 6,
         areas: [
             { 
-                cells: [[0, 0], [0, 1],
-                        [1, 0]], 
+                cells: [[0,0], [0,1], [1,0]], 
                 required: 2
             },
             { 
-                cells: [[0, 2], [0, 3], 
-                        [1, 2]], 
+                cells: [[0,2], [0,3], [1,2]], 
                 required: 1
             },
             {
-                cells: [[1, 1],
-                        [2, 1], [2, 2]], 
+                cells: [[1,1],
+                        [2,1], [2,2]], 
                 required: 1
             },
             { 
-                cells: [[1, 3], 
-                        [2, 3], [2, 4]], 
+                cells: [[1,3], 
+                        [2,3], [2,4]], 
                 required: 3
             },
             { 
-                cells: [[3, 0], [3, 1], 
-                        [4, 0]], 
+                cells: [[3,0], [3,1], 
+                        [4,0]], 
                 required: 2
             },
             { 
-                cells: [[3, 2], [3, 3], 
-                        [4, 2]], 
+                cells: [[3,2], [3,3], 
+                        [4,2]], 
                 required: 2
             },
             { 
-                cells: [[4, 3], 
-                        [5, 3], [5, 4]], 
+                cells: [[4,3], 
+                        [5,3], [5,4]], 
                 required: 1
             },
             { 
-                cells: [[4, 1], 
-                        [5, 1], [5, 2]], 
+                cells: [[4,1], 
+                        [5,1], [5,2]], 
                 required: 3 
             }//,
             // {
@@ -614,8 +612,8 @@ const PUZZLE_MAPS = [
         ],
     },
     {   // 17
-        id: 17,
-        name: "Level 17",
+        id: 19,
+        name: "Level 19",
         size: 6,
         areas: [
             {
