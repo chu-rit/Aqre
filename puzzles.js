@@ -598,11 +598,11 @@ const PUZZLE_MAPS = [
                 cells: [[4, 1], 
                         [5, 1], [5, 2]], 
                 required: 3 
-            },
-            {
-                cells: [[3, 4]],
-                required: 0
-            }
+            }//,
+            // {
+            //     cells: [[3, 4]],
+            //     required: 0
+            // }
         ],
         initialState: [
             [0, 0, 0, 0, 0, 2],
@@ -623,18 +623,18 @@ const PUZZLE_MAPS = [
                         [1, 0], [1, 1],
                         [2, 0], [2, 1],
                         [3, 0], [3, 1]],
-                required: 5
+                required: 6
             },
             {
                 cells: [[0, 1], [0, 2], [0, 3], [0, 4], 
-                        [1, 2], [1, 3]],
-                required: 5
+                         [1, 3]],
+                required: 3
             },
             {
                 cells: [[0, 5], 
                         [1, 4], [1, 5],
                         [2, 4], [2, 5]],
-                required: 3
+                required: 4
             },
             {
                 cells: [[3, 4], [3, 5], 
@@ -647,13 +647,13 @@ const PUZZLE_MAPS = [
                 required: 2
             },
             {
-                cells: [[2, 2], //[2, 3],
+                cells: [[2, 2], [1, 2],
                         [3, 2]],
                 required: 1
             },
             {
                 cells: [[2, 3]],
-                required: 0
+                required: 1
             },
             {
                 cells: [[4, 0], [4, 1], 
