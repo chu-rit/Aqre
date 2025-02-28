@@ -42,11 +42,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentTapSource = null;
     let currentClearSource = null;
 
+    // 앱이 백그라운드에서 포그라운드로 돌아올 때 AudioContext 재개
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // 다시 재개할 수 있도록 플래그 재설정
+            audioCtxResumed = false;
+        }
+    });
+
     const playTapSound = () => {
         // 효과음이 꺼져있으면 재생하지 않음
         if (!isSoundEnabled) return;
 
-        if (audioCtx.state === 'suspended' && !audioCtxResumed) {
+        if (audioCtx.state === 'suspended') {
             audioCtx.resume();
             audioCtxResumed = true;
         }
@@ -66,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 효과음이 꺼져있으면 재생하지 않음
         if (!isSoundEnabled) return;
 
-        if (audioCtx.state === 'suspended' && !audioCtxResumed) {
+        if (audioCtx.state === 'suspended') {
             audioCtx.resume();
             audioCtxResumed = true;
         }
