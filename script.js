@@ -14,6 +14,9 @@ let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || 
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
 
+// 효과음 설정
+let isSoundEnabled = true;
+
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     // 사용자 상호작용 후 오디오 컨텍스트 초기화 (브라우저 정책)
@@ -136,6 +139,20 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
         showMessage('클리어된 레벨이 삭제되었습니다!'); // showMessage 함수 사용
     });
+
+    // 효과음 토글 이벤트 리스너
+    const soundToggle = document.getElementById('sound-toggle');
+    soundToggle.addEventListener('change', function() {
+        isSoundEnabled = this.checked;
+        localStorage.setItem('soundEnabled', isSoundEnabled);
+    });
+
+    // 로컬 스토리지에서 효과음 설정 불러오기
+    const savedSoundSetting = localStorage.getItem('soundEnabled');
+    if (savedSoundSetting !== null) {
+        isSoundEnabled = savedSoundSetting === 'true';
+        soundToggle.checked = isSoundEnabled;
+    }
 });
 
 // 레벨 선택 화면 생성
@@ -921,7 +938,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 모든 이벤트 리스너 추가
     document.getElementById('optionsButton').addEventListener('click', function() {
         document.getElementById('startScreen').style.display = 'none'; // 스타트 스크린 숨기기
-        document.getElementById('option-screen').style.display = 'flex'; // 옵션 스크린 보이기
+        document.getElementById('option-screen').style.display = 'block'; // 옵션 스크린 보이기
     });
 
     document.getElementById('back-button').addEventListener('click', function() {

@@ -26,7 +26,7 @@
 
     <div class="start-screen" id="startScreen">
         <h1>AQRE</h1>
-        <div class="version-tag">v1.0.10</div>
+        <div class="version-tag">v1.0.1</div>
         <div class="button-container">
             <button id="startButton" class="game-button">게임 시작</button>
             <button id="optionsButton" class="game-button">옵션</button>
@@ -70,11 +70,18 @@
     </div>
 
     <div class="option-screen" id="option-screen" style="display: none;">
+        <div class="option-header">
+            <button id="back-button" class="back-button"><</button>
+        </div>
         <div class="container">
-            <div class="option-header">
-                <button id="back-button" class="back-button">뒤로가기</button>
-            </div>
             <button id="clear-data-button" class="game-button">클리어 데이터 지우기</button>
+            <div class="toggle-container">
+                <span>효과음</span>
+                <label class="switch">
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </div>
     </div>
 

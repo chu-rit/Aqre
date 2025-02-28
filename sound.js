@@ -43,45 +43,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentClearSource = null;
 
     const playTapSound = () => {
+        // 효과음이 꺼져있으면 재생하지 않음
+        if (!isSoundEnabled) return;
+
         if (audioCtx.state === 'suspended' && !audioCtxResumed) {
             audioCtx.resume();
             audioCtxResumed = true;
         }
         // 이전 tap 효과음 중단
         if (currentTapSource) {
-            try {
-                currentTapSource.stop();
-            } catch (e) {
-                console.warn('Tap sound stop failed:', e);
-            }
-            currentTapSource = null;
+            currentTapSource.stop();
         }
-        const source = audioCtx.createBufferSource();
-        source.buffer = tapBuffer;
-        source.connect(audioCtx.destination);
-        source.start(0); // 즉시 재생
-        currentTapSource = source;
+
+        // 새로운 tap 효과음 생성 및 재생
+        currentTapSource = audioCtx.createBufferSource();
+        currentTapSource.buffer = tapBuffer;
+        currentTapSource.connect(audioCtx.destination);
+        currentTapSource.start(0);
     };
 
     const playClearSound = () => {
+        // 효과음이 꺼져있으면 재생하지 않음
+        if (!isSoundEnabled) return;
+
         if (audioCtx.state === 'suspended' && !audioCtxResumed) {
             audioCtx.resume();
             audioCtxResumed = true;
         }
         // 이전 clear 효과음 중단
         if (currentClearSource) {
-            try {
-                currentClearSource.stop();
-            } catch (e) {
-                console.warn('Clear sound stop failed:', e);
-            }
-            currentClearSource = null;
+            currentClearSource.stop();
         }
-        const source = audioCtx.createBufferSource();
-        source.buffer = clearBuffer;
-        source.connect(audioCtx.destination);
-        source.start(0); // 즉시 재생
-        currentClearSource = source;
+
+        // 새로운 clear 효과음 생성 및 재생
+        currentClearSource = audioCtx.createBufferSource();
+        currentClearSource.buffer = clearBuffer;
+        currentClearSource.connect(audioCtx.destination);
+        currentClearSource.start(0);
     };
 
     // 전역에서 사용 가능하도록 노출
