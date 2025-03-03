@@ -13,6 +13,9 @@ const bgmAudio = new Audio('sound/bgm.mp3');
 bgmAudio.loop = true;
 bgmAudio.volume = BGM_VOLUME;
 
+// 게임 활성화 상태 추적 변수
+let isGameActive = false;
+
 // 볼륨 설정
 tapSound.volume = 0.3;
 tapSound.preload = 'auto';
@@ -104,6 +107,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // BGM 재생 함수
     function playBGM() {
+        // 게임이 활성화 상태가 아니면 재생하지 않음
+        if (!isGameActive) return;
+
         // 이미 재생 중이면 무시
         if (!bgmAudio.paused) return;
 
@@ -129,15 +135,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         bgmAudio.pause();
     }
 
+    // 게임 활성화 상태 설정 함수
+    function setGameActive(active) {
+        isGameActive = active;
+        
+        if (active) {
+            // 게임 활성화 시 BGM 재생 시도
+            if (localStorage.getItem(BGM_STORAGE_KEY) === 'true') {
+                playBGM();
+            }
+        } else {
+            // 게임 비활성화 시 BGM 일시정지
+            pauseBGM();
+        }
+    }
+
     // 게임 시작 버튼에 이벤트 리스너 추가
     const gameStartButton = document.getElementById('startButton');
     if (gameStartButton) {
-        gameStartButton.addEventListener('click', playBGM);
+        gameStartButton.addEventListener('click', () => {
+            // 게임 활성화
+            setGameActive(true);
+            playBGM();
+        });
     }
+
+    // 페이지 가시성 변경 시 게임 상태 관리
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            // 페이지가 보일 때
+            if (isGameActive) {
+                playBGM();
+            }
+        } else {
+            // 페이지가 숨겨질 때
+            pauseBGM();
+        }
+    });
 
     // 이전에 BGM 재생이 허용되었다면 자동 재생 시도
     if (localStorage.getItem(BGM_STORAGE_KEY) === 'true') {
         function attemptBGMPlayback(retryDelay = 3000) {
+            if (!isGameActive) return;
+
             bgmAudio.play()
                 .then(() => {
                     console.log('BGM 자동 재생 성공');
@@ -161,6 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.playClearSound = playClearSound;
     window.playBGM = playBGM;
     window.pauseBGM = pauseBGM;
+    window.setGameActive = setGameActive;
 
     // 페이지 로드 시 사운드 미리 로딩
     console.log('Sounds preloaded successfully.');
