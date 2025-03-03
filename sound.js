@@ -4,6 +4,15 @@ const tapSound = new Audio('sound/tap.mp3');
 // 클리어 사운드 생성
 const clearSound = new Audio('sound/clear.mp3');
 
+// BGM 관리를 위한 상수 및 변수
+const BGM_STORAGE_KEY = 'aqre_bgm_allowed';
+const BGM_VOLUME = 0.3;
+
+// BGM 오디오 요소 생성
+const bgmAudio = new Audio('sound/bgm.mp3');
+bgmAudio.loop = true;
+bgmAudio.volume = BGM_VOLUME;
+
 // 볼륨 설정
 tapSound.volume = 0.3;
 tapSound.preload = 'auto';
@@ -93,9 +102,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentClearSource.start(0);
     };
 
+    // BGM 재생 함수
+    function playBGM() {
+        // 이미 재생 중이면 무시
+        if (!bgmAudio.paused) return;
+
+        // AudioContext 재개
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        // BGM 재생
+        bgmAudio.play()
+            .then(() => {
+                console.log('BGM 재생 시작');
+                // 최초 재생 시 로컬 스토리지에 저장
+                localStorage.setItem(BGM_STORAGE_KEY, 'true');
+            })
+            .catch(error => {
+                console.error('BGM 재생 실패:', error);
+            });
+    }
+
+    // BGM 일시정지 함수
+    function pauseBGM() {
+        bgmAudio.pause();
+    }
+
+    // 게임 시작 버튼에 이벤트 리스너 추가
+    const gameStartButton = document.getElementById('startButton');
+    if (gameStartButton) {
+        gameStartButton.addEventListener('click', playBGM);
+    }
+
+    // 이전에 BGM 재생이 허용되었다면 자동 재생 시도
+    if (localStorage.getItem(BGM_STORAGE_KEY) === 'true') {
+        function attemptBGMPlayback(retryDelay = 3000) {
+            bgmAudio.play()
+                .then(() => {
+                    console.log('BGM 자동 재생 성공');
+                })
+                .catch(error => {
+                    console.log('BGM 자동 재생 실패:', error);
+
+                    // 재시도 스케줄링 (성공할 때까지)
+                    setTimeout(() => {
+                        attemptBGMPlayback(Math.min(retryDelay * 1.5, 30000));
+                    }, retryDelay);
+                });
+        }
+
+        // 초기 재생 시도
+        setTimeout(attemptBGMPlayback, 3000);
+    }
+
     // 전역에서 사용 가능하도록 노출
     window.playTapSound = playTapSound;
     window.playClearSound = playClearSound;
+    window.playBGM = playBGM;
+    window.pauseBGM = pauseBGM;
 
     // 페이지 로드 시 사운드 미리 로딩
     console.log('Sounds preloaded successfully.');
