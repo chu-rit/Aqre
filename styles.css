@@ -239,8 +239,6 @@ body {
 
 .refreshLevel:hover {
     background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .refreshLevel:active {
@@ -878,72 +876,19 @@ input:checked + .slider:before {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.level-selector {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
+#violation-list li.area-violation {
+    border-left-color: #4ecdc4;
 }
 
-.level-selector button {
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+#violation-list li.color-violation {
+    border-left-color: #ff6b6b;
 }
 
-.level-selector button:hover {
-    background-color: #e0e0e0;
-}
-
-.preparing, .no-levels-message {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-    font-size: 1.5rem;
-    color: #888;
+#violation-list li.no-violation {
+    color: #4ecdc4;
+    border-left-color: #4ecdc4;
     text-align: center;
-    padding: 20px;
-}
-
-.message-container {
-    position: fixed;
-    top: 66%; /* 세로 2/3 지점 */
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    max-width: 400px;
-}
-
-.message {
-    padding: 15px 25px;
-    border-radius: 8px;
-    color: white;
-    font-weight: bold;
-    text-align: center;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-    transform: scale(0.8);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.message.info {
-    background-color: #3498db;
-}
-
-.message.warning {
-    background-color: #e74c3c;
-}
-
-.message.success {
-    background-color: #2ecc71;
+    font-weight: 500;
 }
 
 /* 게임 클리어 팝업 스타일 */
@@ -953,51 +898,129 @@ input:checked + .slider:before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: transparent;
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .game-clear-popup .popup-content {
-    background-color: rgba(128, 128, 128, 0.9);
-    border-radius: var(--border-radius);
-    padding: 2rem;
+    background: linear-gradient(135deg, rgba(64, 169, 255, 0.6) 0%, rgba(41, 128, 185, 0.65) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
     text-align: center;
     max-width: 400px;
     width: 90%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    animation: popupScale 0.3s ease-out;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+    animation: popupScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.game-clear-popup .popup-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+    opacity: 0.9;
+    pointer-events: none;
 }
 
 .game-clear-popup .popup-header h2 {
-    color: var(--success-color);
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 1px;
 }
 
 .game-clear-popup .popup-body {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    color: white;
+}
+
+.game-clear-popup .popup-body p {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
 }
 
 .game-clear-popup .game-stats {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 1rem;
-    border-radius: 8px;
-    margin-top: 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 1.2rem;
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.game-clear-popup .game-stats p {
+    font-size: 1.2rem;
+    color: white;
+    margin: 0;
+}
+
+.game-clear-popup .game-stats span {
+    font-weight: bold;
+    color: white;
+    font-size: 1.3rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .game-clear-popup .popup-footer {
     display: flex;
-    justify-content: space-between;
-    gap: 1rem;
+    justify-content: center;
+    gap: 1.2rem;
+    margin-top: 1rem;
 }
 
 .game-clear-popup .game-button {
     flex: 1;
-    padding: 0.8rem 1rem;
-    font-size: 1rem;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    color: #2980b9;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    max-width: 200px;
+    font-weight: bold;
+}
+
+.game-clear-popup .game-button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.game-clear-popup .game-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.game-clear-popup .game-button:hover::after {
+    opacity: 1;
+}
+
+.game-clear-popup .game-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes popupScale {
@@ -1011,10 +1034,27 @@ input:checked + .slider:before {
     }
 }
 
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
 @media screen and (max-width: 480px) {
     .game-clear-popup .popup-content {
-        padding: 1.5rem;
+        padding: 2rem;
         width: 95%;
+    }
+    
+    .game-clear-popup .popup-header h2 {
+        font-size: 1.8rem;
+    }
+    
+    .game-clear-popup .game-button {
+        padding: 0.9rem 1.2rem;
     }
 }
 
@@ -1232,7 +1272,7 @@ input:checked + .slider:before {
     height: 10px; /* 크기 증가 */
     background-color: rgba(46, 204, 113, 0.8); /* 그린 색상으로 변경 */
     border-radius: 50%;
-    animation: pulse-dot 1.5s ease-in-out infinite;
+    animation: pulse-dot 1.5s infinite;
     box-shadow: 0 0 5px 2px rgba(46, 204, 113, 0.5); /* 그린 색상 그림자 */
 }
 
@@ -1296,7 +1336,7 @@ input:checked + .slider:before {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     max-height: 200px; /* 최대 높이 추가 */
     overflow-y: auto; /* 세로 스크롤 활성화 */
 }

@@ -879,9 +879,11 @@ function showGameClearPopup() {
     const gameClearPopup = document.getElementById('gameClearPopup');
     const clearMoves = document.getElementById('clearMoves');
     const backToLevelsButton = document.getElementById('backToLevelsButton');
+    const gameClearMessage = document.getElementById('gameClearMessage');
 
     // 요소 중 하나라도 없으면 경고 로그
-    if (!gameClearPopup || !clearMoves || !backToLevelsButton) {
+    if (!gameClearPopup || !clearMoves || !backToLevelsButton || !gameClearMessage) {
+        console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
         return;
     }
 
@@ -891,6 +893,39 @@ function showGameClearPopup() {
 
     // 움직임 수 표시
     clearMoves.textContent = moves;
+
+    // 클리어 메시지 설정 (레벨에 따라 다른 메시지)
+    if (currentLevelId <= 5) {
+        // 기본 레벨
+        gameClearMessage.textContent = "축하합니다! 기본 레벨을 완료했습니다.";
+    } else if (currentLevelId > 5 && currentLevelId <= 15) {
+        // 중급 레벨
+        gameClearMessage.textContent = "훌륭합니다! 중급 레벨을 클리어했습니다.";
+    } else {
+        // 고급 레벨
+        gameClearMessage.textContent = "대단합니다! 고급 레벨을 정복했습니다.";
+    }
+
+    // 다음 레벨 버튼 텍스트 설정
+    const nextLevelId = currentLevelId + 1;
+    if (nextLevelId <= PUZZLE_MAPS.length) {
+        backToLevelsButton.textContent = "다음 레벨";
+        
+        // 다음 레벨로 이동하는 이벤트 리스너 추가
+        backToLevelsButton.onclick = () => {
+            gameClearPopup.style.display = 'none';
+            startGame(nextLevelId);
+        };
+    } else {
+        // 마지막 레벨인 경우
+        backToLevelsButton.textContent = "레벨 선택";
+        
+        // 레벨 선택 화면으로 돌아가는 이벤트 리스너 추가
+        backToLevelsButton.onclick = () => {
+            gameClearPopup.style.display = 'none';
+            showScreen('levelScreen');
+        };
+    }
 
     // 클리어 사운드 재생
     playClearSound();
