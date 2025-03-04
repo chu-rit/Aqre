@@ -40,16 +40,63 @@ document.addEventListener('DOMContentLoaded', () => {
     // 시작 화면 버튼들
     if (startButton) {
         startButton.addEventListener('click', () => {
-            showScreen('levelScreen');
-            createLevelScreen();
+            const startScreen = document.getElementById('startScreen');
+            const levelScreen = document.getElementById('levelScreen');
+            
+            // 시작 화면에 fade-out 애니메이션 추가
+            startScreen.classList.add('fade-out');
+            
+            // 애니메이션 종료 후 화면 전환
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+                startScreen.classList.remove('fade-out');
+                
+                levelScreen.style.display = 'flex';
+                levelScreen.classList.add('fade-in');
+                createLevelScreen();
+                
+                // 애니메이션 클래스 제거
+                setTimeout(() => {
+                    levelScreen.classList.remove('fade-in');
+                }, 300);
+            }, 300);
         });
     }
 
+    function setupOptionsButton() {
+        const optionsButton = document.getElementById('optionsButton');
+
+        if (optionsButton) {
+            optionsButton.addEventListener('click', () => {
+                // 현재 화면 숨기기
+                const currentScreens = ['startScreen', 'levelScreen'];
+                currentScreens.forEach(screenId => {
+                    const screen = document.getElementById(screenId);
+                    if (screen) screen.style.display = 'none';
+                });
+
+                // 옵션 화면 표시
+                const optionScreen = document.getElementById('option-screen');
+                if (optionScreen) optionScreen.style.display = 'block';
+            });
+        }
+    }
+
+    setupOptionsButton();
+
+    // 옵션 버튼 이벤트 리스너 단순화
     if (optionsButton) {
         optionsButton.addEventListener('click', () => {
-            // 옵션 메뉴 표시 로직
-            document.getElementById('startScreen').style.display = 'none'; // 스타트 스크린 숨기기
-            document.getElementById('option-screen').style.display = 'block'; // 옵션 스크린 보이기
+            // 현재 화면 숨기기
+            const currentScreens = ['startScreen', 'levelScreen'];
+            currentScreens.forEach(screenId => {
+                const screen = document.getElementById(screenId);
+                if (screen) screen.style.display = 'none';
+            });
+
+            // 옵션 화면 표시
+            const optionScreen = document.getElementById('option-screen');
+            if (optionScreen) optionScreen.style.display = 'block';
         });
     }
 
@@ -152,6 +199,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedSoundSetting !== null) {
         isSoundEnabled = savedSoundSetting === 'true';
         soundToggle.checked = isSoundEnabled;
+    }
+
+    // 레벨 선택 화면 옵션 버튼
+    const OptionsButton = document.getElementById('OptionsButton');
+    if (OptionsButton) {
+        OptionsButton.addEventListener('click', () => {
+            document.getElementById('levelScreen').style.display = 'none';
+            document.getElementById('option-screen').style.display = 'block';
+        });
     }
 });
 
@@ -299,7 +355,7 @@ function renderBoard() {
             if (gameBoard[row][col] === 1) {
                 cell.classList.add('gray');
             } else if (gameBoard[row][col] === 2) {
-                cell.classList.add('black');
+                cell.classList.add('type3');
             }
             
             // 각 셀에 데이터셋 추가
@@ -955,8 +1011,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 페이지가 로드될 때 17레벨로 이동
-// document.addEventListener("DOMContentLoaded", function() {
-//         console.log('Page loaded');
-//     const levelToLoad = 17;
-//     startGame(levelToLoad);
-// });
+/*
+document.addEventListener("DOMContentLoaded", function() {
+    console.log('Page loaded');
+    // const levelToLoad = 17;
+    // startGame(levelToLoad);
+});*/
+
+document.getElementById('clear-data-button').addEventListener('click', function() {
+    // 데이터 초기화 로직 추가
+    clearedLevels.clear(); // clearedLevels Set 비우기
+    localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
+    showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
+});

@@ -54,6 +54,8 @@ body {
     padding: 20px;
     text-align: center;
     background-color: var(--background-color);
+    color: white;
+    width: 100%;
 }
 
 .start-screen h1 {
@@ -120,7 +122,22 @@ body {
 }
 
 #optionsButton {
-    background: linear-gradient(145deg, #2196F3, #1976D2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+#optionsButton:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* 시작 화면 컨테이너 및 텍스트 스타일 */
@@ -172,6 +189,7 @@ body {
     padding: 20px;
     max-width: 100%;
     margin: 0 auto;
+    width: 100%;
 }
 
 .game-header {
@@ -255,6 +273,7 @@ body {
     max-width: 350px;
     aspect-ratio: 1;
     margin: 0 auto;
+    border: 3px solid rgba(52, 152, 219, 0.5);
 }
 
 .cell {
@@ -276,8 +295,8 @@ body {
     background-color: #999;  /* 밝은 회색으로 변경 */
 }
 
-.cell.black {
-    background-color: black;
+.cell.type3 {
+    background-color: steelblue;
     pointer-events: none;
 }
 
@@ -358,7 +377,8 @@ body {
     align-items: center;
     padding: 20px;
     min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    width: 100%;
+    background-color: var(--background-color);
     color: white;
 }
 
@@ -439,6 +459,7 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
     padding: 20px;
+    width: 100%;
 }
 
 .option-screen .container {
@@ -672,7 +693,8 @@ input:checked + .slider:before {
 .level-container {
     max-width: 600px;
     margin: 0 auto;
-    padding-top: 20px;
+    padding: 0;
+    width: 100%;
 }
 
 .level-grid {
@@ -680,6 +702,8 @@ input:checked + .slider:before {
     grid-template-columns: repeat(5, 1fr);
     gap: 15px;
     width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 #basicLevelGrid {
@@ -706,7 +730,7 @@ input:checked + .slider:before {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .level-btn {
@@ -758,7 +782,7 @@ input:checked + .slider:before {
 }
 
 .level-btn.cleared {
-    background: linear-gradient(135deg, #4CAF50, #81C784);
+    background: cornflowerblue;
     color: white;
     position: relative;
 }
@@ -1535,5 +1559,48 @@ img {
     max-width: 500px;
     max-height: 500px;
     object-fit: contain;
-    margin: 20px auto;
+    margin: 0;
+}
+
+/* 이미지 마진 제거 */
+img {
+    margin: 0;
+}
+
+/* 화면 전환 애니메이션 */
+@keyframes fadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(1.1); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.start-screen.fade-out {
+    animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+.level-screen.fade-in {
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+/* 설정 버튼 스타일 */
+.settings-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 10px;
+}
+
+.settings-button:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
