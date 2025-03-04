@@ -5,38 +5,61 @@ let tutorialAllowedCells = [];
 let globalTutorialCellClickHandler = null;
 
 // 타이핑 효과 함수
-function typeWriter(element, text, speed = 30) {
+function typeWriter(element, text, speed = 30, callback = null) {
     element.innerHTML = '';
-    let tempDiv = document.createElement('div');
-    tempDiv.innerHTML = text;
-    let textNodes = [];
-
-    // 텍스트 노드와 HTML 태그 분리
-    function extractTextNodes(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            textNodes.push(node.textContent);
+    let i = 0;
+    let htmlContent = '';
+    let plainText = '';
+    let htmlTags = [];
+    
+    // HTML 태그와 텍스트 분리
+    let inTag = false;
+    let currentTag = '';
+    
+    for (let j = 0; j < text.length; j++) {
+        if (text[j] === '<') {
+            inTag = true;
+            currentTag = '<';
+        } else if (text[j] === '>' && inTag) {
+            inTag = false;
+            currentTag += '>';
+            htmlTags.push({
+                tag: currentTag,
+                position: plainText.length
+            });
+            currentTag = '';
+        } else if (inTag) {
+            currentTag += text[j];
         } else {
-            node.childNodes.forEach(extractTextNodes);
+            plainText += text[j];
         }
     }
-
-    extractTextNodes(tempDiv);
-    let fullText = textNodes.join('');
     
-    let i = 0;
     function typing() {
-        if (i < fullText.length) {
-            // 현재 텍스트 + 다음 문자
-            let currentText = fullText.slice(0, i + 1);
+        if (i < plainText.length) {
+            // 현재까지의 일반 텍스트
+            let currentPlainText = plainText.substring(0, i + 1);
             
-            // 원본 HTML 구조 복원
-            let reconstructedHTML = text.replace(fullText, currentText);
-            element.innerHTML = reconstructedHTML;
+            // HTML 태그 삽입
+            htmlContent = currentPlainText;
+            for (let tag of htmlTags) {
+                if (tag.position <= i) {
+                    // 태그 위치에 태그 삽입
+                    htmlContent = htmlContent.substring(0, tag.position) + 
+                                 tag.tag + 
+                                 htmlContent.substring(tag.position);
+                }
+            }
             
+            element.innerHTML = htmlContent;
             i++;
             setTimeout(typing, speed);
+        } else if (callback) {
+            // 타이핑이 끝나면 콜백 함수 실행
+            callback();
         }
     }
+    
     typing();
 }
 
@@ -115,9 +138,19 @@ function createTutorial(config = {}) {
             el.style.zIndex = ''; // z-index 초기화
         });
 
+        // 다음 버튼 초기에 숨기기
+        nextButton.style.display = 'none';
+
         // 현재 단계의 정보로 업데이트
-        typeWriter(tutorialText, steps[currentStep].text);
         nextButton.textContent = currentStep === steps.length - 1 ? '시작하기' : '다음';
+        
+        // 타이핑 효과 후 다음 버튼 표시
+        typeWriter(tutorialText, steps[currentStep].text, 30, function() {
+            // 타이핑이 끝난 후 다음 버튼 표시 (showNextButton이 true인 경우에만)
+            if (steps[currentStep].showNextButton) {
+                nextButton.style.display = 'block';
+            }
+        });
 
         // 하이라이트 로직
         if (steps[currentStep].highlight) {
@@ -166,7 +199,7 @@ function createTutorial(config = {}) {
         }
 
         // 다음 버튼 표시/숨김 처리
-        nextButton.style.display = steps[currentStep].showNextButton ? 'block' : 'none';
+        // nextButton.style.display = steps[currentStep].showNextButton ? 'block' : 'none';
     }
 
     // 타일 조작 조건 확인 함수
