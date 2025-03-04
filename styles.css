@@ -123,6 +123,50 @@ body {
     background: linear-gradient(145deg, #2196F3, #1976D2);
 }
 
+/* 시작 화면 컨테이너 및 텍스트 스타일 */
+.start-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.start-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 12px 24px;
+    border-radius: 30px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: blink 1.5s infinite;
+}
+
+.start-text:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.start-text:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 깜빡임 애니메이션 */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
 /* 게임 화면 스타일 */
 .game-screen {
     padding: 20px;
@@ -948,6 +992,14 @@ input:checked + .slider:before {
         padding: 1.5rem;
         width: 95%;
     }
+}
+
+/* 로고 이미지 스타일 */
+.Logo {
+    width: 50%;
+    max-width: 400px;
+    margin: 0;
+    display: block;
 }
 
 /* 튜토리얼 스타일 */
