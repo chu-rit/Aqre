@@ -4,6 +4,42 @@ let tutorialAllowedCells = [];
 // 전역 튜토리얼 이벤트 리스너 관리
 let globalTutorialCellClickHandler = null;
 
+// 타이핑 효과 함수
+function typeWriter(element, text, speed = 30) {
+    element.innerHTML = '';
+    let tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+    let textNodes = [];
+
+    // 텍스트 노드와 HTML 태그 분리
+    function extractTextNodes(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            textNodes.push(node.textContent);
+        } else {
+            node.childNodes.forEach(extractTextNodes);
+        }
+    }
+
+    extractTextNodes(tempDiv);
+    let fullText = textNodes.join('');
+    
+    let i = 0;
+    function typing() {
+        if (i < fullText.length) {
+            // 현재 텍스트 + 다음 문자
+            let currentText = fullText.slice(0, i + 1);
+            
+            // 원본 HTML 구조 복원
+            let reconstructedHTML = text.replace(fullText, currentText);
+            element.innerHTML = reconstructedHTML;
+            
+            i++;
+            setTimeout(typing, speed);
+        }
+    }
+    typing();
+}
+
 // 튜토리얼 생성 함수 (범용적으로 사용 가능)
 function createTutorial(config = {}) {
 
@@ -33,26 +69,37 @@ function createTutorial(config = {}) {
     tutorialOverlay.id = 'tutorialOverlay';
     tutorialOverlay.classList.add('tutorial-overlay');
     
-    // 튜토리얼 컨테이너 생성
+    // 튜토리얼 컨테이너를 대화창으로 변경
     const tutorialContainer = document.createElement('div');
-    tutorialContainer.classList.add('tutorial-container');
+    tutorialContainer.classList.add('dialog-container');
 
-    // 튜토리얼 제목
-    const tutorialTitle = document.createElement('h3');
-    tutorialTitle.textContent = `레벨 ${config.levelId} 튜토리얼`;
-    tutorialContainer.appendChild(tutorialTitle);
+    // 아바타 추가
+    const nurseAvatar = document.createElement('img');
+    nurseAvatar.src = 'img/nurse.png';
+    nurseAvatar.classList.add('dialog-avatar');
+    tutorialContainer.appendChild(nurseAvatar);
 
-    // 튜토리얼 텍스트
+    // 대화 콘텐츠 컨테이너
+    const dialogContent = document.createElement('div');
+    dialogContent.classList.add('dialog-content');
+
+    // 대화 텍스트
     const tutorialText = document.createElement('p');
-    tutorialText.classList.add('tutorial-text');
-    tutorialContainer.appendChild(tutorialText);
+    tutorialText.classList.add('dialog-text');
+    dialogContent.appendChild(tutorialText);
+
+    // 버튼 컨테이너
+    const dialogButtons = document.createElement('div');
+    dialogButtons.classList.add('dialog-buttons');
 
     // 다음 버튼
     const nextButton = document.createElement('button');
     nextButton.textContent = '다음';
-    nextButton.classList.add('tutorial-next-button');
-    tutorialContainer.appendChild(nextButton);
+    nextButton.classList.add('dialog-button');
+    dialogButtons.appendChild(nextButton);
 
+    dialogContent.appendChild(dialogButtons);
+    tutorialContainer.appendChild(dialogContent);
     tutorialOverlay.appendChild(tutorialContainer);
 
     let currentStep = 0;
@@ -69,8 +116,8 @@ function createTutorial(config = {}) {
         });
 
         // 현재 단계의 정보로 업데이트
-        tutorialTitle.textContent = steps[currentStep].title;
-        tutorialText.innerHTML = steps[currentStep].text;
+        typeWriter(tutorialText, steps[currentStep].text);
+        nextButton.textContent = currentStep === steps.length - 1 ? '시작하기' : '다음';
 
         // 하이라이트 로직
         if (steps[currentStep].highlight) {
@@ -120,9 +167,6 @@ function createTutorial(config = {}) {
 
         // 다음 버튼 표시/숨김 처리
         nextButton.style.display = steps[currentStep].showNextButton ? 'block' : 'none';
-
-        // 다음 버튼 텍스트 업데이트
-        nextButton.textContent = currentStep === steps.length - 1 ? '시작하기' : '다음';
     }
 
     // 타일 조작 조건 확인 함수
