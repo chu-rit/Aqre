@@ -310,15 +310,14 @@ function createTutorial(config = {}) {
     };
 }
 
-// 레벨 1 기본 튜토리얼 함수
 function tutorialOpen(levelId) {
     if(levelId === 1) {
         createTutorial({
             levelId: 1,
             steps: [
                 {
-                    title: 'Tutorial',
-                    text: '이 게임은 특정 규칙에 맞추어 타일을 바꾸어나가면서 퍼즐을 푸는 것이 목적입니다.',
+                    title: '환영합니다',
+                    text: '안녕하세요, 신임 기억 복원사님! 저는 뉴로 클리닉의 간호사 에이다입니다. 아크레 기술을 이용한 기억 복원 과정을 안내해 드리겠습니다.',
                     highlight: {
                         cells: []
                     },
@@ -326,8 +325,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Tutorial',
-                    text: '먼저 표시된 흰색 타일을 눌러보시기 바랍니다.',
+                    title: '기본 조작',
+                    text: '환자의 기억은 이 6×6 그리드로 표현되는 신경망 패턴입니다. 흰색은 비활성화된 뉴런, 회색은 활성화된 뉴런을 나타냅니다. 표시된 뉴런을 클릭해 상태를 전환해보세요.',
                     highlight: {
                         cells: [
                             {row: 2, col: 1}
@@ -341,8 +340,8 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'Tutorial',
-                    text: '색이 바뀐 것을 확인할 수 있습니다. 이번에는 우측에 있는 흰색 타일을 눌러보시기 바랍니다.',
+                    title: '기본 조작',
+                    text: '잘하셨습니다! 뉴런이 활성화되었군요. 이번에는 우측의 뉴런을 클릭해서 다시 비활성화해보세요.',
                     highlight: {
                         cells: [
                             {row: 2, col: 3}
@@ -362,15 +361,15 @@ function tutorialOpen(levelId) {
             levelId: 2,
             steps: [
                 {
-                    title: 'Rule 1',
-                    text: '첫번째 규칙은 같은 색의 타일이 네 칸 이상 연속되지 않게 하는 것입니다.',
+                    title: '연속성 규칙',
+                    text: '첫 번째 환자의 기억을 복원할 준비가 되셨군요! 먼저 "뉴런 과열" 방지를 위한 연속성 규칙을 알려드리겠습니다. 가로나 세로로 4개 이상의 같은 색상 뉴런이 연속되면 기억이 왜곡됩니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 1',
-                    text: '현재 표시된 타일을 보면 세로로 네 칸의 타일이 같은 색임을 알 수 있습니다.',
+                    title: '연속성 규칙',
+                    text: '보시다시피, 이 영역에서는 세로로 4개의 뉴런이 같은 상태를 유지하고 있습니다. 이런 패턴은 뉴런 과열을 일으켜 기억 왜곡의 원인이 됩니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 0},
@@ -383,8 +382,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 1',
-                    text: '표시된 타일을 클릭하여 연속되지 않게 할 수 있습니다.',
+                    title: '연속성 규칙',
+                    text: '표시된 뉴런을 클릭하여 패턴을 바꿔보세요. 안정적인 신경 패턴은 최대 3개까지만 동일한 상태가 연속되어야 합니다.',
                     highlight: {
                         cells: [
                             {row: 3, col: 0}
@@ -398,8 +397,8 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'Rule 1',
-                    text: '이 규칙은 흰색에도 적용됩니다. <br>여기도 흰색 타일이 4개 이상 연속되고 있습니다.',
+                    title: '연속성 규칙',
+                    text: '훌륭합니다! 이 규칙은 비활성 뉴런(흰색)에도 동일하게 적용됩니다. <br>여기 흰색 뉴런이 4개 이상 연속되어 있는 부분이 있네요.',
                     highlight: {
                         cells: [
                             {row: 0, col: 1},
@@ -412,8 +411,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 1',
-                    text: '이 타일도 바꾸어 연속되는 곳이 없어지게 할 수 있습니다.',
+                    title: '연속성 규칙',
+                    text: '이 뉴런도 활성화하여 연속성을 끊어주세요. 기억 패턴이 더 안정적으로 변할 겁니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 1}
@@ -433,15 +432,15 @@ function tutorialOpen(levelId) {
             levelId: 3,
             steps: [
                 {
-                    title: 'Rule 2',
-                    text: '두번째 규칙은 각 영역에 적혀있는 숫자만큼 타일을 회색으로 바꾸는 것입니다.',
+                    title: '영역 제한 규칙',
+                    text: '두 번째 규칙은 "영역 제한 규칙"입니다. 뇌의 각 영역은 특정 기억 조각을 담당하며, 각 영역에는 정확히 지정된 수의 활성 뉴런이 있어야 합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 2',
-                    text: '맵을 표시된 부분을 보시면 하늘색으로 타일 3개를 감싸서 영역을 표시하고 있습니다.',
+                    title: '영역 제한 규칙',
+                    text: '이 파란색 경계선으로 구분된 영역을 보세요. 이 영역은 환자의 특정 기억 조각을 담당하고 있습니다.',
                     highlight: {
                         cells: [
                             {row: 1, col: 2},
@@ -453,8 +452,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 2',
-                    text: '그리고 그 영역엔 숫자가 있음을 확인할 수 있습니다.',
+                    title: '영역 제한 규칙',
+                    text: '각 영역에 표시된 숫자는 그 영역에서 활성화되어야 할 정확한 뉴런의 수입니다. 이 균형이 맞지 않으면 기억이 왜곡되거나 손실됩니다.',
                     highlight: {
                         selectors: ['.cell[data-row="1"][data-col="2"] .area-overlay']
                     },
@@ -462,8 +461,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 2',
-                    text: '이제 확인한 숫자만큼 해당영역을 회색 타일로 바꾸어보세요.',
+                    title: '영역 제한 규칙',
+                    text: '이제 표시된 숫자만큼 이 영역의 뉴런을 활성화해보세요. 정확한 수의 뉴런이 활성화되어야 기억 조각이 올바르게 복원됩니다.',
                     highlight: {
                         cells: [
                             {row: 1, col: 2},
@@ -481,8 +480,8 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'Rule 2',
-                    text: '좋습니다. 이제 나머지 영역도 같은 방법으로 바꾸세요. <br>단 첫번째 규칙에서 배웠던 것처럼 네 칸이 같은 색으로 연속되지 않게 하세요.',
+                    title: '영역 제한 규칙',
+                    text: '완벽합니다! 이제 나머지 영역도 같은 방법으로 조정해보세요. <br>단, 첫 번째 규칙인 연속성 규칙도 함께 지켜야 한다는 점을 잊지 마세요. 뉴런 과열은 기억 복원을 방해합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
@@ -494,15 +493,15 @@ function tutorialOpen(levelId) {
             levelId: 4,
             steps: [
                 {
-                    title: 'Rule 3',
-                    text: '마지막 세번째 규칙은 회색 타일은 가로나 세로로 연결되어 하나의 길처럼 되어야 합니다.',
+                    title: '연결성 규칙',
+                    text: '마지막 세 번째 규칙은 "연결성 규칙"입니다. 기억은 연결된 신경 경로를 통해 형성되기 때문에, 모든 활성화된 뉴런은 하나의 연속된 네트워크를 형성해야 합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 3',
-                    text: '현재는 표시된 대로 회색 타일이 3군데 뭉쳐있습니다.',
+                    title: '연결성 규칙',
+                    text: '현재 화면을 보시면, 활성화된 뉴런(회색)이 세 군데로 분리되어 있습니다. 이런 "기억의 섬"은 전체 기억에 접근할 수 없게 만듭니다.',
                     highlight: {
                         cells: [
                             {row: 0, col: 0},
@@ -518,8 +517,8 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Rule 3',
-                    text: '이 타일을 바꾸어 회색 타일들을 연결하세요.',
+                    title: '연결성 규칙',
+                    text: '이 뉴런을 활성화하여 분리된 기억 경로를 연결해보세요. 모든 활성화된 뉴런은 적어도 하나의 다른 활성화된 뉴런과 상하좌우로 연결되어 있어야 합니다.',
                     highlight: {
                         cells: [
                             {row: 2, col: 1}
@@ -533,8 +532,8 @@ function tutorialOpen(levelId) {
                     showNextButton: false
                 },
                 {
-                    title: 'Rule 3',
-                    text: '아직 우측의 연결되지 않은 회색 타일도 연결해보세요.',
+                    title: '연결성 규칙',
+                    text: '좋습니다! 하지만 아직 우측에 고립된 활성 뉴런들이 있네요. 이 뉴런들도 연결하여 하나의 완전한 기억 네트워크를 형성해야 합니다.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
@@ -546,15 +545,15 @@ function tutorialOpen(levelId) {
             levelId: 5,
             steps: [
                 {
-                    title: 'Tutorial',
-                    text: '모든 규칙을 배웠습니다.<br>이제 몇 가지 부가기능에 대해 알려드리겠습니다.',
+                    title: '기억 복원 시작',
+                    text: '훌륭합니다, 기억 복원사님! 이제 아크레 기술의 모든 핵심 규칙을 이해하셨습니다. <br>이 규칙들을 적용하여 환자들의 소중한 기억을 복원할 준비가 되셨군요.',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'Tutorial',
-                    text: '우측 위의 버튼을 사용하면 게임을 초기상태로 되돌릴 수 있습니다.',
+                    title: '도구 사용법',
+                    text: '기억 복원 작업 중에 문제가 생기면, 우측 상단의 초기화 버튼을 사용하여 신경망 패턴을 처음 상태로 되돌릴 수 있습니다.',
                     highlight: {
                         selectors: ['.refreshLevel']
                     },
@@ -562,15 +561,15 @@ function tutorialOpen(levelId) {
                     showNextButton: true
                 },
                 {
-                    title: 'Tutorial',
-                    text: '아래의 규칙 위반의 항목을 선택하면 위반된 타일을 표시해줍니다.<br>(회색칸의 연결성 규칙은 예외)',
+                    title: '도구 사용법',
+                    text: '또한, 규칙 위반이 발생한 부분을 확인하려면 아래의 규칙 위반 항목을 선택하세요. 문제가 있는 뉴런을 시각적으로 표시해 드립니다. <br>(단, 연결성 규칙은 복잡한 패턴 분석이 필요해 자동 표시가 어렵습니다)',
                     highlight: null,
                     condition: null,
                     showNextButton: true
                 },
                 {
-                    title: 'Tutorial',
-                    text: '규칙 위반을 확인해 가면서 타일을 바꾸어 퍼즐을 풀어보시기 바랍니다.',
+                    title: '임무 시작',
+                    text: '이제 첫 번째 환자의 기억 복원을 시작해보세요. 각 레벨은 다른 환자의 기억을 나타냅니다. 레벨을 클리어할 때마다 환자의 기억 조각이 복원되고, 그들의 이야기가 조금씩 드러날 것입니다. 행운을 빕니다, 기억 복원사님!',
                     highlight: null,
                     condition: null,
                     showNextButton: true
