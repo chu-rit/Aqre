@@ -878,60 +878,45 @@ function checkAreaBoundaries(currentPuzzle) {
 function showGameClearPopup() {
     const gameClearPopup = document.getElementById('gameClearPopup');
     const clearMoves = document.getElementById('clearMoves');
-    const backToLevelsButton = document.getElementById('backToLevelsButton');
-    const gameClearMessage = document.getElementById('gameClearMessage');
+    const clearPopupButton = document.getElementById('clear-popup-button');
 
     // 요소 중 하나라도 없으면 경고 로그
-    if (!gameClearPopup || !clearMoves || !backToLevelsButton || !gameClearMessage) {
+    if (!gameClearPopup || !clearMoves || !clearPopupButton) {
         console.error('게임 클리어 팝업 요소를 찾을 수 없습니다.');
         return;
     }
 
     // 현재 레벨 클리어 처리
-    const currentLevelId = currentLevel;
-    markLevelCleared(currentLevelId);
+    markLevelCleared(currentLevel);
 
     // 움직임 수 표시
     clearMoves.textContent = moves;
 
-    // 클리어 메시지 설정 (레벨에 따라 다른 메시지)
-    if (currentLevelId <= 5) {
-        // 기본 레벨
-        gameClearMessage.textContent = "축하합니다! 기본 레벨을 완료했습니다.";
-    } else if (currentLevelId > 5 && currentLevelId <= 15) {
-        // 중급 레벨
-        gameClearMessage.textContent = "훌륭합니다! 중급 레벨을 클리어했습니다.";
-    } else {
-        // 고급 레벨
-        gameClearMessage.textContent = "대단합니다! 고급 레벨을 정복했습니다.";
-    }
-
-    // 다음 레벨 버튼 텍스트 설정
-    const nextLevelId = currentLevelId + 1;
-    if (nextLevelId <= PUZZLE_MAPS.length) {
-        backToLevelsButton.textContent = "다음 레벨";
-        
-        // 다음 레벨로 이동하는 이벤트 리스너 추가
-        backToLevelsButton.onclick = () => {
-            gameClearPopup.style.display = 'none';
-            startGame(nextLevelId);
-        };
-    } else {
-        // 마지막 레벨인 경우
-        backToLevelsButton.textContent = "레벨 선택";
-        
-        // 레벨 선택 화면으로 돌아가는 이벤트 리스너 추가
-        backToLevelsButton.onclick = () => {
-            gameClearPopup.style.display = 'none';
-            showScreen('levelScreen');
-        };
-    }
+    // gameClearMessage.textContent = "Game clear!";
+    clearPopupButton.textContent = "Go to list";
+    document.getElementById('clear-popup-button').style.display = 'inline-block'; // Show button
+    
+    // 레벨 선택 화면으로 돌아가는 이벤트 리스너 추가
+    clearPopupButton.onclick = () => {
+        gameClearPopup.style.display = 'none';
+        showScreen('levelScreen');
+    };
 
     // 클리어 사운드 재생
     playClearSound();
 
     // 팝업 표시
-    gameClearPopup.style.display = 'flex';
+    const nurseImage = new Image();
+    nurseImage.src = 'path/to/nurse.png';
+
+    nurseImage.onload = function() {
+        gameClearPopup.style.display = 'flex';
+    };
+
+    nurseImage.onerror = function() {
+        console.error('Failed to load nurse image.');
+        gameClearPopup.style.display = 'flex'; // Show dialog even if image fails to load
+    };
 
     // 레벨 선택 화면 업데이트
     createLevelScreen();
@@ -1059,3 +1044,18 @@ document.getElementById('clear-data-button').addEventListener('click', function(
     localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
     showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
 });
+
+document.getElementById('next-level-button').onclick = () => {
+    gameClearPopup.style.display = 'none';
+    startGame(nextLevelId);
+};
+
+document.getElementById('next-level-button').onclick = () => {
+    gameClearPopup.style.display = 'none';
+    startGame(nextLevelId);
+};
+
+document.getElementById('next-level-button').onclick = () => {
+    gameClearPopup.style.display = 'none';
+    startGame(nextLevelId);
+};
