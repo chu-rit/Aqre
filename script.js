@@ -209,6 +209,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('option-screen').style.display = 'block';
         });
     }
+
+    // 레벨 선택 이벤트 리스너 추가
+    document.querySelectorAll('.level-button').forEach(levelBtn => {
+        levelBtn.addEventListener('click', () => {
+            const gameScreen = document.getElementById('gameScreen');
+            if (gameScreen) {
+                gameScreen.classList.add('fade-in');
+            }
+            checkLevel(levelBtn.id);
+        });
+    });
 });
 
 // 레벨 선택 화면 생성
@@ -237,6 +248,10 @@ function createLevelScreen() {
         }
         
         levelBtn.addEventListener('click', () => {
+            const gameScreen = document.getElementById('gameScreen');
+            if (gameScreen) {
+                gameScreen.classList.add('fade-in');
+            }
             checkLevel(puzzle.id);
         });
     });

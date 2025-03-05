@@ -580,9 +580,9 @@ input:checked + .slider:before {
     border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.popup-header {
-    /* No styles */
-}
+/*.popup-header {
+    No styles
+}*/
 
 .popup-header h2 {
     margin: 0;
@@ -1721,4 +1721,22 @@ img {
 
 .dialog-button:active {
     transform: translateY(0);
+}
+
+.fade-in {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
