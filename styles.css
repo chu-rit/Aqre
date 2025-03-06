@@ -82,17 +82,18 @@ body {
 .game-button {
     padding: 1rem 2rem;
     font-size: clamp(1rem, 4vw, 1.2rem);
-    border: none;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    background: linear-gradient(145deg, #4CAF50, #45a049);
+    background: rgba(255, 255, 255, 0.1);
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
     width: 100%;
     font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
+    border: 1px solid #ccc; /* Add border to .game-button style */
 }
 
 .game-button::after {
@@ -988,13 +989,13 @@ input:checked + .slider:before {
     flex: 1;
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
-    background: linear-gradient(145deg, #ffffff, #f0f0f0);
-    color: #2980b9;
-    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
     max-width: 200px;
