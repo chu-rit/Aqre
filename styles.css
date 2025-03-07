@@ -302,7 +302,7 @@ body {
     touch-action: none;
 }
 
-.cell.gray {
+.cell.type2 {
     background-color: #999;  /* 밝은 회색으로 변경 */
 }
 

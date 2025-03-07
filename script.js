@@ -368,7 +368,7 @@ function renderBoard() {
             
             // 블럭 상태에 따라 클래스 추가
             if (gameBoard[row][col] === 1) {
-                cell.classList.add('gray');
+                cell.classList.add('type2');
             } else if (gameBoard[row][col] === 2) {
                 cell.classList.add('type3');
             }
@@ -432,15 +432,14 @@ function renderBoard() {
 
 // 셀 색상 변경
 function toggleCellColor(cell, row, col) {
-    // 현재 색상 상태 확인
-    const currentColorIndex = gameBoard[row][col];
-    const nextColorIndex = (currentColorIndex + 1) % COLOR_STATES.length;
+    if (cell.classList.contains('type2')) {
+        cell.classList.remove('type2');
+    } else {
+        cell.classList.add('type2');
+    }
     
     // 보드 상태 업데이트
-    gameBoard[row][col] = nextColorIndex;
-    
-    // 셀 색상 업데이트
-    cell.style.backgroundColor = COLOR_STATES[nextColorIndex];
+    gameBoard[row][col] = gameBoard[row][col] === 1 ? 0 : 1;
     
     // 움직임 카운트 증가
     moves++;
