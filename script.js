@@ -45,12 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
         startButton.addEventListener('click', () => {
             const startScreen = document.getElementById('startScreen');
             const levelScreen = document.getElementById('levelScreen');
-            
-            // 배경음 토글 상태 확인
-            if (isBgmEnabled) {
-                playBGM(); // Only play if the toggle is enabled
-            }
-            
+        
+            playBGM(); 
+
             // 시작 화면에 fade-out 애니메이션 추가
             startScreen.classList.add('fade-out');
             
