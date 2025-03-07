@@ -241,5 +241,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.setGameActive = setGameActive;
 
     // 페이지 로드 시 사운드 미리 로딩
-    console.log('Sounds preloaded successfully.');
+    // console.log('Sounds preloaded successfully.');
 });

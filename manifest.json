@@ -11,14 +11,128 @@
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/icon-192x192.png",
-            "sizes": "192x192",
+            "src": "icon/AppIcon@2x.png",
+            "sizes": "120x120",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "icons/icon-512x512.png",
-            "sizes": "512x512",
+            "src": "icon/AppIcon@3x.png",
+            "sizes": "180x180",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon~ipad.png",
+            "sizes": "76x76",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon@2x~ipad.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-83.5@2x~ipad.png",
+            "sizes": "167x167",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-40@2x.png",
+            "sizes": "80x80",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-40@3x.png",
+            "sizes": "120x120",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-40~ipad.png",
+            "sizes": "40x40",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-40@2x~ipad.png",
+            "sizes": "80x80",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-20@2x.png",
+            "sizes": "40x40",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-20@3x.png",
+            "sizes": "60x60",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-20~ipad.png",
+            "sizes": "20x20",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-20@2x~ipad.png",
+            "sizes": "40x40",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-29.png",
+            "sizes": "29x29",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-29@2x.png",
+            "sizes": "58x58",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-29@3x.png",
+            "sizes": "87x87",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-29~ipad.png",
+            "sizes": "29x29",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-29@2x~ipad.png",
+            "sizes": "58x58",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-60@2x~car.png",
+            "sizes": "120x120",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon-60@3x~car.png",
+            "sizes": "180x180",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icon/AppIcon~ios-marketing.png",
+            "sizes": "1024x1024",
             "type": "image/png",
             "purpose": "any maskable"
         }
