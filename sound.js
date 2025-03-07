@@ -6,12 +6,17 @@ const clearSound = new Audio('sound/clear.mp3');
 
 // BGM 관리를 위한 상수 및 변수
 const BGM_STORAGE_KEY = 'aqre_bgm_allowed';
-const BGM_VOLUME = 0.3;
+
+// 효과음 설정
+let isSoundEnabled = true;
+
+// 배경음 설정
+let isBgmEnabled = true;
 
 // BGM 오디오 요소 생성
 const bgmAudio = new Audio('sound/bgm.mp3');
 bgmAudio.loop = true;
-bgmAudio.volume = BGM_VOLUME;
+bgmAudio.volume = 0.3;
 
 // 게임 활성화 상태 추적 변수
 let isGameActive = false;
@@ -104,6 +109,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentClearSource.connect(audioCtx.destination);
         currentClearSource.start(0);
     };
+
+    // 배경음 토글 이벤트 리스너
+    const bgmToggle = document.getElementById('bgm-toggle');
+    if (bgmToggle) { // Check if the element exists
+        bgmToggle.addEventListener('change', function() {
+            isBgmEnabled = this.checked;
+            if (isBgmEnabled) {
+                bgmAudio.play(); // Use bgmAudio
+            } else {
+                bgmAudio.pause(); // Use bgmAudio
+            }
+            localStorage.setItem('bgmEnabled', isBgmEnabled);
+        });
+    }
+
+    // 로컬 스토리지에서 배경음 설정 불러오기
+    const savedBgmSetting = localStorage.getItem('bgmEnabled');
+    if (savedBgmSetting !== null) {
+        isBgmEnabled = savedBgmSetting === 'true';
+        if (bgmToggle) {
+            bgmToggle.checked = isBgmEnabled;
+            if (isBgmEnabled) {
+                bgmAudio.play(); // Use bgmAudio
+            }
+        }
+    }
+
+    // 효과음 토글 이벤트 리스너
+    const soundToggle = document.getElementById('sound-toggle');
+    soundToggle.addEventListener('change', function() {
+        isSoundEnabled = this.checked;
+        localStorage.setItem('soundEnabled', isSoundEnabled);
+    });
+
+    // 로컬 스토리지에서 효과음 설정 불러오기
+    const savedSoundSetting = localStorage.getItem('soundEnabled');
+    if (savedSoundSetting !== null) {
+        isSoundEnabled = savedSoundSetting === 'true';
+        soundToggle.checked = isSoundEnabled;
+    }
 
     // BGM 재생 함수
     function playBGM() {

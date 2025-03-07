@@ -14,12 +14,6 @@ let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || 
 // 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
 window.testClear = testClear;
 
-// 효과음 설정
-let isSoundEnabled = true;
-
-// 배경음 설정
-let isBgmEnabled = true;
-
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     // 사용자 상호작용 후 오디오 컨텍스트 초기화 (브라우저 정책)
@@ -191,46 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
         showMessage('클리어된 레벨이 삭제되었습니다!'); // showMessage 함수 사용
     });
-
-    // 효과음 토글 이벤트 리스너
-    const soundToggle = document.getElementById('sound-toggle');
-    soundToggle.addEventListener('change', function() {
-        isSoundEnabled = this.checked;
-        localStorage.setItem('soundEnabled', isSoundEnabled);
-    });
-
-    // 로컬 스토리지에서 효과음 설정 불러오기
-    const savedSoundSetting = localStorage.getItem('soundEnabled');
-    if (savedSoundSetting !== null) {
-        isSoundEnabled = savedSoundSetting === 'true';
-        soundToggle.checked = isSoundEnabled;
-    }
-
-    // 배경음 토글 이벤트 리스너
-    const bgmToggle = document.getElementById('bgm-toggle');
-    if (bgmToggle) { // Check if the element exists
-        bgmToggle.addEventListener('change', function() {
-            isBgmEnabled = this.checked;
-            if (isBgmEnabled) {
-                bgmAudio.play(); // Use bgmAudio
-            } else {
-                bgmAudio.pause(); // Use bgmAudio
-            }
-            localStorage.setItem('bgmEnabled', isBgmEnabled);
-        });
-    }
-
-    // 로컬 스토리지에서 배경음 설정 불러오기
-    const savedBgmSetting = localStorage.getItem('bgmEnabled');
-    if (savedBgmSetting !== null) {
-        isBgmEnabled = savedBgmSetting === 'true';
-        if (bgmToggle) {
-            bgmToggle.checked = isBgmEnabled;
-            if (isBgmEnabled) {
-                bgmAudio.play(); // Use bgmAudio
-            }
-        }
-    }
 
     // 레벨 선택 화면 옵션 버튼
     const OptionsButton = document.getElementById('OptionsButton');
