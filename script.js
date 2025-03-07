@@ -1028,3 +1028,8 @@ document.addEventListener('DOMContentLoaded', function() {
         showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
     });
 });
+
+// 레발 개발용 바로가기
+// document.addEventListener('DOMContentLoaded', function() {
+//     startGame(21);
+// });
