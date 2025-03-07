@@ -17,6 +17,9 @@ window.testClear = testClear;
 // 효과음 설정
 let isSoundEnabled = true;
 
+// 배경음 설정
+let isBgmEnabled = true;
+
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     // 사용자 상호작용 후 오디오 컨텍스트 초기화 (브라우저 정책)
@@ -42,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
         startButton.addEventListener('click', () => {
             const startScreen = document.getElementById('startScreen');
             const levelScreen = document.getElementById('levelScreen');
+            
+            // 배경음 토글 상태 확인
+            if (isBgmEnabled) {
+                playBGM(); // Only play if the toggle is enabled
+            }
             
             // 시작 화면에 fade-out 애니메이션 추가
             startScreen.classList.add('fade-out');
@@ -199,6 +207,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedSoundSetting !== null) {
         isSoundEnabled = savedSoundSetting === 'true';
         soundToggle.checked = isSoundEnabled;
+    }
+
+    // 배경음 토글 이벤트 리스너
+    const bgmToggle = document.getElementById('bgm-toggle');
+    if (bgmToggle) { // Check if the element exists
+        bgmToggle.addEventListener('change', function() {
+            isBgmEnabled = this.checked;
+            if (isBgmEnabled) {
+                bgmAudio.play(); // Use bgmAudio
+            } else {
+                bgmAudio.pause(); // Use bgmAudio
+            }
+            localStorage.setItem('bgmEnabled', isBgmEnabled);
+        });
+    }
+
+    // 로컬 스토리지에서 배경음 설정 불러오기
+    const savedBgmSetting = localStorage.getItem('bgmEnabled');
+    if (savedBgmSetting !== null) {
+        isBgmEnabled = savedBgmSetting === 'true';
+        if (bgmToggle) {
+            bgmToggle.checked = isBgmEnabled;
+            if (isBgmEnabled) {
+                bgmAudio.play(); // Use bgmAudio
+            }
+        }
     }
 
     // 레벨 선택 화면 옵션 버튼
@@ -1043,33 +1077,3 @@ document.addEventListener('DOMContentLoaded', function() {
         showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
     });
 });
-
-// 페이지가 로드될 때 17레벨로 이동
-/*
-document.addEventListener("DOMContentLoaded", function() {
-    console.log('Page loaded');
-    // const levelToLoad = 17;
-    // startGame(levelToLoad);
-});*/
-
-document.getElementById('clear-data-button').addEventListener('click', function() {
-    // 데이터 초기화 로직 추가
-    clearedLevels.clear(); // clearedLevels Set 비우기
-    localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
-    showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
-});
-
-document.getElementById('next-level-button').onclick = () => {
-    gameClearPopup.style.display = 'none';
-    startGame(nextLevelId);
-};
-
-document.getElementById('next-level-button').onclick = () => {
-    gameClearPopup.style.display = 'none';
-    startGame(nextLevelId);
-};
-
-document.getElementById('next-level-button').onclick = () => {
-    gameClearPopup.style.display = 'none';
-    startGame(nextLevelId);
-};

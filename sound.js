@@ -113,6 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 이미 재생 중이면 무시
         if (!bgmAudio.paused) return;
 
+        // BGM 토글 상태 확인
+        if (!isBgmEnabled) return;
+        
         // AudioContext 재개
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
@@ -178,18 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         function attemptBGMPlayback(retryDelay = 3000) {
             if (!isGameActive) return;
 
-            bgmAudio.play()
-                .then(() => {
-                    console.log('BGM 자동 재생 성공');
-                })
-                .catch(error => {
-                    console.log('BGM 자동 재생 실패:', error);
-
-                    // 재시도 스케줄링 (성공할 때까지)
-                    setTimeout(() => {
-                        attemptBGMPlayback(Math.min(retryDelay * 1.5, 30000));
-                    }, retryDelay);
-                });
+            playBGM();
         }
 
         // 초기 재생 시도
