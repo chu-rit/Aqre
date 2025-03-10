@@ -328,7 +328,47 @@ function createTutorial(config = {}) {
 }
 
 function tutorialOpen(levelId) {
-    if(levelId === 1) {
+    if(levelId === 0) {
+        createTutorial({
+            levelId: 1,
+            steps: [
+                {
+                    text: '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라라고 합니다.',
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
+                },
+                {
+                    text: 'AQRE 시스템을 사용해 어떻게 고객들의 기억을 복원할 수 있는지 설명해드리고자 합니다.',
+                    highlight: {
+                        cells: [
+                            {row: 2, col: 1}
+                        ]
+                    },
+                    condition: {
+                        row: 2,
+                        col: 1,
+                        expectedState: 1 // 회색(1)으로 변경
+                    },
+                    showNextButton: false
+                },
+                {
+                    text: '잘하셨습니다! 뉴런이 활성화되었군요. 이번에는 우측의 뉴런을 클릭해서 다시 비활성화해보세요.',
+                    highlight: {
+                        cells: [
+                            {row: 2, col: 3}
+                        ]
+                    },
+                    condition: {
+                        row: 2,
+                        col: 3,
+                        expectedState: 0 // 흰색(0)으로 변경
+                    },
+                    showNextButton: false
+                }
+            ]
+        });
+    }else if(levelId === 1) {
         createTutorial({
             levelId: 1,
             steps: [
