@@ -92,6 +92,23 @@ function createTutorial(config = {}) {
     tutorialOverlay.id = 'tutorialOverlay';
     tutorialOverlay.classList.add('tutorial-overlay');
     
+    // -SKIP- 버튼 추가
+    const skipButton = document.createElement('div');
+    skipButton.textContent = '-SKIP-';
+    skipButton.classList.add('skip-button'); 
+    skipButton.style.position = 'absolute';
+    skipButton.style.top = '10px';
+    skipButton.style.right = '10px';
+    tutorialOverlay.appendChild(skipButton); 
+
+    // -SKIP- 버튼 클릭 시 듀토리얼 숨기기
+    skipButton.addEventListener('click', function() {
+        const tutorialOverlay = document.getElementById('tutorialOverlay');
+        if (tutorialOverlay) {
+            tutorialOverlay.style.display = 'none';
+        }
+    });
+
     // 튜토리얼 컨테이너를 대화창으로 변경
     const tutorialContainer = document.createElement('div');
     tutorialContainer.classList.add('dialog-container');
@@ -119,8 +136,8 @@ function createTutorial(config = {}) {
     const nextButton = document.createElement('button');
     nextButton.textContent = '다음';
     nextButton.classList.add('dialog-button');
-    dialogButtons.appendChild(nextButton);
 
+    dialogButtons.appendChild(nextButton);
     dialogContent.appendChild(dialogButtons);
     tutorialContainer.appendChild(dialogContent);
     tutorialOverlay.appendChild(tutorialContainer);

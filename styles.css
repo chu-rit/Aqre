@@ -1789,13 +1789,7 @@ img {
     font-size: 0.9rem;
     font-weight: 400;
     margin: 0;
-    /* backdrop-filter: blur(5px); */
-    -webkit-backdrop-filter: blur(5px);
 }
-
-/* #messageContainer .message.info {
-    background: rgb(33, 150, 243);
-} */
 
 #messageContainer .message.error {
     background: rgb(244, 67, 54);
@@ -1832,4 +1826,10 @@ img {
 
 #messageContainer .message.fade-out {
     opacity: 0;
+}
+
+.skip-button {
+    font-weight: bold; /* 글꼴 두껍게 */
+    font-size: 1.2rem; /* 폰트 크기 조정 */
+    cursor: pointer; /* 커서 포인터로 변경 */
 }
