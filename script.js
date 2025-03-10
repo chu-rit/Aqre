@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 데이터 초기화 로직 추가
         clearedLevels.clear(); // clearedLevels Set 비우기
         localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
-        showMessage('클리어된 레벨이 삭제되었습니다!'); // showMessage 함수 사용
+        showMessage('초기화되었습니다!'); // showMessage 함수 사용
     });
 
     // 레벨 선택 화면 옵션 버튼
@@ -757,31 +757,43 @@ function handleViolationItemLeave() {
 
 // 메시지 표시
 function showMessage(text, type = 'info') {
-    const messageContainer = document.getElementById('messageContainer');
+    // messageContainer 확인 및 생성
+    let messageContainer = document.getElementById('messageContainer');
     if (!messageContainer) {
-        return;
+        messageContainer = document.createElement('div');
+        messageContainer.id = 'messageContainer';
+        document.body.appendChild(messageContainer);
     }
 
+    // 기존 메시지 제거
+    const existingMessage = messageContainer.querySelector('.message');
+    if (existingMessage) {
+        existingMessage.classList.add('fade-out'); // fade-out 클래스 추가
+        setTimeout(() => {
+            existingMessage.remove();
+        }, 500); // 애니메이션 시간과 일치
+    }
+
+    // 새 메시지 생성
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}`;
     messageElement.textContent = text;
-
-    messageContainer.innerHTML = ''; // 기존 메시지 제거
+    
+    // 메시지 추가
     messageContainer.appendChild(messageElement);
-
-    // 메시지 표시 애니메이션
+    
+    // show 클래스 추가 (애니메이션 시작)
     requestAnimationFrame(() => {
-        messageElement.style.opacity = '1';
-        messageElement.style.transform = 'scale(1)';
+        messageContainer.classList.add('show');
     });
-
-    // 일정 시간 후 메시지 제거
+    
+    // 3초 후 메시지 제거
     setTimeout(() => {
-        messageElement.style.opacity = '0';
-        messageElement.style.transform = 'scale(0.8)';
+        messageElement.classList.add('fade-out'); // fade-out 클래스 추가
         setTimeout(() => {
-            messageContainer.innerHTML = '';
-        }, 300);
+            messageContainer.classList.remove('show');
+            messageElement.remove(); // 메시지 제거
+        }, 500); // 애니메이션 시간과 일치
     }, 3000);
 }
 
@@ -1008,26 +1020,6 @@ function onload() {
         });
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 모든 이벤트 리스너 추가
-    document.getElementById('optionsButton').addEventListener('click', function() {
-        document.getElementById('startScreen').style.display = 'none'; // 스타트 스크린 숨기기
-        document.getElementById('option-screen').style.display = 'block'; // 옵션 스크린 보이기
-    });
-
-    document.getElementById('back-button').addEventListener('click', function() {
-        document.getElementById('option-screen').style.display = 'none';
-        document.getElementById('startScreen').style.display = 'flex'; // 스타트 스크린 보이기
-    });
-
-    document.getElementById('clear-data-button').addEventListener('click', function() {
-        // 데이터 초기화 로직 추가
-        clearedLevels.clear(); // clearedLevels Set 비우기
-        localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
-        showMessage('레벨 클리어 데이터를 초기화 했습니다.'); // showMessage 함수 사용
-    });
-});
 
 // 레발 개발용 바로가기
 // document.addEventListener('DOMContentLoaded', function() {
