@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeRules = document.getElementById('closeRules');
     const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
+    const footer = document.querySelector('footer');
 
     // 더블 클릭 확대 방지
     document.addEventListener('dblclick', (e) => {
@@ -40,7 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const startScreen = document.getElementById('startScreen');
             const levelScreen = document.getElementById('levelScreen');
         
-            playBGM(); 
+            playBGM();
+            footer.style.opacity = 'inherit';
 
             // 시작 화면에 fade-out 애니메이션 추가
             startScreen.classList.add('fade-out');
@@ -57,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 애니메이션 클래스 제거
                 setTimeout(() => {
                     levelScreen.classList.remove('fade-in');
-                }, 300);
+                }, 300);                
             }, 300);
         });
     }
@@ -206,6 +208,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+/*
+// 시작 버튼 이벤트 리스너 
+document.addEventListener('DOMContentLoaded', function() {
+    const startButton = document.getElementById('startButton');
+    if (startButton) {
+        startButton.addEventListener('click', function() {
+            // 게임 시작 로직
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('levelScreen').style.display = 'block';
+            
+            // footer 동적 생성
+            if (!document.querySelector('footer')) {
+                const footer = document.createElement('footer');
+                
+                // 카카오 광고 요소 생성
+                const kakaoAd = document.createElement('ins');
+                kakaoAd.className = 'kakao_ad_area';
+                kakaoAd.setAttribute('data-ad-unit', 'DAN-kILk8DoW0wkoyavP');
+                kakaoAd.setAttribute('data-ad-width', '320');
+                kakaoAd.setAttribute('data-ad-height', '50');
+                
+                // footer에 광고 요소 추가
+                footer.appendChild(kakaoAd);
+                
+                // body에 footer 추가
+                document.body.appendChild(footer);
+                
+                // 카카오 광고 스크립트 재실행 (필요한 경우)
+                if (typeof kakaoPixel !== 'undefined') {
+                    kakaoPixel('DAN-kILk8DoW0wkoyavP').pageView();
+                }
+            }
+        });
+    }
+});
+*/
 
 // 레벨 선택 화면 생성
 function createLevelScreen() {
@@ -964,12 +1002,14 @@ function testClear() {
     return true;
 }
 
-// 화면 전환 함수들
+// 화면 전환 함수
 function showScreen(screenId) {
     // 모든 화면 숨기기
-    ['startScreen', 'levelScreen', 'gameScreen'].forEach(id => {
-        document.getElementById(id).style.display = 'none';
+    const screens = ['startScreen', 'levelScreen', 'gameScreen', 'option-screen'];
+    screens.forEach(screen => {
+        document.getElementById(screen).style.display = 'none';
     });
+
     // 요청된 화면 표시
     document.getElementById(screenId).style.display = screenId === 'levelScreen' ? 'block' : 
                                                     screenId === 'startScreen' ? 'flex' : 'block';
@@ -1020,8 +1060,3 @@ function onload() {
         });
     }
 }
-
-// 레발 개발용 바로가기
-// document.addEventListener('DOMContentLoaded', function() {
-//     startGame(21);
-// });

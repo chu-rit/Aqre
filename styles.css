@@ -1833,3 +1833,11 @@ img {
     font-size: 1.2rem; /* 폰트 크기 조정 */
     cursor: pointer; /* 커서 포인터로 변경 */
 }
+
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center; /* 가운데 정렬 */
+}
