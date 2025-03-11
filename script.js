@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('PWA 모드입니다.');
     }else{
         console.log('PWA 모드가 아닙니다.');
-        pwaPrompt.style.display = 'flex';
+        //pwaPrompt.style.display = 'flex';
 
         const installPwaButton = document.getElementById('installPwaButton');
         const closePwaPrompt = document.getElementById('closePwaPrompt');
