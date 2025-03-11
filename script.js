@@ -224,9 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             installPwaButton.addEventListener('click', () => {
                 if (navigator.share) {
                     navigator.share({
-                        title: 'Aqre 퍼즐 게임',
-                        text: '논리적 사고력을 키우는 퍼즐 게임, Aqre를 즐겨보세요!',
-                        url: window.location.href, // 현재 페이지 URL
+                        title: 'AQRE',
+                        text: 'Enjoy the puzzle game',
+                        url: 'https://chu-rit.github.io/Aqre/', // 실제 배포된 웹사이트 URL
                     })
                     .then(() => console.log('공유 성공'))
                     .catch((error) => console.log('공유 실패', error));
