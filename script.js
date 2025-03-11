@@ -216,21 +216,56 @@ document.addEventListener('DOMContentLoaded', () => {
         pwaPrompt.style.display = 'flex';
 
         const installPwaButton = document.getElementById('installPwaButton');
+        const closePwaPrompt = document.getElementById('closePwaPrompt');
 
         if(checkIOS()){
+            alert("IOS")
+            // iOS에서는 공유 기능 사용
             installPwaButton.addEventListener('click', () => {
                 if (navigator.share) {
                     navigator.share({
-                        title: '공유할 제목',
-                        text: '공유할 내용',
-                        url: 'https://example.com', // 공유할 URL
+                        title: 'Aqre 퍼즐 게임',
+                        text: '논리적 사고력을 키우는 퍼즐 게임, Aqre를 즐겨보세요!',
+                        url: window.location.href, // 현재 페이지 URL
                     })
                     .then(() => console.log('공유 성공'))
                     .catch((error) => console.log('공유 실패', error));
                 } else {
                     console.log('이 브라우저는 공유 기능을 지원하지 않습니다.');
+                    alert('이 브라우저는 공유 기능을 지원하지 않습니다.');
                 }
-            })
+            });
+        } else {
+            // 안드로이드 등 다른 기기에서는 beforeinstallprompt 이벤트 사용
+            let deferredPrompt;
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                console.log('beforeinstallprompt 이벤트 발생');
+            });
+            
+            installPwaButton.addEventListener('click', () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        deferredPrompt = null;
+                        pwaPrompt.style.display = 'none'; // 모달 숨기기
+                    });
+                } else {
+                    console.log('설치 프롬프트를 표시할 수 없습니다.');
+                    alert('설치 프롬프트를 표시할 수 없습니다. 브라우저의 "홈 화면에 추가" 기능을 사용해 주세요.');
+                    pwaPrompt.style.display = 'none';
+                }
+            });
+        }
+        
+        // 닫기 버튼 이벤트 리스너 추가
+        if (closePwaPrompt) {
+            closePwaPrompt.addEventListener('click', () => {
+                console.log('PWA 프롬프트 닫기');
+                pwaPrompt.style.display = 'none'; // 모달 숨기기
+            });
         }
     }
 });
