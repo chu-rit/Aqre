@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
     const footer = document.querySelector('footer');
+    const pwaPrompt = document.getElementById('pwaPrompt');
 
     // 더블 클릭 확대 방지
     document.addEventListener('dblclick', (e) => {
@@ -207,78 +208,50 @@ document.addEventListener('DOMContentLoaded', () => {
             checkLevel(levelBtn.id);
         });
     });
-});
 
-// PWA 설치 유도 모달을 표시하는 코드를 추가합니다.
-let deferredPrompt;
+    if(isPWA()){
+        console.log('PWA 모드입니다.');
+    }else{
+        console.log('PWA 모드가 아닙니다.');
+        pwaPrompt.style.display = 'flex';
 
-document.addEventListener('DOMContentLoaded', () => {
-    const pwaPrompt = document.getElementById('pwaPrompt');
-    pwaPrompt.style.display = 'none'; // 초기 상태에서 모달 숨김
-});
+        const installPwaButton = document.getElementById('installPwaButton');
 
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-
-    // PWA 설치 유도 모달 표시
-    const pwaPrompt = document.getElementById('pwaPrompt');
-    pwaPrompt.style.display = 'flex';
-
-    document.getElementById('installPwaButton').addEventListener('click', () => {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-            // if (choiceResult.outcome === 'accepted') {
-            //     console.log('사용자가 PWA 설치를 수락했습니다.');
-            // } else {
-            //     console.log('사용자가 PWA 설치를 거부했습니다.');
-            // }
-            deferredPrompt = null;
-            pwaPrompt.style.display = 'none'; // 모달 숨기기
-        });
-    });
-
-    document.getElementById('closePwaPrompt').addEventListener('click', () => {
-        pwaPrompt.style.display = 'none'; // 모달 숨기기
-    });
-});
-
-/*
-// 시작 버튼 이벤트 리스너 
-document.addEventListener('DOMContentLoaded', function() {
-    const startButton = document.getElementById('startButton');
-    if (startButton) {
-        startButton.addEventListener('click', function() {
-            // 게임 시작 로직
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('levelScreen').style.display = 'block';
-            
-            // footer 동적 생성
-            if (!document.querySelector('footer')) {
-                const footer = document.createElement('footer');
-                
-                // 카카오 광고 요소 생성
-                const kakaoAd = document.createElement('ins');
-                kakaoAd.className = 'kakao_ad_area';
-                kakaoAd.setAttribute('data-ad-unit', 'DAN-kILk8DoW0wkoyavP');
-                kakaoAd.setAttribute('data-ad-width', '320');
-                kakaoAd.setAttribute('data-ad-height', '50');
-                
-                // footer에 광고 요소 추가
-                footer.appendChild(kakaoAd);
-                
-                // body에 footer 추가
-                document.body.appendChild(footer);
-                
-                // 카카오 광고 스크립트 재실행 (필요한 경우)
-                if (typeof kakaoPixel !== 'undefined') {
-                    kakaoPixel('DAN-kILk8DoW0wkoyavP').pageView();
+        if(checkIOS()){
+            installPwaButton.addEventListener('click', () => {
+                if (navigator.share) {
+                    navigator.share({
+                        title: '공유할 제목',
+                        text: '공유할 내용',
+                        url: 'https://example.com', // 공유할 URL
+                    })
+                    .then(() => console.log('공유 성공'))
+                    .catch((error) => console.log('공유 실패', error));
+                } else {
+                    console.log('이 브라우저는 공유 기능을 지원하지 않습니다.');
                 }
-            }
-        });
+            })
+        }
     }
+});
+
+function isPWA() {
+    // 1. `window.matchMedia()`로 PWA 모드 감지 (모든 브라우저 지원)
+    const mediaQuery = window.matchMedia('(display-mode: standalone)').matches;
+
+    // 2. iOS (사파리) PWA 감지: `navigator.standalone`
+    const iOSPWA = window.navigator.standalone === true;
+
+    // 3. 안드로이드 크롬 기반 PWA 감지 (`document.referrer`)
+    const androidPWA = document.referrer.startsWith('android-app://');
+
+    return mediaQuery || iOSPWA || androidPWA;
 }
-*/
+
+function checkIOS() {
+    return /iPhone|iPad|iPod/.test(navigator.userAgent) && 
+           /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
 
 // 레벨 선택 화면 생성
 function createLevelScreen() {
