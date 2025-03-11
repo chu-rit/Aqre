@@ -219,22 +219,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const closePwaPrompt = document.getElementById('closePwaPrompt');
 
         if(checkIOS()){
-            alert("IOS")
-            // iOS에서는 공유 기능 사용
-            installPwaButton.addEventListener('click', () => {
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'AQRE',
-                        text: 'Enjoy the puzzle game',
-                        url: 'https://chu-rit.github.io/Aqre/', // 실제 배포된 웹사이트 URL
-                    })
-                    .then(() => console.log('공유 성공'))
-                    .catch((error) => console.log('공유 실패', error));
-                } else {
-                    console.log('이 브라우저는 공유 기능을 지원하지 않습니다.');
-                    alert('이 브라우저는 공유 기능을 지원하지 않습니다.');
-                }
-            });
+            // iOS에서는 Safari의 '홈 화면에 추가' 기능을 사용하도록 안내
+            const pwaPromptContent = document.querySelector('.pwa-prompt-content');
+            if (pwaPromptContent) {
+                // 기존 닫기 버튼 보존
+                const closeButton = document.getElementById('closePwaPrompt');
+                const originalCloseButton = closeButton.cloneNode(true);
+                
+                // 내용 업데이트
+                pwaPromptContent.innerHTML = `
+                    <p style="margin-bottom: 15px;">iOS에서 홈 화면에 추가하는 방법:</p>
+                    <ol style="text-align: left; margin-bottom: 15px;">
+                        <li>Safari 하단의 공유 버튼 <span style="font-size: 1.2em;">⬆️</span> 을 탭하세요</li>
+                        <li>'홈 화면에 추가' 옵션을 선택하세요</li>
+                        <li>'추가'를 탭하세요</li>
+                    </ol>
+                `;
+            }
         } else {
             // 안드로이드 등 다른 기기에서는 beforeinstallprompt 이벤트 사용
             let deferredPrompt;
