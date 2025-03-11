@@ -208,6 +208,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// PWA 설치 유도 모달을 표시하는 코드를 추가합니다.
+let deferredPrompt;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pwaPrompt = document.getElementById('pwaPrompt');
+    pwaPrompt.style.display = 'none'; // 초기 상태에서 모달 숨김
+});
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // PWA 설치 유도 모달 표시
+    const pwaPrompt = document.getElementById('pwaPrompt');
+    pwaPrompt.style.display = 'flex';
+
+    document.getElementById('installPwaButton').addEventListener('click', () => {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            // if (choiceResult.outcome === 'accepted') {
+            //     console.log('사용자가 PWA 설치를 수락했습니다.');
+            // } else {
+            //     console.log('사용자가 PWA 설치를 거부했습니다.');
+            // }
+            deferredPrompt = null;
+            pwaPrompt.style.display = 'none'; // 모달 숨기기
+        });
+    });
+
+    document.getElementById('closePwaPrompt').addEventListener('click', () => {
+        pwaPrompt.style.display = 'none'; // 모달 숨기기
+    });
+});
+
 /*
 // 시작 버튼 이벤트 리스너 
 document.addEventListener('DOMContentLoaded', function() {
@@ -242,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+}
 */
 
 // 레벨 선택 화면 생성
