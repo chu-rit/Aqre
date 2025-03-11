@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>AQRE 퍼즐 에디터</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="puzzles.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: rgba(0,0,0,0.3);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .editor-panel, .solution-panel {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .puzzle-grid {
+            display: grid;
+            gap: 4px;
+            background-color: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 4px;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            border-radius: 4px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .cell.white {
+            background-color: rgba(255, 255, 255, 1); /* 완전한 흰색 */
+            color: black;
+        }
+        
+        .cell.gray {
+            background-color: rgba(128, 128, 128, 0.9); /* 거의 불투명한 회색 */
+            color: white;
+        }
+        
+        .cell.black {
+            background-color: rgba(0, 0, 0, 1); /* 완전한 검은색 */
+            color: white;
+        }
+        
+        .cell:hover {
+            filter: brightness(1.2); /* 마우스 오버 시 밝기 증가 */
+        }
+        
+        .area-marker {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #4a90e2;
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        
+        .area-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: rgba(74, 144, 226, 0.8); /* 배경 색상 추가 */
+            border-radius: 5px;
+            padding: 5px;
+            border: 2px solid #4a90e2; /* 테두리 강조 */
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+        
+        .btn:hover {
+            background-color: #357abD;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn.active {
+            background-color: #2ecc71;
+        }
+        
+        .btn.remove {
+            background-color: #e74c3c;
+        }
+        
+        .size-selector {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background-color: rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .area-controls {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        
+        .area-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .area-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background-color: rgba(255,255,255,0.1);
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .rules-violation {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .game-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .game-board {
+            display: grid;
+            gap: 4px;
+            background-color: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 4px;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AQRE 퍼즐 에디터</h1>
+    </header>
+    
+    <div class="container">
+        <div class="editor-panel">
+            <h2>맵 에디터</h2>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="gridSize">그리드 크기</label>
+                    <select id="gridSize" class="size-selector">
+                        <option value="4">4x4</option>
+                        <option value="5">5x5</option>
+                        <option value="6">6x6</option>
+                        <option value="7">7x7</option>
+                    </select>
+                </div>
+                
+                <button id="clearGrid" class="btn remove">그리드 초기화</button>
+                <button id="loadPuzzle" class="btn">퍼즐 불러오기</button>
+            </div>
+            
+            <div class="cell-controls">
+                <h3>셀 편집</h3>
+                <div class="controls">
+                    <button id="whiteCell" class="btn active">흰색</button>
+                    <button id="grayCell" class="btn">회색</button>
+                    <button id="blackCell" class="btn">검은색</button>
+                </div>
+            </div>
+            
+            <div class="game-content">
+                <div id="game-container">
+                    <div id="editorGrid" class="game-board"></div>
+                    <div id="rule-violations">
+                        <h3>규칙 위반</h3>
+                        <ul id="violation-list"></ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="area-controls">
+                <h3>영역 설정</h3>
+                <p>영역을 만들려면 '새 영역' 버튼을 클릭한 다음 그리드에서 셀들을 선택하세요.</p>
+                
+                <div class="controls">
+                    <button id="newArea" class="btn">새 영역</button>
+                    <button id="cancelArea" class="btn remove" disabled>영역 생성 취소</button>
+                </div>
+                
+                <div id="areaList" class="area-list">
+                    <!-- 영역 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+            
+            <div class="controls" style="margin-top: 20px;">
+                <button id="validatePuzzle" class="btn">퍼즐 검증</button>
+                <button id="solvePuzzle" class="btn">퍼즐 해결</button>
+            </div>
+            
+            <div id="validationResult"></div>
+        </div>
+        
+        <div class="solution-panel">
+            <h2>퍼즐 해결</h2>
+            <div id="spinner" class="spinner"></div>
+            <div id="puzzleSolution"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 전역 변수
+        let gridSize = 5; // 기본 그리드 크기
+        let currentCellType = 'white'; // 기본 셀 타입
+        let creatingArea = false; // 영역 생성 모드
+        let currentAreaCells = []; // 현재 선택된 영역 셀
+        let areas = []; // 영역 목록
+        let areaCounter = 1; // 영역 카운터
+        let editorBoard = []; // 에디터 보드 데이터
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEditor();
+            setupEventListeners();
+        });
+        
+        // 에디터 초기화
+        function initializeEditor() {
+            gridSize = parseInt(document.getElementById('gridSize').value);
+            createEmptyBoard();
+            renderEditorGrid();
+        }
+        
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            // 그리드 크기 변경
+            document.getElementById('gridSize').addEventListener('change', function() {
+                gridSize = parseInt(this.value);
+                resetEditor();
+            });
+            
+            // 그리드 초기화
+            document.getElementById('clearGrid').addEventListener('click', resetEditor);
+            
+            // 셀 타입 버튼
+            document.getElementById('whiteCell').addEventListener('click', function() {
+                setActiveCellType('white');
+            });
+            
+            document.getElementById('grayCell').addEventListener('click', function() {
+                setActiveCellType('gray');
+            });
+            
+            document.getElementById('blackCell').addEventListener('click', function() {
+                setActiveCellType('black');
+            });
+            
+            // 영역 관련 버튼
+            document.getElementById('newArea').addEventListener('click', startAreaCreation);
+            document.getElementById('cancelArea').addEventListener('click', cancelAreaCreation);
+            
+            // 퍼즐 불러오기
+            document.getElementById('loadPuzzle').addEventListener('click', function() {
+                const puzzleId = prompt('불러올 퍼즐 ID를 입력하세요:');
+                if (puzzleId) {
+                    const puzzle = PUZZLE_MAPS.find(p => p.id == puzzleId);
+                    if (puzzle) {
+                        loadPuzzle(puzzle);
+                    } else {
+                        alert('해당 ID의 퍼즐을 찾을 수 없습니다.');
+                    }
+                }
+            });
+            
+            // 퍼즐 검증 및 해결
+            document.getElementById('validatePuzzle').addEventListener('click', validatePuzzle);
+            document.getElementById('solvePuzzle').addEventListener('click', solvePuzzleFromEditor);
+        }
+        
+        // 빈 보드 생성
+        function createEmptyBoard() {
+            editorBoard = [];
+            for (let i = 0; i < gridSize; i++) {
+                const row = [];
+                for (let j = 0; j < gridSize; j++) {
+                    row.push(0); // 기본값은 흰색(0)
+                }
+                editorBoard.push(row);
+            }
+        }
+        
+        // 에디터 그리드 렌더링
+        function renderEditorGrid() {
+            const grid = document.getElementById('editorGrid');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            // 영역 표시를 위한 Set
+            const displayedAreas = new Set();
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${getCellClass(editorBoard[i][j])}`;
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    
+                    // 영역 마커 추가
+                    const areaIndex = getAreaIndex(i, j);
+                    if (areaIndex !== -1) {
+                        const area = areas[areaIndex];
+                        cell.dataset.areaRequired = area.required;
+                        
+                        // 첫 번째 셀에만 숫자 오버레이 표시
+                        if (!displayedAreas.has(area)) {
+                            const areaOverlay = document.createElement('div');
+                            areaOverlay.className = 'area-overlay';
+                            areaOverlay.textContent = area.required === 'J' ? '' : area.required;
+                            cell.appendChild(areaOverlay);
+                            displayedAreas.add(area);
+                        }
+                    }
+                    
+                    // 셀 클릭 이벤트
+                    cell.addEventListener('click', function() {
+                        const row = parseInt(this.dataset.row);
+                        const col = parseInt(this.dataset.col);
+                        
+                        if (creatingArea) {
+                            toggleCellInArea(row, col, this);
+                        } else {
+                            toggleCellType(row, col, this);
+                        }
+                    });
+                    
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        
+        // 셀 클래스 가져오기
+        function getCellClass(value) {
+            switch(value) {
+                case 0: return 'white';
+                case 1: return 'gray';
+                case 2: return 'black';
+                default: return 'white';
+            }
+        }
+        
+        // 셀 값 가져오기
+        function getCellValue(type) {
+            switch(type) {
+                case 'white': return 0;
+                case 'gray': return 1;
+                case 'black': return 2;
+                default: return 0;
+            }
+        }
+        
+        // 활성 셀 타입 설정
+        function setActiveCellType(type) {
+            currentCellType = type;
+            
+            // 버튼 활성화 상태 업데이트
+            document.getElementById('whiteCell').classList.toggle('active', type === 'white');
+            document.getElementById('grayCell').classList.toggle('active', type === 'gray');
+            document.getElementById('blackCell').classList.toggle('active', type === 'black');
+        }
+        
+        // 셀 타입 토글
+        function toggleCellType(row, col, cellElement) {
+            editorBoard[row][col] = getCellValue(currentCellType);
+            
+            // 셀 클래스 업데이트
+            cellElement.className = `cell ${currentCellType}`;
+        }
+        
+        // 영역에 셀 토글
+        function toggleCellInArea(row, col, cellElement) {
+            const index = currentAreaCells.findIndex(cell => cell[0] === row && cell[1] === col);
+            
+            if (index === -1) {
+                // 영역에 셀 추가
+                currentAreaCells.push([row, col]);
+                cellElement.style.border = '2px solid #4a90e2';
+            } else {
+                // 영역에서 셀 제거
+                currentAreaCells.splice(index, 1);
+                cellElement.style.border = '';
+            }
+        }
+        
+        // 영역 생성 시작
+        function startAreaCreation() {
+            creatingArea = true;
+            currentAreaCells = [];
+            document.getElementById('newArea').disabled = true;
+            document.getElementById('cancelArea').disabled = false;
+            
+            // 완료 버튼 추가
+            const completeButton = document.createElement('button');
+            completeButton.id = 'completeArea';
+            completeButton.className = 'btn';
+            completeButton.textContent = '영역 생성 완료';
+            completeButton.addEventListener('click', completeAreaCreation);
+            
+            const cancelButton = document.getElementById('cancelArea');
+            cancelButton.parentNode.insertBefore(completeButton, cancelButton.nextSibling);
+        }
+        
+        // 영역 생성 완료
+        function completeAreaCreation() {
+            if (currentAreaCells.length === 0) {
+                alert('최소 하나 이상의 셀을 선택해야 합니다.');
+                return;
+            }
+            
+            // 영역 추가
+            areas.push({
+                id: areaCounter++,
+                cells: [...currentAreaCells],
+                required: 0
+            });
+            
+            // 영역 목록 업데이트
+            updateAreaList();
+            
+            // 영역 생성 모드 해제
+            endAreaCreationMode();
+            
+            // 그리드 다시 렌더링
+            renderEditorGrid();
+        }
+        
+        // 영역 생성 취소
+        function cancelAreaCreation() {
+            endAreaCreationMode();
+            renderEditorGrid();
+        }
+        
+        // 영역 생성 모드 종료
+        function endAreaCreationMode() {
+            creatingArea = false;
+            currentAreaCells = [];
+            document.getElementById('newArea').disabled = false;
+            document.getElementById('cancelArea').disabled = true;
+            
+            // 완료 버튼 제거
+            const completeButton = document.getElementById('completeArea');
+            if (completeButton) completeButton.remove();
+        }
+        
+        // 영역 목록 업데이트
+        function updateAreaList() {
+            const areaList = document.getElementById('areaList');
+            areaList.innerHTML = '';
+            
+            areas.forEach((area, index) => {
+                const areaItem = document.createElement('div');
+                areaItem.className = 'area-item';
+                
+                const areaInfo = document.createElement('div');
+                areaInfo.textContent = `영역 ${index + 1} (${area.cells.length}칸)`;
+                
+                const requiredInput = document.createElement('input');
+                requiredInput.type = 'number';
+                requiredInput.min = '0';
+                requiredInput.max = area.cells.length;
+                requiredInput.value = area.required;
+                requiredInput.style.width = '60px';
+                requiredInput.addEventListener('change', function() {
+                    area.required = parseInt(this.value) || 0;
+                });
+                
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn remove';
+                deleteButton.textContent = '삭제';
+                deleteButton.style.padding = '5px 8px';
+                deleteButton.addEventListener('click', function() {
+                    areas.splice(index, 1);
+                    updateAreaList();
+                    renderEditorGrid();
+                });
+                
+                areaItem.appendChild(areaInfo);
+                areaItem.appendChild(requiredInput);
+                areaItem.appendChild(deleteButton);
+                areaList.appendChild(areaItem);
+            });
+        }
+        
+        // 특정 좌표의 영역 인덱스 찾기
+        function getAreaIndex(row, col) {
+            for (let i = 0; i < areas.length; i++) {
+                if (areas[i].cells.some(cell => cell[0] === row && cell[1] === col)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        
+        // 에디터 리셋
+        function resetEditor() {
+            createEmptyBoard();
+            areas = [];
+            areaCounter = 1;
+            updateAreaList();
+            renderEditorGrid();
+        }
+        
+        // 퍼즐 검증
+        function validatePuzzle() {
+            const validationResult = document.getElementById('validationResult');
+            
+            if (areas.length === 0) {
+                validationResult.innerHTML = '<div class="rules-violation">퍼즐을 만들려면 최소한 하나의 영역이 필요합니다.</div>';
+                return false;
+            }
+            
+            // // 모든 셀이 영역에 속하는지 확인
+            // for (let i = 0; i < gridSize; i++) {
+            //     for (let j = 0; j < gridSize; j++) {
+            //         if (editorBoard[i][j] !== 2 && getAreaIndex(i, j) === -1) {
+            //             validationResult.innerHTML = '<div class="rules-violation">모든 셀은 영역에 속해야 합니다 (검은색 제외).</div>';
+            //             return false;
+            //         }
+            //     }
+            // }
+            
+            validationResult.innerHTML = '<div style="color: #2ecc71; font-weight: bold;">퍼즐이 유효합니다!</div>';
+            return true;
+        }
+        
+        // 에디터 보드로부터 퍼즐 생성
+        function createPuzzleFromEditor() {
+            return {
+                id: 0,
+                name: '에디터 퍼즐',
+                size: gridSize,
+                areas: areas.map(area => ({
+                    cells: area.cells,
+                    required: area.required
+                })),
+                initialState: JSON.parse(JSON.stringify(editorBoard))
+            };
+        }
+        
+        // 에디터에서 퍼즐 해결
+        function solvePuzzleFromEditor() {
+            if (!validatePuzzle()) return;
+            
+            const puzzleSolution = document.getElementById('puzzleSolution');
+            const spinner = document.getElementById('spinner');
+            
+            // 로딩 표시
+            spinner.style.display = 'block';
+            puzzleSolution.innerHTML = '';
+            
+            // 퍼즐 생성
+            const puzzle = createPuzzleFromEditor();
+            
+            // 비동기로 퍼즐 해결
+            setTimeout(() => {
+                const solution = solvePuzzle(puzzle);
+                spinner.style.display = 'none';
+                
+                if (solution) {
+                    renderPuzzleSolution(solution);
+                } else {
+                    puzzleSolution.innerHTML = '<div class="rules-violation">해결책을 찾을 수 없습니다.</div>';
+                }
+            }, 100);
+        }
+        
+        // 퍼즐 해결 함수 (answer.html의 solvePuzzle 함수 활용)
+        function solvePuzzle(puzzle) {
+            const board = JSON.parse(JSON.stringify(puzzle.initialState));
+            const size = puzzle.size;
+            
+            // 퍼즐 해결 로직 구현
+            // - 백트래킹 알고리즘 사용
+            // - 게임 규칙 검사
+            
+            // 임시 제공 - 실제 구현에서는 answer.html의 알고리즘을 활용
+            function solve(row, col) {
+                if (row >= size) {
+                    return true;
+                }
+                
+                const nextCol = (col + 1) % size;
+                const nextRow = nextCol === 0 ? row + 1 : row;
+                
+                // 이미 색상이 고정되어 있으면 다음 셀로
+                if (board[row][col] === 2 || puzzle.initialState[row][col] === 1) {
+                    return solve(nextRow, nextCol);
+                }
+                
+                // 0(흰색)과 1(회색) 시도
+                for (let color = 0; color <= 1; color++) {
+                    board[row][col] = color;
+                    
+                    // 규칙 검증
+                    if (isValidMove(board, row, col, puzzle) && solve(nextRow, nextCol)) {
+                        return true;
+                    }
+                }
+                
+                // 원래 상태로 복원
+                board[row][col] = puzzle.initialState[row][col];
+                return false;
+            }
+            
+            function isValidMove(board, row, col, puzzle) {
+                // 여기에 규칙 검증 로직 구현
+                // 예: 연속된 4개의 같은 색상이 없는지, 영역 규칙을 만족하는지 등
+                return true;
+            }
+            
+            if (solve(0, 0)) {
+                return board;
+            }
+            
+            return null;
+        }
+        
+        // 퍼즐 솔루션 렌더링
+        function renderPuzzleSolution(solution) {
+            const solutionContainer = document.getElementById('puzzleSolution');
+            solutionContainer.innerHTML = '';
+            
+            const grid = document.createElement('div');
+            grid.className = 'puzzle-grid';
+            grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${getCellClass(solution[i][j])}`;
+                    
+                    // 영역 마커 추가
+                    const areaIndex = getAreaIndex(i, j);
+                    if (areaIndex !== -1) {
+                        const marker = document.createElement('span');
+                        marker.className = 'area-marker';
+                        marker.textContent = areas[areaIndex].required; // 영역의 필요 숫자를 표시
+                        cell.appendChild(marker);
+                    }
+                    
+                    grid.appendChild(cell);
+                }
+            }
+            
+            const title = document.createElement('h3');
+            title.textContent = '퍼즐 솔루션';
+            
+            solutionContainer.appendChild(title);
+            solutionContainer.appendChild(grid);
+        }
+        
+        // 퍼즐 불러오기
+        function loadPuzzle(puzzle) {
+            gridSize = puzzle.size;
+            editorBoard = puzzle.initialState;
+            areas = puzzle.areas;
+            areaCounter = areas.length + 1;
+            updateAreaList();
+            renderEditorGrid();
+        }
+    </script>
+</body>
+</html>

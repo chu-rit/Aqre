@@ -190,6 +190,7 @@
         </div>
     </div>
     <div id="puzzleContainer"></div>
+    <button id="toggleDrawing" class="btn">그리기 모드 활성화</button>
 
     <script>
     // 현재 선택된 퍼즐
@@ -700,6 +701,47 @@
                 console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 해결 실패`);
             }
         }, 500);
+    }
+
+    // 그리기 모드 활성화
+    let drawingMode = false;
+
+    // 셀 클릭 이벤트 리스너 추가
+    function setupDrawing() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            cell.addEventListener('click', function() {
+                if (drawingMode) {
+                    toggleCellType(cell);
+                }
+            });
+        });
+    }
+
+    // 셀 색상 변경
+    function toggleCellType(cell) {
+        const currentClass = cell.className;
+        if (currentClass.includes('white')) {
+            cell.className = 'cell gray';
+        } else if (currentClass.includes('gray')) {
+            cell.className = 'cell black';
+        } else {
+            cell.className = 'cell white';
+        }
+    }
+
+    // 그리기 모드 토글
+    document.getElementById('toggleDrawing').addEventListener('click', function() {
+        drawingMode = !drawingMode;
+        this.classList.toggle('active', drawingMode);
+        this.textContent = drawingMode ? '그리기 모드 해제' : '그리기 모드 활성화';
+    });
+
+    // 초기화 함수
+    function initializeEditor() {
+        createEmptyBoard();
+        renderEditorGrid();
+        setupDrawing();
     }
     </script>
 </body>
