@@ -330,7 +330,6 @@ function createTutorial(config = {}) {
 function tutorialOpen(levelId) {
     if(levelId === 0) {
         createTutorial({
-            levelId: 1,
             steps: [
                 {
                     text: '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라라고 합니다.',
@@ -370,7 +369,6 @@ function tutorialOpen(levelId) {
         });
     }else if(levelId === 1) {
         createTutorial({
-            levelId: 1,
             steps: [
                 {
                     text: '안녕하세요, 신임 기억 복원사님! 저는 뉴로 클리닉의 간호사 에이다입니다. 아크레 기술을 이용한 기억 복원 과정을 안내해 드리겠습니다.',
@@ -412,7 +410,6 @@ function tutorialOpen(levelId) {
         });
     }else if(levelId === 2) {
         createTutorial({
-            levelId: 2,
             steps: [
                 {
                     text: '첫 번째 환자의 기억을 복원할 준비가 되셨군요! 먼저 "뉴런 과열" 방지를 위한 연속성 규칙을 알려드리겠습니다. 가로나 세로로 4개 이상의 같은 색상 뉴런이 연속되면 기억이 왜곡됩니다.',
@@ -478,7 +475,6 @@ function tutorialOpen(levelId) {
         });
     }else if(levelId === 3) {
         createTutorial({
-            levelId: 3,
             steps: [
                 {
                     text: '두 번째 규칙은 "영역 제한 규칙"입니다. 뇌의 각 영역은 특정 기억 조각을 담당하며, 각 영역에는 정확히 지정된 수의 활성 뉴런이 있어야 합니다.',
@@ -534,7 +530,6 @@ function tutorialOpen(levelId) {
         });
     }else if(levelId === 4) {
         createTutorial({
-            levelId: 4,
             steps: [
                 {
                     text: '마지막 세 번째 규칙은 "연결성 규칙"입니다. 기억은 연결된 신경 경로를 통해 형성되기 때문에, 모든 활성화된 뉴런은 하나의 연속된 네트워크를 형성해야 합니다.',
@@ -582,7 +577,6 @@ function tutorialOpen(levelId) {
         });   
     }else if(levelId === 5) {
         createTutorial({
-            levelId: 5,
             steps: [
                 {
                     text: '훌륭합니다, 기억 복원사님! 이제 아크레 기술의 모든 핵심 규칙을 이해하셨습니다. <br>이 규칙들을 적용하여 환자들의 소중한 기억을 복원할 준비가 되셨군요.',

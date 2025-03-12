@@ -31,34 +31,31 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     }, { passive: false });
 
-    // 시작 화면 버튼들
-    if (startButton) {
-        startButton.addEventListener('click', () => {
-            const startScreen = document.getElementById('startScreen');
-            const levelScreen = document.getElementById('levelScreen');
-        
-            playBGM();
-            footer.style.opacity = 'inherit';
+    startButton.addEventListener('click', () => {
+        const startScreen = document.getElementById('startScreen');
+        const levelScreen = document.getElementById('levelScreen');
+    
+        playBGM();
+        footer.style.opacity = 'inherit';
 
-            // 시작 화면에 fade-out 애니메이션 추가
-            startScreen.classList.add('fade-out');
+        // 시작 화면에 fade-out 애니메이션 추가
+        startScreen.classList.add('fade-out');
+        
+        // 애니메이션 종료 후 화면 전환
+        setTimeout(() => {
+            startScreen.style.display = 'none';
+            startScreen.classList.remove('fade-out');
             
-            // 애니메이션 종료 후 화면 전환
+            levelScreen.style.display = 'flex';
+            levelScreen.classList.add('fade-in');
+            createLevelUI();
+            
+            // 애니메이션 클래스 제거
             setTimeout(() => {
-                startScreen.style.display = 'none';
-                startScreen.classList.remove('fade-out');
-                
-                levelScreen.style.display = 'flex';
-                levelScreen.classList.add('fade-in');
-                createLevelScreen();
-                
-                // 애니메이션 클래스 제거
-                setTimeout(() => {
-                    levelScreen.classList.remove('fade-in');
-                }, 300);                
-            }, 300);
-        });
-    }
+                levelScreen.classList.remove('fade-in');
+            }, 300);                
+        }, 300);
+    });
 
     optionsButton.addEventListener('click', () => {
         // 현재 화면 숨기기
@@ -73,41 +70,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (optionScreen) optionScreen.style.display = 'block';
     });
 
-    // 뒤로 가기 버튼들
-    if (backToStart) {
-        backToStart.addEventListener('click', () => {
-            showScreen('startScreen');
-        });
-    }
-
-    if (backToLevels) {
-        backToLevels.addEventListener('click', () => {
-            // 레벨 선택 화면으로 돌아갈 때 튜토리얼 완전히 제거
-            const tutorialOverlay = document.getElementById('tutorialOverlay');
-            if (tutorialOverlay) {
-                tutorialOverlay.remove();
-            }
-            showScreen('levelScreen');
-        });
-    }
-
-    // 게임 클리어 팝업 외부 클릭시 닫기
-    if (gameClearPopup) {
-        gameClearPopup.addEventListener('click', (e) => {
-            if (e.target === gameClearPopup) {
-                gameClearPopup.style.display = 'none';
-            }
-        });
-    }
-
-    // Refresh Level Button
-    document.getElementById('refreshLevel').addEventListener('click', () => {
-        startGame(currentLevel);
+    backToStart.addEventListener('click', () => {
+        showScreen('startScreen');
     });
 
-    // 옵션 화면 이벤트 리스너 추가
-    document.getElementById('optionsButton').addEventListener('click', function() {
-        document.getElementById('option-screen').style.display = 'flex';
+    backToLevels.addEventListener('click', () => {
+        // 레벨 선택 화면으로 돌아갈 때 튜토리얼 완전히 제거
+        const tutorialOverlay = document.getElementById('tutorialOverlay');
+        if (tutorialOverlay) {
+            tutorialOverlay.remove();
+        }
+        showScreen('levelScreen');
+    });
+
+    gameClearPopup.addEventListener('click', (e) => {
+        if (e.target === gameClearPopup) {
+            gameClearPopup.style.display = 'none';
+        }
+    });
+
+    document.getElementById('refreshLevel').addEventListener('click', () => {
+        startGame(currentLevel);
     });
 
     document.getElementById('back-button').addEventListener('click', function() {
@@ -116,30 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('clear-data-button').addEventListener('click', function() {
-        // 데이터 초기화 로직 추가
-        clearedLevels.clear(); // clearedLevels Set 비우기
-        localStorage.setItem('clearedLevels', JSON.stringify([])); // 로컬 스토리지도 비우기
-        showMessage('초기화되었습니다!'); // showMessage 함수 사용
-    });
-
-    // 레벨 선택 화면 옵션 버튼
-    const OptionsButton = document.getElementById('OptionsButton');
-    if (OptionsButton) {
-        OptionsButton.addEventListener('click', () => {
-            document.getElementById('levelScreen').style.display = 'none';
-            document.getElementById('option-screen').style.display = 'block';
-        });
-    }
-
-    // 레벨 선택 이벤트 리스너 추가
-    document.querySelectorAll('.level-button').forEach(levelBtn => {
-        levelBtn.addEventListener('click', () => {
-            const gameScreen = document.getElementById('gameScreen');
-            if (gameScreen) {
-                gameScreen.classList.add('fade-in');
-            }
-            checkLevel(levelBtn.id);
-        });
+        clearedLevels.clear();
+        localStorage.setItem('clearedLevels', JSON.stringify([])); 
+        showMessage('초기화되었습니다!'); 
     });
 
     if(isPWA()){
@@ -207,8 +169,8 @@ function checkIOS() {
            /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
 
-// 레벨 선택 화면 생성
-function createLevelScreen() {
+// 레벨 선택 화면 생성 및 UI 추가
+function createLevelUI() {
     const basicLevelGrid = document.getElementById('basicLevelGrid');
     const advancedLevelGrid = document.getElementById('advancedLevelGrid');
     basicLevelGrid.innerHTML = ''; // 기존 내용 초기화
@@ -231,31 +193,15 @@ function createLevelScreen() {
         } else {
             advancedLevelGrid.appendChild(levelBtn);
         }
-        
+
         levelBtn.addEventListener('click', () => {
             const gameScreen = document.getElementById('gameScreen');
             if (gameScreen) {
                 gameScreen.classList.add('fade-in');
             }
-            checkLevel(puzzle.id);
+            startGame(puzzle.id);
         });
     });
-}
-
-// 레벨 유효성 검사 함수
-function checkLevel(levelId) {
-    // 레벨 ID로 퍼즐 찾기
-    const puzzle = PUZZLE_MAPS.find(p => p.id === levelId);
-
-    // 퍼즐을 찾지 못한 경우
-    if (!puzzle) {
-        showMessage('아직 준비중입니다.', 'warning');
-        return false;
-    }
-
-    showScreen('gameScreen');
-    startGame(levelId);
-    return true;
 }
 
 // 게임 초기화
@@ -285,9 +231,6 @@ function startGame(levelId = 11) {
     // 게임 화면으로 전환
     showScreen('gameScreen');
     
-    // 영역 오버레이 렌더링
-    renderAreaOverlays(puzzle.areas);
-    
     tutorialOpen(levelId);
     
     // 규칙 위반 체크
@@ -312,12 +255,6 @@ function updateGameInfo() {
             <p>Moves: ${moves}</p>
         `;
     }
-}
-
-// 영역에 필요한 회색 칸 수를 표시하는 오버레이 생성
-function renderAreaOverlays(areas) {
-    // Do nothing, effectively removing area overlays
-    return;
 }
 
 // 보드 렌더링
@@ -711,9 +648,6 @@ function handleViolationItemClick(event) {
         cell.classList.remove('with-z-index');
         cell.style.zIndex = ''; // z-index 초기화
     });
-
-    // 클릭된 위반 항목의 방향 확인
-    const direction = event.target.dataset.direction;
     
     // 위반된 셀의 정보 가져오기
     let highlightCells = [];
@@ -930,7 +864,7 @@ function showGameClearPopup() {
     };
 
     // 레벨 선택 화면 업데이트
-    createLevelScreen();
+    createLevelUI();
 }
 
 // 레벨 클리어 메커니즘
@@ -950,7 +884,6 @@ function isLevelCleared(levelId) {
     return clearedLevels.has(levelId);
 }
 
-
 // 화면 전환 함수
 function showScreen(screenId) {
     // 모든 화면 숨기기
@@ -962,50 +895,4 @@ function showScreen(screenId) {
     // 요청된 화면 표시
     document.getElementById(screenId).style.display = screenId === 'levelScreen' ? 'block' : 
                                                     screenId === 'startScreen' ? 'flex' : 'block';
-}
-
-// 레벨 선택 UI 추가
-function createLevelSelector() {
-    const levelGrid = document.getElementById('levelGrid');
-    const preparingOverlay = document.getElementById('preparingOverlay');
-    levelGrid.innerHTML = ''; // 기존 내용 초기화
-
-    // 퍼즐 맵이 없거나 비어있는 경우
-    if (!PUZZLE_MAPS || PUZZLE_MAPS.length === 0) {
-        // 준비 중 오버레이 표시
-        preparingOverlay.style.display = 'flex';
-        return;
-    }
-
-    // 준비 중 오버레이 숨기기
-    preparingOverlay.style.display = 'none';
-
-    // 레벨 버튼 생성
-    PUZZLE_MAPS.forEach(puzzle => {
-        const levelButton = document.createElement('button');
-        levelButton.textContent = `Level ${puzzle.id}`;
-        levelButton.addEventListener('click', () => {
-            // 레벨 유효성 검사
-            checkLevel(puzzle.id);
-        });
-        levelGrid.appendChild(levelButton);
-    });
-}
-
-// 게임 초기화
-function onload() {
-    // 레벨 선택기 생성
-    createLevelSelector();
-    
-    // 초기 레벨 시작 (첫 번째 퍼즐의 ID 사용)
-    startGame(PUZZLE_MAPS[0].id);
-    
-    // startButton 대신 게임보드에 클릭 이벤트 추가
-    const gameBoard = document.getElementById('gameBoard');
-    if (gameBoard) {
-        gameBoard.addEventListener('click', () => {
-            // 현재 레벨 다시 시작
-            startGame(currentLevel);
-        });
-    }
 }
