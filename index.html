@@ -17,6 +17,7 @@
     <script src="tutorial.js"></script>
     <script src="script.js"></script>
     <script src="sound.js"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2753533789598535" crossorigin="anonymous"></script>
 
     <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
 </head>
@@ -92,25 +93,6 @@
         </div>
     </div>
 
-    <!-- 룰 팝업 -->
-    <div id="rulesPopup" class="popup">
-        <div class="popup-content">
-            <div class="popup-header">
-                <h2>게임 규칙</h2>
-                <button id="closeRules" class="close-button">&times;</button>
-            </div>
-            <div class="rules">
-                <ul>
-                    <li>어느 방향으로든 같은 색상의 블럭이 4개 연속되지 않도록 하세요.</li>
-                    <li>색칠한 블럭은 대각선을 제외하고 가로든 세로든 연결되어 있도록 하세요.</li>
-                    <li>굵은색으로 구분된 영역안에 숫자에 맞는 수의 블럭만 색칠하세요.</li>
-                    <li>숫자가 없는 영역은 갯수 제한은 없습니다.</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    
-
     <!-- 게임 클리어 팝업 -->
     <div id="gameClearPopup" class="popup game-clear-popup" style="display:none;">
         <div class="popup-content">
@@ -118,7 +100,6 @@
                 <h2>🎉 Game clear!</h2>
             </div>
             <div class="popup-body">
-                <!-- <p id="gameClearMessage">축하합니다! 레벨을 성공적으로 완료했습니다.</p> -->
                 <div class="game-stats">
                     <p>움직임: <span id="clearMoves">0</span></p>
                 </div>
@@ -129,11 +110,19 @@
         </div>
     </div>
 
-    <div id="pwaPrompt" class="pwa-prompt" style="display: none;">
-        <div class="pwa-prompt-content">
-            <button id="closePwaPrompt" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+    <div id="pwaPrompt-android" class="pwa-prompt" style="display: none;">
+        <div class="pwa-prompt-content" style="position: relative; max-width: 90%; width: 350px;">
+            <button id="closePwaPromptAndroid" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; z-index: 10;">&times;</button>
             <p>이 게임은 설치형으로 개발되었습니다. <br> 아래 버튼을 통해 설치하여 게임을 즐겨보세요.</p>
             <button id="installPwaButton" class="install-button"></button>
+        </div>
+    </div>
+
+    <div id="pwaPrompt-ios" class="pwa-prompt" style="display: none;">
+        <div class="pwa-prompt-content" style="position: relative; max-width: 90%; width: 350px;">
+            <button id="closePwaPromptIos" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; z-index: 10;">&times;</button>
+            <p>이 게임은 설치형으로 개발되었습니다.</p>
+            <p>브라우저의 공유하기(<img src="img/share.png" alt="Share Icon" class="Icon">) 버튼을 눌러 홈 화면에 추가(<img src="img/homeAdd.png" alt="Share Icon" class="Icon">)를 통해 설치하여 이용해주세요.</p>
         </div>
     </div>
 

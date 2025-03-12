@@ -11,9 +11,6 @@ let gameStarted = false;
 // 클리어된 레벨 정보 (localStorage 사용)
 let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || '[]'));
 
-// 개발자 콘솔에서 쉽게 테스트할 수 있도록 전역 함수로 노출
-window.testClear = testClear;
-
 // 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
     // 사용자 상호작용 후 오디오 컨텍스트 초기화 (브라우저 정책)
@@ -24,12 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const optionsButton = document.getElementById('optionsButton');
     const backToStart = document.getElementById('backToStart');
     const backToLevels = document.getElementById('backToLevels');
-    const showRules = document.getElementById('showRules');
-    const closeRules = document.getElementById('closeRules');
-    const rulesPopup = document.getElementById('rulesPopup');
     const gameClearPopup = document.getElementById('gameClearPopup');
     const footer = document.querySelector('footer');
-    const pwaPrompt = document.getElementById('pwaPrompt');
+    const pwaPromptAndroid = document.getElementById('pwaPrompt-android');
+    const pwaPromptIos = document.getElementById('pwaPrompt-ios');
 
     // 더블 클릭 확대 방지
     document.addEventListener('dblclick', (e) => {
@@ -65,42 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function setupOptionsButton() {
-        const optionsButton = document.getElementById('optionsButton');
-
-        if (optionsButton) {
-            optionsButton.addEventListener('click', () => {
-                // 현재 화면 숨기기
-                const currentScreens = ['startScreen', 'levelScreen'];
-                currentScreens.forEach(screenId => {
-                    const screen = document.getElementById(screenId);
-                    if (screen) screen.style.display = 'none';
-                });
-
-                // 옵션 화면 표시
-                const optionScreen = document.getElementById('option-screen');
-                if (optionScreen) optionScreen.style.display = 'block';
-            });
-        }
-    }
-
-    setupOptionsButton();
-
-    // 옵션 버튼 이벤트 리스너 단순화
-    if (optionsButton) {
-        optionsButton.addEventListener('click', () => {
-            // 현재 화면 숨기기
-            const currentScreens = ['startScreen', 'levelScreen'];
-            currentScreens.forEach(screenId => {
-                const screen = document.getElementById(screenId);
-                if (screen) screen.style.display = 'none';
-            });
-
-            // 옵션 화면 표시
-            const optionScreen = document.getElementById('option-screen');
-            if (optionScreen) optionScreen.style.display = 'block';
+    optionsButton.addEventListener('click', () => {
+        // 현재 화면 숨기기
+        const currentScreens = ['startScreen', 'levelScreen'];
+        currentScreens.forEach(screenId => {
+            const screen = document.getElementById(screenId);
+            if (screen) screen.style.display = 'none';
         });
-    }
+
+        // 옵션 화면 표시
+        const optionScreen = document.getElementById('option-screen');
+        if (optionScreen) optionScreen.style.display = 'block';
+    });
 
     // 뒤로 가기 버튼들
     if (backToStart) {
@@ -120,50 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 규칙 보기 버튼 이벤트
-    if (showRules) {
-        showRules.addEventListener('click', () => {
-            if (rulesPopup) {
-                rulesPopup.classList.add('show');
-            }
-        });
-    }
-
-    if (closeRules) {
-        closeRules.addEventListener('click', () => {
-            if (rulesPopup) {
-                rulesPopup.classList.remove('show');
-            }
-        });
-    }
-
-    // 팝업 외부 클릭시 닫기
-    if (rulesPopup) {
-        rulesPopup.addEventListener('click', (e) => {
-            if (e.target === rulesPopup) {
-                rulesPopup.classList.remove('show');
-            }
-        });
-    }
-
     // 게임 클리어 팝업 외부 클릭시 닫기
     if (gameClearPopup) {
         gameClearPopup.addEventListener('click', (e) => {
             if (e.target === gameClearPopup) {
                 gameClearPopup.style.display = 'none';
             }
-        });
-    }
-
-    // 게임 클리어 팝업 이벤트 리스너 추가
-    const backToLevelsButton = document.getElementById('backToLevelsButton');
-
-    if (backToLevelsButton) {
-        backToLevelsButton.addEventListener('click', () => {
-            if (gameClearPopup) {
-                gameClearPopup.style.display = 'none';
-            }
-            showScreen('levelScreen');
         });
     }
 
@@ -213,59 +146,44 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('PWA 모드입니다.');
     }else{
         console.log('PWA 모드가 아닙니다.');
-        //pwaPrompt.style.display = 'flex';
 
         const installPwaButton = document.getElementById('installPwaButton');
-        const closePwaPrompt = document.getElementById('closePwaPrompt');
+        const closePwaPromptIos = document.getElementById('closePwaPromptIos');
+        const closePwaPromptAndroid = document.getElementById('closePwaPromptAndroid');
 
         if(checkIOS()){
-            // iOS에서는 Safari의 '홈 화면에 추가' 기능을 사용하도록 안내
-            const pwaPromptContent = document.querySelector('.pwa-prompt-content');
-            if (pwaPromptContent) {
-                // 기존 닫기 버튼 보존
-                const closeButton = document.getElementById('closePwaPrompt');
-                const originalCloseButton = closeButton.cloneNode(true);
-                
-                // 내용 업데이트
-                pwaPromptContent.innerHTML = `
-                    <p style="margin-bottom: 15px;">iOS에서 홈 화면에 추가하는 방법:</p>
-                    <ol style="text-align: left; margin-bottom: 15px;">
-                        <li>Safari 하단의 공유 버튼 <span style="font-size: 1.2em;">⬆️</span> 을 탭하세요</li>
-                        <li>'홈 화면에 추가' 옵션을 선택하세요</li>
-                        <li>'추가'를 탭하세요</li>
-                    </ol>
-                `;
-            }
+            console.log("아이폰");
+            pwaPromptIos.style.display = 'flex';
+
+            closePwaPromptIos.addEventListener('click', () => {
+                pwaPromptIos.style.display = 'none'; // 모달 숨기기
+            });            
         } else {
+            console.log("안드로이드");
+            pwaPromptAndroid.style.display = 'flex';
             // 안드로이드 등 다른 기기에서는 beforeinstallprompt 이벤트 사용
             let deferredPrompt;
             
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                console.log('beforeinstallprompt 이벤트 발생');
             });
-            
+
             installPwaButton.addEventListener('click', () => {
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
                         deferredPrompt = null;
-                        pwaPrompt.style.display = 'none'; // 모달 숨기기
+                        pwaPromptAndroid.style.display = 'none'; // 모달 숨기기
                     });
                 } else {
-                    console.log('설치 프롬프트를 표시할 수 없습니다.');
-                    alert('설치 프롬프트를 표시할 수 없습니다. 브라우저의 "홈 화면에 추가" 기능을 사용해 주세요.');
-                    pwaPrompt.style.display = 'none';
+                    alert('문제가 발생하였습니다.\n브라우저의 "홈 화면에 추가" 기능을 사용해 추가해주세요.');
+                    pwaPromptAndroid.style.display = 'none';
                 }
             });
-        }
-        
-        // 닫기 버튼 이벤트 리스너 추가
-        if (closePwaPrompt) {
-            closePwaPrompt.addEventListener('click', () => {
-                console.log('PWA 프롬프트 닫기');
-                pwaPrompt.style.display = 'none'; // 모달 숨기기
+
+            closePwaPromptAndroid.addEventListener('click', () => {
+                pwaPromptAndroid.style.display = 'none'; // 모달 숨기기
             });
         }
     }
@@ -1015,7 +933,7 @@ function showGameClearPopup() {
     createLevelScreen();
 }
 
-// 레벨 클리어 메커니즘 전면 개선
+// 레벨 클리어 메커니즘
 function markLevelCleared(levelId) {
     clearedLevels.add(levelId);
     localStorage.setItem('clearedLevels', JSON.stringify(Array.from(clearedLevels)));
@@ -1032,19 +950,6 @@ function isLevelCleared(levelId) {
     return clearedLevels.has(levelId);
 }
 
-// 게임 클리어 테스트 함수
-function testClear() {    
-    // 팝업 요소 직접 확인
-    const gameClearPopup = document.getElementById('gameClearPopup');
-    if (!gameClearPopup) {
-        return false;
-    }
-    
-    // 강제로 팝업 표시
-    gameClearPopup.style.display = 'flex';
-    
-    return true;
-}
 
 // 화면 전환 함수
 function showScreen(screenId) {
