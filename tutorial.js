@@ -155,6 +155,11 @@ function createTutorial(config = {}) {
             el.style.zIndex = ''; // z-index 초기화
         });
 
+        // 이전 하이라이트 오버레이 제거
+        document.querySelectorAll('.highlight-overlay').forEach(el => {
+            el.remove();
+        });
+
         // 다음 버튼 초기에 숨기기
         nextButton.style.display = 'none';
 
@@ -189,6 +194,11 @@ function createTutorial(config = {}) {
                             cell.classList.add('with-z-index');
                         }
                         cell.classList.add('tutorial-highlight');
+                        
+                        // 실제 하이라이트 오버레이 요소 생성
+                        const rect = cell.getBoundingClientRect();
+                        createHighlightOverlay(rect);
+                        
                         tutorialAllowedCells.push({ row, col });
                     }
                 });
@@ -202,6 +212,10 @@ function createTutorial(config = {}) {
                         
                         // 모든 하이라이트된 요소에 z-index 클래스 추가
                         el.classList.add('with-z-index');
+                        
+                        // 실제 하이라이트 오버레이 요소 생성
+                        const rect = el.getBoundingClientRect();
+                        createHighlightOverlay(rect);
                         
                         // area-overlay인 경우 부모 셀의 z-index도 조정
                         if (el.classList.contains('area-overlay')) {
@@ -277,6 +291,12 @@ function createTutorial(config = {}) {
                 // 하이라이트된 모든 셀의 하이라이트 제거
                 document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {
                     cell.classList.remove('tutorial-highlight');
+                    cell.classList.remove('with-z-index');
+                });
+                
+                // 모든 하이라이트 오버레이 제거
+                document.querySelectorAll('.highlight-overlay').forEach(el => {
+                    el.remove();
                 });
                 
                 tutorialOverlay.remove();
@@ -298,6 +318,12 @@ function createTutorial(config = {}) {
             // 하이라이트된 모든 셀의 하이라이트 제거
             document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {
                 cell.classList.remove('tutorial-highlight');
+                cell.classList.remove('with-z-index');
+            });
+            
+            // 모든 하이라이트 오버레이 제거
+            document.querySelectorAll('.highlight-overlay').forEach(el => {
+                el.remove();
             });
             
             tutorialOverlay.remove();
@@ -323,6 +349,17 @@ function createTutorial(config = {}) {
             tutorialOverlay.remove();
             document.removeEventListener('click', globalTutorialCellClickHandler);
             globalTutorialCellClickHandler = null;
+            
+            // 하이라이트된 모든 요소의 클래스 제거
+            document.querySelectorAll('.tutorial-highlight').forEach(el => {
+                el.classList.remove('tutorial-highlight');
+                el.classList.remove('with-z-index');
+            });
+            
+            // 모든 하이라이트 오버레이 제거
+            document.querySelectorAll('.highlight-overlay').forEach(el => {
+                el.remove();
+            });
         }
     };
 }
@@ -339,30 +376,16 @@ function tutorialOpen(levelId) {
                 },
                 {
                     text: 'AQRE 시스템을 사용해 어떻게 고객들의 기억을 복원할 수 있는지 설명해드리고자 합니다.',
-                    highlight: {
-                        cells: [
-                            {row: 2, col: 1}
-                        ]
-                    },
-                    condition: {
-                        row: 2,
-                        col: 1,
-                        expectedState: 1 // 회색(1)으로 변경
-                    },
-                    showNextButton: false
+                    highlight: null,
+                    condition: null,
+                    showNextButton: true
                 },
                 {
-                    text: '잘하셨습니다! 뉴런이 활성화되었군요. 이번에는 우측의 뉴런을 클릭해서 다시 비활성화해보세요.',
+                    text: '먼저 레벨1부터 차례대로 듀토리얼을 시작해 볼까요?',
                     highlight: {
-                        cells: [
-                            {row: 2, col: 3}
-                        ]
+                        selectors: ["[data-level='1']"]
                     },
-                    condition: {
-                        row: 2,
-                        col: 3,
-                        expectedState: 0 // 흰색(0)으로 변경
-                    },
+                    condition: null,
                     showNextButton: false
                 }
             ]
@@ -372,9 +395,7 @@ function tutorialOpen(levelId) {
             steps: [
                 {
                     text: '안녕하세요, 신임 기억 복원사님! 저는 뉴로 클리닉의 간호사 에이다입니다. 아크레 기술을 이용한 기억 복원 과정을 안내해 드리겠습니다.',
-                    highlight: {
-                        cells: []
-                    },
+                    highlight: null,
                     condition: null,
                     showNextButton: true
                 },
@@ -607,4 +628,15 @@ function tutorialOpen(levelId) {
             ]
         });
     }
+}
+
+// 하이라이트 오버레이 생성 함수
+function createHighlightOverlay(rect) {
+    const highlightOverlay = document.createElement('div');
+    highlightOverlay.classList.add('highlight-overlay');
+    highlightOverlay.style.top = `${rect.top - 5}px`;
+    highlightOverlay.style.left = `${rect.left - 5}px`;
+    highlightOverlay.style.width = `${rect.width + 10}px`;
+    highlightOverlay.style.height = `${rect.height + 10}px`;
+    document.body.appendChild(highlightOverlay);
 }

@@ -202,6 +202,11 @@ function createLevelUI() {
             startGame(puzzle.id);
         });
     });
+    
+    // 클리어한 레벨이 없으면 tutorialOpen(0)을 실행
+    if (clearedLevels.size === 0) {
+        tutorialOpen(0);
+    }
 }
 
 // 게임 초기화
@@ -824,6 +829,17 @@ function showGameClearPopup() {
     const gameClearPopup = document.getElementById('gameClearPopup');
     const clearMoves = document.getElementById('clearMoves');
     const clearPopupButton = document.getElementById('clear-popup-button');
+
+    // 모든 하이라이트 오버레이 제거
+    document.querySelectorAll('.highlight-overlay').forEach(el => {
+        el.remove();
+    });
+    
+    // 하이라이트된 모든 요소의 클래스 제거
+    document.querySelectorAll('.tutorial-highlight').forEach(el => {
+        el.classList.remove('tutorial-highlight');
+        el.classList.remove('with-z-index');
+    });
 
     // 요소 중 하나라도 없으면 경고 로그
     if (!gameClearPopup || !clearMoves || !clearPopupButton) {
