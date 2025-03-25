@@ -903,5 +903,263 @@ const PUZZLE_MAPS = [
             [0, 2, 0, 0, 0, 0, 0],
             [2, 0, 0, 0, 0, 0, 0]
         ]
+    },
+    {   // 23
+        id: 23,
+        name: "Level 23",
+        size: 7,
+        areas: [
+            {
+                cells: [[0, 0]],
+                required: 1
+            },
+            {
+                cells: [[0, 1]],
+                required: 0
+            },
+            {
+                cells: [[0, 2]],
+                required: 1
+            },
+            {
+                cells: [[0, 3]],
+                required: 0
+            },
+            {
+                cells: [[0, 4]],
+                required: 1
+            },
+            {
+                cells: [[0, 5]],
+                required: 0
+            },
+            {
+                cells: [[0, 6]],
+                required: 1
+            },
+            {
+                cells: [[6, 0]],
+                required: 1
+            },
+            {
+                cells: [[6, 1]],
+                required: 1
+            },
+            {
+                cells: [[6, 2]],
+                required: 1
+            },
+            {
+                cells: [[6, 3]],
+                required: 0
+            },
+            {
+                cells: [[6, 4]],
+                required: 1
+            },
+            {
+                cells: [[6, 5]],
+                required: 1
+            },
+            {
+                cells: [[6, 6]],
+                required: 0
+            },
+            {
+                cells: [[1, 0]],
+                required: 1
+            },
+            {
+                cells: [[2, 0]],
+                required: 0
+            },
+            {
+                cells: [[3, 0]],
+                required: 0
+            },
+            {
+                cells: [[4, 0]],
+                required: 1
+            },
+            {
+                cells: [[5, 0]],
+                required: 1
+            },
+            {
+                cells: [[1, 6]],
+                required: 1
+            },
+            {
+                cells: [[2, 6]],
+                required: 1
+            },
+            {
+                cells: [[3, 6]],
+                required: 0
+            },
+            {
+                cells: [[4, 6]],
+                required: 1
+            },
+            {
+                cells: [[5, 6]],
+                required: 1
+            }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0]
+        ]
+    },
+    {   // 22
+        id: 29,
+        name: "Level 29",
+        size: 9,
+        areas: [
+            {
+                cells: [[0, 0]],
+                required: 0
+            },
+            {
+                cells: [[0, 1]],
+                required: 1
+            },
+            {
+                cells: [[0, 2]],
+                required: 1
+            },
+            {
+                cells: [[0, 3]],
+                required: 0
+            },
+            {
+                cells: [[0, 4]],
+                required: 1
+            },
+            {
+                cells: [[0, 5]],
+                required: 1
+            },
+            {
+                cells: [[0, 6]],
+                required: 0
+            },
+            {
+                cells: [[0, 7]],
+                required: 1
+            },
+            {
+                cells: [[0, 8]],
+                required: 0
+            },
+            {
+                cells: [[1, 0]],
+                required: 1
+            },
+            {
+                cells: [[2, 0]],
+                required: 0
+            },
+            {
+                cells: [[3, 0]],
+                required: 0
+            },
+            {
+                cells: [[4, 0]],
+                required: 1
+            },
+            {
+                cells: [[5, 0]],
+                required: 1
+            },
+            {
+                cells: [[6, 0]],
+                required: 0
+            },
+            {
+                cells: [[7, 0]],
+                required: 1
+            },
+            {
+                cells: [[8, 0]],
+                required: 0
+            },
+            {
+                cells: [[1, 8]],
+                required: 1
+            },
+            {
+                cells: [[2, 8]],
+                required: 0
+            },
+            {
+                cells: [[3, 8]],
+                required: 1
+            },
+            {
+                cells: [[4, 8]],
+                required: 0
+            },
+            {
+                cells: [[5, 8]],
+                required: 0
+            },
+            {
+                cells: [[6, 8]],
+                required: 0
+            },
+            {
+                cells: [[7, 8]],
+                required: 1
+            },
+            {
+                cells: [[8, 8]],
+                required: 0
+            },
+            {
+                cells: [[8, 1]],
+                required: 1
+            },
+            {
+                cells: [[8, 2]],
+                required: 0
+            },
+            {
+                cells: [[8, 3]],
+                required: 1
+            },
+            {
+                cells: [[8, 4]],
+                required: 0
+            },
+            {
+                cells: [[8, 5]],
+                required: 1
+            },
+            {
+                cells: [[8, 6]],
+                required: 0
+            },
+            {
+                cells: [[8, 7]],
+                required: 1
+            }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ]
     }
 ];

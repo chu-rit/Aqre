@@ -912,3 +912,7 @@ function showScreen(screenId) {
     document.getElementById(screenId).style.display = screenId === 'levelScreen' ? 'block' : 
                                                     screenId === 'startScreen' ? 'flex' : 'block';
 }
+
+// document.addEventListener('DOMContentLoaded', () => {
+//     startGame(23);
+// });
