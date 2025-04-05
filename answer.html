@@ -610,6 +610,34 @@
             }
         }
 
+        // 보드 완성 체크 부분에 회색 연결성 검사를 추가합니다.
+        function checkGrayConnect(board, size) {
+            // 회색 셀 찾기
+            const grayCells = [];
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    if (board[row][col] === 1) {
+                        grayCells.push([row, col]);
+                    }
+                }
+            }
+
+            // 회색 셀이 없으면 연결성 체크 불필요
+            if (grayCells.length === 0) return true;
+
+            // 방문 배열 초기화
+            const visited = Array.from({ length: size }, () => 
+                Array(size).fill(false)
+            );
+            
+            // 첫 번째 회색 셀부터 DFS 시작
+            const [startRow, startCol] = grayCells[0];
+            dfsConnectivity(board, startRow, startCol, visited, puzzle);
+            
+            // 모든 회색 셀 방문 확인
+            return grayCells.every(([row, col]) => visited[row][col]);
+        }
+
         // 백트래킹 함수
         function backtrack(board, row, col) {
             updateProgress();
@@ -638,14 +666,15 @@
 
             // 보드 완성 체크 - 모든 셀을 처리했으면 최종 검사
             if (nextRow >= size) {
-                // 최종 유효성 검사 - 한 번만 수행
-                if (isBoardValid(board)) {
-                    // 솔루션 배열에 추가 (깊은 복사)
-                    solutions.push(board.map(r => [...r]));
-                    // 최대 3개의 솔루션 찾으면 중단
-                    return solutions.length >= 3;
+                // 회색 셀 연결성 확인
+                if (!checkGrayConnect(board, size)) {
+                    return false;
                 }
-                return false;
+
+                // 모든 검사 통과, 솔루션 추가
+                solutions.push(board.map(r => [...r]));
+                // 최대 3개의 솔루션 찾으면 중단
+                return solutions.length >= 3;
             }
 
             // 두 가지 색상 시도 (회색부터 시도)
