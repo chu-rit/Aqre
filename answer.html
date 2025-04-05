@@ -412,13 +412,16 @@
                     const [r, c] = area.cells[j];
                     if (board[r][c] === 1) {
                         grayCount++;
-                    } else if (board[r][c] === -1 && !(r === row && c === col)) {
+                    } else if (board[r][c] === -1) {
                         emptyCount++;
                     }
                 }
 
-                // 현재 타일이 회색이면 grayCount 증가
-                if (color === 1) grayCount++;
+                // 현재 타일이 미정 상태일 때만 color를 고려
+                if (board[row][col] === -1) {
+                    if (color === 1) grayCount++;
+                    else emptyCount--;
+                }
 
                 // 숫자가 있는 영역
                 if (typeof area.required === 'number') {
@@ -694,15 +697,58 @@
                     continue;
                 }
 
+                // 4. 빠른 가지치기: 회색 타일인 경우만 추가 검사
+                if (color === 1) { // 회색 타일인 경우만 추가 검사
+                    // 현재 셀이 속한 영역 찾기
+                    for (const area of puzzle.areas) {
+                        // 현재 셀이 이 영역에 속하는지 확인
+                        let belongsToArea = false;
+                        for (const [r, c] of area.cells) {
+                            if (r === nextRow && c === nextCol) {
+                                belongsToArea = true;
+                                break;
+                            }
+                        }
+                        
+                        // 현재 셀이 이 영역에 속하지 않으면 건너뛰기
+                        if (!belongsToArea) continue;
+                        
+                        // 숫자가 있는 영역만 검사
+                        if (typeof area.required === 'number') {
+                            // 현재 영역의 회색 타일 수와 빈 타일 수 계산
+                            let grayCount = 0;
+                            let emptyCount = 0;
+                            for (const [r, c] of area.cells) {
+                                if (board[r][c] === 1) {
+                                    grayCount++;
+                                } else if (board[r][c] === -1 && !(r === nextRow && c === nextCol)) {
+                                    emptyCount++;
+                                }
+                            }
+                            
+                            // 1. 회색 타일이 이미 required보다 많으면 실패
+                            if (grayCount + 1 > area.required) {
+                                // 이미 현재 셀을 회색으로 칠하면 required를 초과
+                                continue;
+                            }
+                            
+                            // 2. 남은 빈 타일을 모두 회색으로 채워도 required를 만족할 수 없으면 실패
+                            if (grayCount + 1 + emptyCount < area.required) {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
                 // 모든 검사 통과, 색상 적용
                 board[nextRow][nextCol] = color;
 
                 // 다음 셀로 이동
-                const finalNextCol = nextCol + 1 >= size ? 0 : nextCol + 1;
-                const finalNextRow = nextCol + 1 >= size ? nextRow + 1 : nextRow;
+                const finalNextCol = nextCol + 1;
+                const finalNextRow = finalNextCol >= size ? nextRow + 1 : nextRow;
 
                 // 재귀 호출
-                const result = backtrack(board, finalNextRow, finalNextCol);
+                const result = backtrack(board, finalNextRow, finalNextCol % size);
                 if (result) return true;
 
                 // 백트래킹
