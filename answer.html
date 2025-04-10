@@ -536,52 +536,6 @@
             return true;
         }
 
-        // 최종 검사 함수 - 보드가 완성되었을 때만 호출
-        function isBoardValid(board) {
-            // 1. 영역 제약 조건 확인
-            for (const area of puzzle.areas) {
-                const grayCount = area.cells.filter(([r, c]) => 
-                    board[r][c] === 1
-                ).length;
-
-                // 'J' 영역은 아무 제약 없음
-                if (area.required === 'J') {
-                    continue;
-                }
-
-                // 회색 셀 개수 제약 조건 확인
-                if (grayCount !== parseInt(area.required)) {
-                    return false;
-                }
-            }
-            
-            // 2. 회색 셀 연결성 확인
-            // 회색 셀 찾기
-            const grayCells = [];
-            for (let row = 0; row < size; row++) {
-                for (let col = 0; col < size; col++) {
-                    if (board[row][col] === 1) {
-                        grayCells.push([row, col]);
-                    }
-                }
-            }
-
-            // 회색 셀이 없으면 연결성 체크 불필요
-            if (grayCells.length === 0) return true;
-
-            // 방문 배열 초기화
-            const visited = Array.from({ length: size }, () => 
-                Array(size).fill(false)
-            );
-            
-            // 첫 번째 회색 셀부터 DFS 시작
-            const [startRow, startCol] = grayCells[0];
-            dfsConnectivity(board, startRow, startCol, visited, puzzle);
-            
-            // 모든 회색 셀 방문 확인
-            return grayCells.every(([row, col]) => visited[row][col]);
-        }
-
         function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
             updateProgress();
             
