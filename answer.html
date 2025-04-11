@@ -378,56 +378,102 @@
         // -1: 미정, 0: 흰색, 1: 회색
         const board = Array.from({ length: size }, () => Array(size).fill(-1));
 
-        updateProgressDisplay('퍼즐 해결 시작...');
-        logProgress('퍼즐 해결 시작...');
-
         const solutions = [];
 
-        // 영역 제약조건 체크
-        function checkAreaPossible(board, row, col, color) {
-            for (let i = 0; i < puzzle.areas.length; i++) {
-                const area = puzzle.areas[i];
-                
-                // 현재 셀이 영역에 속하는지 확인
-                let belongsToArea = false;
-                for (let j = 0; j < area.cells.length; j++) {
-                    const [r, c] = area.cells[j];
-                    if (r === row && c === col) {
-                        belongsToArea = true;
-                        break;
+        // 초기화 단계에서 각 영역의 셀 비트마스크 미리 계산
+        const areaBitmasks = [];
+        const areaRequirements = [];
+        
+        for (let i = 0; i < puzzle.areas.length; i++) {
+            const area = puzzle.areas[i];
+            const cellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            // 영역에 속한 셀들의 비트마스크 생성
+            for (const [r, c] of area.cells) {
+                const pos = r * size + c;
+                cellBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+            }
+            
+            areaBitmasks.push(cellBitmask);
+            areaRequirements.push(area.required);
+        }
+
+        // 보드 상태를 비트마스크로 변환하는 함수
+        function getBoardBitmasks(board, size) {
+            const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            const emptyBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    const pos = row * size + col;
+                    const idx = Math.floor(pos / 32);
+                    const mask = 1 << (pos % 32);
+                    
+                    if (board[row][col] === 1) {
+                        grayBitmask[idx] |= mask;
+                    } else if (board[row][col] === -1) {
+                        emptyBitmask[idx] |= mask;
                     }
                 }
-                
-                if (!belongsToArea) continue;
+            }
+            
+            return { grayBitmask, emptyBitmask };
+        }
+        
+        // 비트 카운트 함수 (1인 비트 개수 세기)
+        function countBits(n) {
+            let count = 0;
+            while (n) {
+                count += n & 1;
+                n >>>= 1;
+            }
+            return count;
+        }
 
-                // 회색/빈 타일 수 계산
+        // 영역 제약조건 체크 (비트마스크 최적화 버전)
+        function checkAreaPossible(board, row, col, color) {
+            const pos = row * size + col;
+            const posMask = 1 << (pos % 32);
+            const posIndex = Math.floor(pos / 32);
+            
+            // 현재 보드 상태의 비트마스크 가져오기
+            const { grayBitmask, emptyBitmask } = getBoardBitmasks(board, size);
+            
+            for (let i = 0; i < areaBitmasks.length; i++) {
+                // 현재 셀이 이 영역에 속하는지 빠르게 확인
+                if (!(areaBitmasks[i][posIndex] & posMask)) continue;
+                
+                // 영역 내 회색/빈 타일 수 계산 (비트마스크 이용)
                 let grayCount = 0;
                 let emptyCount = 0;
                 
-                for (let j = 0; j < area.cells.length; j++) {
-                    const [r, c] = area.cells[j];
-                    if (board[r][c] === 1) {
-                        grayCount++;
-                    } else if (board[r][c] === -1) {
-                        emptyCount++;
-                    }
+                for (let j = 0; j < areaBitmasks[i].length; j++) {
+                    // 영역과 회색/빈 타일 비트마스크의 교집합으로 개수 계산
+                    const grayIntersect = areaBitmasks[i][j] & grayBitmask[j];
+                    const emptyIntersect = areaBitmasks[i][j] & emptyBitmask[j];
+                    
+                    // 1인 비트 개수 세기
+                    grayCount += countBits(grayIntersect);
+                    emptyCount += countBits(emptyIntersect);
                 }
-
+                
                 // 현재 타일 색상 고려
                 if (board[row][col] === -1) {
                     if (color === 1) grayCount++;
                     else emptyCount--;
                 }
-
+                
+                // 제약조건 검사
+                const required = areaRequirements[i];
+                
                 // 숫자 영역 검사
-                if (typeof area.required === 'number') {
-                    if (grayCount > area.required || 
-                        grayCount + emptyCount < area.required) {
+                if (typeof required === 'number') {
+                    if (grayCount > required || grayCount + emptyCount < required) {
                         return false;
                     }
                 }
                 // J 영역 검사 (제약 없음)
-                else if (area.required === 'J') {
+                else if (required === 'J') {
                     continue;
                 }
                 // 빈 영역 검사 (최소 1개 회색 필요)
@@ -440,7 +486,42 @@
             return true;
         }
 
-        // 회색 타일 연결 가능성 체크
+        // 연속 4개 체크
+        function isValidColorOptimized(board, row, col, color) {
+            // 현재 위치에 색상을 임시로 설정
+            const oldColor = board[row][col];
+            board[row][col] = color;
+            
+            // 가로 방향 연속 색상 체크
+            let rowMask = 0;
+            for (let c = Math.max(0, col - 3); c <= Math.min(size - 1, col + 3); c++) {
+                rowMask = (rowMask << 1) | (board[row][c] === color ? 1 : 0);
+                
+                // 연속된 4개 패턴 (1111) 검사
+                if (c >= col - 3 + 3 && (rowMask & 0xF) === 0xF) {
+                    board[row][col] = oldColor; // 원래 상태로 복원
+                    return false;
+                }
+            }
+            
+            // 세로 방향 연속 색상 체크
+            let colMask = 0;
+            for (let r = Math.max(0, row - 3); r <= Math.min(size - 1, row + 3); r++) {
+                colMask = (colMask << 1) | (board[r][col] === color ? 1 : 0);
+                
+                // 연속된 4개 패턴 (1111) 검사
+                if (r >= row - 3 + 3 && (colMask & 0xF) === 0xF) {
+                    board[row][col] = oldColor; // 원래 상태로 복원
+                    return false;
+                }
+            }
+            
+            // 원래 상태로 복원
+            board[row][col] = oldColor;
+            return true;
+        }
+
+        // 회색 타일 연결 체크
         function canConnectToGray(board, row, col) {
             const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
             
@@ -488,44 +569,57 @@
             return !hasExistingGray || hasEmptyNearby;
         }
 
-        // 색상 유효성 검사
-        function isValidColorOptimized(board, row, col, color) {
-            // 가로 연속 색상 체크 (4개 이상 금지)
-            if (col >= 3) {
-                let consecutiveCount = 1;
-                
-                for (let i = 1; i <= 3; i++) {
-                    if (col - i >= 0 && board[row][col - i] === color) {
-                        consecutiveCount++;
-                    } else {
-                        break;
+        // 회색 타일 연결성 검사 (비트마스크 최적화 버전)
+        function checkGrayConnect(board, size) {
+            // 회색 셀 비트마스크 생성
+            const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            let grayCount = 0;
+            let firstGrayCell = [-1, -1];
+            
+            // 회색 셀 찾기 및 비트마스크 설정
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    if (board[row][col] === 1) {
+                        const pos = row * size + col;
+                        grayBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+                        grayCount++;
+                        
+                        if (firstGrayCell[0] === -1) {
+                            firstGrayCell = [row, col];
+                        }
                     }
                 }
-                
-                if (consecutiveCount >= 4) return false;
             }
-
-            // 세로 연속 색상 체크 (4개 이상 금지)
-            if (row >= 3) {
-                let consecutiveCount = 1;
-                
-                for (let i = 1; i <= 3; i++) {
-                    if (row - i >= 0 && board[row - i][col] === color) {
-                        consecutiveCount++;
-                    } else {
-                        break;
-                    }
+            
+            // 회색 셀이 없거나 하나면 연결성 체크 불필요
+            if (grayCount <= 1) return true;
+            
+            // 방문 배열 초기화 (비트마스크)
+            const visitedBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            // 첫 번째 회색 셀부터 DFS 시작
+            const [startRow, startCol] = firstGrayCell;
+            dfsConnectivity(board, startRow, startCol, visitedBitmask, size);
+            
+            // 모든 회색 셀 방문 확인 (비트마스크 비교)
+            for (let i = 0; i < grayBitmask.length; i++) {
+                // 방문하지 않은 회색 셀이 있는지 확인
+                // grayBitmask에는 1이지만 visitedBitmask에는 0인 비트가 있으면 연결되지 않은 것
+                if ((grayBitmask[i] & ~visitedBitmask[i]) !== 0) {
+                    return false;
                 }
-                
-                if (consecutiveCount >= 4) return false;
             }
             
             return true;
         }
 
-        function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
+        // 회색 타일 연결성 검사
+        function dfsConnectivity(board, startRow, startCol, visited, size) {
             updateProgress();
-            visited[startRow][startCol] = true;
+            
+            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
+            const pos = startRow * size + startCol;
+            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
             
             // 4방향 탐색
             const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
@@ -535,49 +629,24 @@
                 const newCol = startCol + dy;
                 
                 // 보드 범위 체크
-                if (newRow < 0 || newRow >= puzzle.size || 
-                    newCol < 0 || newCol >= puzzle.size) {
+                if (newRow < 0 || newRow >= size || 
+                    newCol < 0 || newCol >= size) {
                     continue;
                 }
                 
+                const newPos = newRow * size + newCol;
+                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
+                
                 // 이미 방문했거나 흰색 셀이면 스킵
-                if (visited[newRow][newCol] || board[newRow][newCol] === 0) {
+                if (isVisited || board[newRow][newCol] === 0) {
                     continue;
                 }
                 
                 // 회색 셀이면 재귀 탐색
                 if (board[newRow][newCol] === 1) {
-                    dfsConnectivity(board, newRow, newCol, visited, puzzle);
+                    dfsConnectivity(board, newRow, newCol, visited, size);
                 }
             }
-        }
-
-        // 회색 타일 연결성 검사
-        function checkGrayConnect(board, size) {
-            // 회색 셀 찾기
-            const grayCells = [];
-            for (let row = 0; row < size; row++) {
-                for (let col = 0; col < size; col++) {
-                    if (board[row][col] === 1) {
-                        grayCells.push([row, col]);
-                    }
-                }
-            }
-
-            // 회색 셀이 없으면 연결성 체크 불필요
-            if (grayCells.length === 0) return true;
-
-            // 방문 배열 초기화
-            const visited = Array.from({ length: size }, () => 
-                Array(size).fill(false)
-            );
-            
-            // 첫 번째 회색 셀부터 DFS 시작
-            const [startRow, startCol] = grayCells[0];
-            dfsConnectivity(board, startRow, startCol, visited, puzzle);
-            
-            // 모든 회색 셀 방문 확인
-            return grayCells.every(([row, col]) => visited[row][col]);
         }
 
         // 백트래킹 함수
