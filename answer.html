@@ -397,6 +397,26 @@
             areaBitmasks.push(cellBitmask);
             areaRequirements.push(area.required);
         }
+        
+        // 빈 셀 비트마스크 초기화
+        const emptyCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+        const blackCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+        
+        // 초기 빈 셀과 블랙 셀 비트마스크 설정
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const pos = row * size + col;
+                const idx = Math.floor(pos / 32);
+                const mask = 1 << (pos % 32);
+                
+                if (puzzle.initialState[row][col] === 2) {
+                    blackCellBitmask[idx] |= mask;
+                    board[row][col] = 2; // 보드에 블랙 셀 설정
+                } else {
+                    emptyCellBitmask[idx] |= mask; // 처음에는 모든 셀이 빈 셀
+                }
+            }
+        }
 
         // 보드 상태를 비트마스크로 변환하는 함수
         function getBoardBitmasks(board, size) {
@@ -568,6 +588,42 @@
 
             return !hasExistingGray || hasEmptyNearby;
         }
+        
+        // 회색 타일 연결성 검사
+        function dfsConnectivity(board, startRow, startCol, visited, size) {
+            updateProgress();
+            
+            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
+            const pos = startRow * size + startCol;
+            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
+            
+            // 4방향 탐색
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            
+            for (const [dx, dy] of directions) {
+                const newRow = startRow + dx;
+                const newCol = startCol + dy;
+                
+                // 보드 범위 체크
+                if (newRow < 0 || newRow >= size || 
+                    newCol < 0 || newCol >= size) {
+                    continue;
+                }
+                
+                const newPos = newRow * size + newCol;
+                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
+                
+                // 이미 방문했거나 흰색 셀이면 스킵
+                if (isVisited || board[newRow][newCol] === 0) {
+                    continue;
+                }
+                
+                // 회색 셀이면 재귀 탐색
+                if (board[newRow][newCol] === 1) {
+                    dfsConnectivity(board, newRow, newCol, visited, size);
+                }
+            }
+        }
 
         // 회색 타일 연결성 검사 (비트마스크 최적화 버전)
         function checkGrayConnect(board, size) {
@@ -612,156 +668,92 @@
             
             return true;
         }
-
-        // 회색 타일 연결성 검사
-        function dfsConnectivity(board, startRow, startCol, visited, size) {
-            updateProgress();
-            
-            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
-            const pos = startRow * size + startCol;
-            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
-            
-            // 4방향 탐색
-            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-            
-            for (const [dx, dy] of directions) {
-                const newRow = startRow + dx;
-                const newCol = startCol + dy;
-                
-                // 보드 범위 체크
-                if (newRow < 0 || newRow >= size || 
-                    newCol < 0 || newCol >= size) {
-                    continue;
-                }
-                
-                const newPos = newRow * size + newCol;
-                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
-                
-                // 이미 방문했거나 흰색 셀이면 스킵
-                if (isVisited || board[newRow][newCol] === 0) {
-                    continue;
-                }
-                
-                // 회색 셀이면 재귀 탐색
-                if (board[newRow][newCol] === 1) {
-                    dfsConnectivity(board, newRow, newCol, visited, size);
-                }
-            }
-        }
-
-        // 백트래킹 함수
-        function backtrack(board, row, col) {
-            updateProgress();
+        
+        // 백트래킹 함수 (비트마스크 최적화 버전)
+        function backtrack(index) {
             globalIterationCount++;
-            
-            // 다음 셀 위치 계산
-            let nextRow = row;
-            let nextCol = col;
-
-            // 다음 유효한 셀 찾기
-            while (nextRow < size) {
-                // 블랙 타일 건너뛰기
-                if (puzzle.initialState[nextRow][nextCol] === 2) {
-                    board[nextRow][nextCol] = 2;
-                    
-                    nextCol++;
-                    if (nextCol >= size) {
-                        nextRow++;
-                        nextCol = 0;
-                    }
-                    continue;
-                }
-                break;
+            if (globalIterationCount % 10000 === 0) {
+                updateProgressDisplay(`진행 상황: ${globalIterationCount}회 탐색 중...`);
             }
-
-            // 보드 완성 체크
-            if (nextRow >= size) {
+            
+            // 모든 빈 셀을 처리했는지 확인
+            if (index === -1) {
                 // 회색 셀 연결성 확인
-                if (!checkGrayConnect(board, size)) {
-                    return false;
-                }
-
+                if (!checkGrayConnect(board, size)) return false;
+                
                 // 솔루션 추가
-                solutions.push(board.map(r => [...r]));
+                solutions.push(board.map(row => [...row]));
                 return solutions.length >= 3;
             }
-
+            
+            // 현재 위치 계산
+            const row = Math.floor(index / size);
+            const col = index % size;
+            
+            // 다음 빈 셀 찾기
+            let nextIndex = index - 1;
+            while (nextIndex >= 0) {
+                const nextRow = Math.floor(nextIndex / size);
+                const nextCol = nextIndex % size;
+                const nextPos = nextRow * size + nextCol;
+                const nextIdx = Math.floor(nextPos / 32);
+                const nextMask = 1 << (nextPos % 32);
+                
+                // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
+                if (!(blackCellBitmask[nextIdx] & nextMask) && board[nextRow][nextCol] === -1) {
+                    break;
+                }
+                nextIndex--;
+            }
+            
             // 두 가지 색상 시도 (회색, 흰색)
             for (const color of [1, 0]) {
                 // 색상 유효성 검사
-                if (!isValidColorOptimized(board, nextRow, nextCol, color)) {
+                if (!isValidColorOptimized(board, row, col, color)) {
                     continue;
                 }
                 
                 // 회색 타일 연결 가능성 체크
-                if (color === 1 && !canConnectToGray(board, nextRow, nextCol)) {
+                if (color === 1 && !canConnectToGray(board, row, col)) {
                     continue;
                 }
-
+                
                 // 영역 제약조건 체크
-                if (!checkAreaPossible(board, nextRow, nextCol, color)) {
+                if (!checkAreaPossible(board, row, col, color)) {
                     continue;
                 }
-
-                // 회색 타일 추가 검사
-                if (color === 1) {
-                    // 현재 셀이 속한 영역 찾기
-                    for (const area of puzzle.areas) {
-                        let belongsToArea = false;
-                        for (const [r, c] of area.cells) {
-                            if (r === nextRow && c === nextCol) {
-                                belongsToArea = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!belongsToArea) continue;
-                        
-                        // 숫자 영역 검사
-                        if (typeof area.required === 'number') {
-                            let grayCount = 0;
-                            let emptyCount = 0;
-                            for (const [r, c] of area.cells) {
-                                if (board[r][c] === 1) {
-                                    grayCount++;
-                                } else if (board[r][c] === -1 && !(r === nextRow && c === nextCol)) {
-                                    emptyCount++;
-                                }
-                            }
-                            
-                            // 회색 타일 수 제약 검사
-                            if (grayCount + 1 > area.required) {
-                                continue;
-                            }
-                            
-                            // 최소 필요 회색 타일 수 검사
-                            if (grayCount + 1 + emptyCount < area.required) {
-                                continue;
-                            }
-                        }
-                    }
-                }
-
+                
                 // 색상 적용
-                board[nextRow][nextCol] = color;
-
-                // 다음 셀로 이동
-                const finalNextCol = nextCol + 1;
-                const finalNextRow = finalNextCol >= size ? nextRow + 1 : nextRow;
-
+                board[row][col] = color;
+                
                 // 재귀 호출
-                const result = backtrack(board, finalNextRow, finalNextCol % size);
-                if (result) return true;
-
+                if (backtrack(nextIndex)) return true;
+                
                 // 백트래킹
-                board[nextRow][nextCol] = -1;
+                board[row][col] = -1;
             }
-
+            
             return false;
         }
-
+        
+        // 첫 번째 빈 셀 찾기
+        let startIndex = size * size - 1;
+        while (startIndex >= 0) {
+            const startRow = Math.floor(startIndex / size);
+            const startCol = startIndex % size;
+            const startPos = startRow * size + startCol;
+            const startIdx = Math.floor(startPos / 32);
+            const startMask = 1 << (startPos % 32);
+            
+            // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
+            if (!(blackCellBitmask[startIdx] & startMask) && board[startRow][startCol] === -1) {
+                break;
+            }
+            startIndex--;
+        }
+        
         // 백트래킹 시작
-        backtrack(board, 0, 0);
+        backtrack(startIndex);
 
         const endTime = Date.now();
         const totalTime = (endTime - startTime) / 1000;
