@@ -1074,7 +1074,7 @@ const PUZZLE_MAPS = [
         ]
     },
     {   // 25
-        id: '??',
+        id: 25,
         name: 'Level 25',
         size: 8,
         areas: [
@@ -1106,6 +1106,10 @@ const PUZZLE_MAPS = [
             },
             {
                 cells: [[0, 3]],
+                required: 1
+            },
+            {
+                cells: [[4, 7]],
                 required: 1
             }
         ],

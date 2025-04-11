@@ -371,28 +371,24 @@
 
     // 퍼즐 솔버 알고리즘
     function solvePuzzle(puzzle) {
-        // 반복 횟수 초기화
         globalIterationCount = 0;
         const startTime = Date.now();
 
         const size = puzzle.size;
-        const board = Array.from({ length: size }, () => 
-            Array(size).fill(-1)  // -1: 미정, 0: 흰색, 1: 회색
-        );
+        // -1: 미정, 0: 흰색, 1: 회색
+        const board = Array.from({ length: size }, () => Array(size).fill(-1));
 
-        // 초기 진행 상황 표시
         updateProgressDisplay('퍼즐 해결 시작...');
         logProgress('퍼즐 해결 시작...');
 
-        // 솔루션 배열 생성
         const solutions = [];
 
-        // 영역 제약조건 체크 - 최적화된 버전
+        // 영역 제약조건 체크
         function checkAreaPossible(board, row, col, color) {
             for (let i = 0; i < puzzle.areas.length; i++) {
                 const area = puzzle.areas[i];
                 
-                // 현재 셀이 이 영역에 속하는지 확인
+                // 현재 셀이 영역에 속하는지 확인
                 let belongsToArea = false;
                 for (let j = 0; j < area.cells.length; j++) {
                     const [r, c] = area.cells[j];
@@ -404,7 +400,7 @@
                 
                 if (!belongsToArea) continue;
 
-                // 현재 영역의 회색 타일 수 계산
+                // 회색/빈 타일 수 계산
                 let grayCount = 0;
                 let emptyCount = 0;
                 
@@ -417,29 +413,25 @@
                     }
                 }
 
-                // 현재 타일이 미정 상태일 때만 color를 고려
+                // 현재 타일 색상 고려
                 if (board[row][col] === -1) {
                     if (color === 1) grayCount++;
                     else emptyCount--;
                 }
 
-                // 숫자가 있는 영역
+                // 숫자 영역 검사
                 if (typeof area.required === 'number') {
-                    // 이미 필요한 수를 초과했거나
-                    // 남은 칸으로 필요한 수를 채울 수 없으면 실패
                     if (grayCount > area.required || 
                         grayCount + emptyCount < area.required) {
                         return false;
                     }
                 }
-                // J 영역은 아무 제약 없음
+                // J 영역 검사 (제약 없음)
                 else if (area.required === 'J') {
-                    // 아무 제약 없음
                     continue;
                 }
-                // 숫자가 없는 영역
+                // 빈 영역 검사 (최소 1개 회색 필요)
                 else {
-                    // 회색이 하나도 없을 가능성이 있으면 실패
                     if (grayCount + emptyCount === 0) {
                         return false;
                     }
@@ -448,12 +440,11 @@
             return true;
         }
 
-        // 회색 타일 연결 가능성 체크 - 최적화된 버전
+        // 회색 타일 연결 가능성 체크
         function canConnectToGray(board, row, col) {
-            // 주변에 회색 타일이나 빈 칸이 있는지 체크
             const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
             
-            // 주변에 회색 타일이 있는지 먼저 확인 (빠른 경로)
+            // 인접한 회색 타일 확인
             for (let i = 0; i < directions.length; i++) {
                 const [dx, dy] = directions[i];
                 const newRow = row + dx;
@@ -461,12 +452,12 @@
                 
                 if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
                     if (board[newRow][newCol] === 1) {
-                        return true; // 주변에 회색 타일이 있으면 즉시 true 반환
+                        return true;
                     }
                 }
             }
             
-            // 주변에 빈 칸이 있는지 확인
+            // 인접한 빈 칸 확인
             let hasEmptyNearby = false;
             for (let i = 0; i < directions.length; i++) {
                 const [dx, dy] = directions[i];
@@ -481,10 +472,9 @@
                 }
             }
             
-            // 주변에 빈 칸이 없으면 연결 불가능
             if (!hasEmptyNearby) return false;
 
-            // 기존 회색 타일이 있는지 체크 (최적화: 한 번만 찾으면 됨)
+            // 기존 회색 타일 존재 여부 확인
             let hasExistingGray = false;
             outerLoop: for (let i = 0; i < size; i++) {
                 for (let j = 0; j < size; j++) {
@@ -495,17 +485,15 @@
                 }
             }
 
-            // 기존 회색 타일이 없으면 첫 회색 타일이므로 true
             return !hasExistingGray || hasEmptyNearby;
         }
 
-        // 색상 유효성 검사 - 최적화된 버전
+        // 색상 유효성 검사
         function isValidColorOptimized(board, row, col, color) {
             // 가로 연속 색상 체크 (4개 이상 금지)
             if (col >= 3) {
-                let consecutiveCount = 1; // 현재 셀 포함
+                let consecutiveCount = 1;
                 
-                // 왼쪽으로 검사
                 for (let i = 1; i <= 3; i++) {
                     if (col - i >= 0 && board[row][col - i] === color) {
                         consecutiveCount++;
@@ -517,11 +505,10 @@
                 if (consecutiveCount >= 4) return false;
             }
 
-            // 세로 연속 색상 체크
+            // 세로 연속 색상 체크 (4개 이상 금지)
             if (row >= 3) {
-                let consecutiveCount = 1; // 현재 셀 포함
+                let consecutiveCount = 1;
                 
-                // 위쪽으로 검사
                 for (let i = 1; i <= 3; i++) {
                     if (row - i >= 0 && board[row - i][col] === color) {
                         consecutiveCount++;
@@ -538,8 +525,6 @@
 
         function dfsConnectivity(board, startRow, startCol, visited, puzzle) {
             updateProgress();
-            
-            // 방문 체크 및 회색 셀 표시
             visited[startRow][startCol] = true;
             
             // 4방향 탐색
@@ -567,7 +552,7 @@
             }
         }
 
-        // 보드 완성 체크 부분에 회색 연결성 검사를 추가합니다.
+        // 회색 타일 연결성 검사
         function checkGrayConnect(board, size) {
             // 회색 셀 찾기
             const grayCells = [];
@@ -604,13 +589,12 @@
             let nextRow = row;
             let nextCol = col;
 
-            // 다음 유효한 셀 찾기 (2가 아닌 셀)
+            // 다음 유효한 셀 찾기
             while (nextRow < size) {
-                // 현재 셀이 2인 타일이거나 초기 상태가 2인 경우 건너뛰기
+                // 블랙 타일 건너뛰기
                 if (puzzle.initialState[nextRow][nextCol] === 2) {
                     board[nextRow][nextCol] = 2;
                     
-                    // 다음 셀로 이동
                     nextCol++;
                     if (nextCol >= size) {
                         nextRow++;
@@ -621,41 +605,39 @@
                 break;
             }
 
-            // 보드 완성 체크 - 모든 셀을 처리했으면 최종 검사
+            // 보드 완성 체크
             if (nextRow >= size) {
                 // 회색 셀 연결성 확인
                 if (!checkGrayConnect(board, size)) {
                     return false;
                 }
 
-                // 모든 검사 통과, 솔루션 추가
+                // 솔루션 추가
                 solutions.push(board.map(r => [...r]));
-                // 최대 3개의 솔루션 찾으면 중단
                 return solutions.length >= 3;
             }
 
-            // 두 가지 색상 시도 (회색부터 시도)
+            // 두 가지 색상 시도 (회색, 흰색)
             for (const color of [1, 0]) {
-                // 1. 색상 유효성 검사 (연속 4개 체크)
+                // 색상 유효성 검사
                 if (!isValidColorOptimized(board, nextRow, nextCol, color)) {
                     continue;
                 }
                 
-                // 2. 회색 타일 연결 가능성 체크 (회색인 경우만)
+                // 회색 타일 연결 가능성 체크
                 if (color === 1 && !canConnectToGray(board, nextRow, nextCol)) {
                     continue;
                 }
 
-                // 3. 영역 제약조건 조기 체크
+                // 영역 제약조건 체크
                 if (!checkAreaPossible(board, nextRow, nextCol, color)) {
                     continue;
                 }
 
-                // 4. 빠른 가지치기: 회색 타일인 경우만 추가 검사
-                if (color === 1) { // 회색 타일인 경우만 추가 검사
+                // 회색 타일 추가 검사
+                if (color === 1) {
                     // 현재 셀이 속한 영역 찾기
                     for (const area of puzzle.areas) {
-                        // 현재 셀이 이 영역에 속하는지 확인
                         let belongsToArea = false;
                         for (const [r, c] of area.cells) {
                             if (r === nextRow && c === nextCol) {
@@ -664,12 +646,10 @@
                             }
                         }
                         
-                        // 현재 셀이 이 영역에 속하지 않으면 건너뛰기
                         if (!belongsToArea) continue;
                         
-                        // 숫자가 있는 영역만 검사
+                        // 숫자 영역 검사
                         if (typeof area.required === 'number') {
-                            // 현재 영역의 회색 타일 수와 빈 타일 수 계산
                             let grayCount = 0;
                             let emptyCount = 0;
                             for (const [r, c] of area.cells) {
@@ -680,13 +660,12 @@
                                 }
                             }
                             
-                            // 1. 회색 타일이 이미 required보다 많으면 실패
+                            // 회색 타일 수 제약 검사
                             if (grayCount + 1 > area.required) {
-                                // 이미 현재 셀을 회색으로 칠하면 required를 초과
                                 continue;
                             }
                             
-                            // 2. 남은 빈 타일을 모두 회색으로 채워도 required를 만족할 수 없으면 실패
+                            // 최소 필요 회색 타일 수 검사
                             if (grayCount + 1 + emptyCount < area.required) {
                                 continue;
                             }
@@ -694,7 +673,7 @@
                     }
                 }
 
-                // 모든 검사 통과, 색상 적용
+                // 색상 적용
                 board[nextRow][nextCol] = color;
 
                 // 다음 셀로 이동
@@ -718,6 +697,7 @@
         const endTime = Date.now();
         const totalTime = (endTime - startTime) / 1000;
 
+        // 결과 표시
         if (solutions.length > 0) {
             const displayMessage = `퍼즐 해결 완료! 총 솔루션 수: ${solutions.length}, 총 반복 횟수: ${globalIterationCount}, 총 소요 시간: ${totalTime.toFixed(2)}초`;
             updateProgressDisplay(displayMessage);
