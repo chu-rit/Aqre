@@ -587,40 +587,6 @@
         }
         
         // 회색 타일 연결성 검사
-        function dfsConnectivity(board, startRow, startCol, visited, size) {            
-            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
-            const pos = startRow * size + startCol;
-            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
-            
-            // 4방향 탐색
-            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-            
-            for (const [dx, dy] of directions) {
-                const newRow = startRow + dx;
-                const newCol = startCol + dy;
-                
-                // 보드 범위 체크
-                if (newRow < 0 || newRow >= size || 
-                    newCol < 0 || newCol >= size) {
-                    continue;
-                }
-                
-                const newPos = newRow * size + newCol;
-                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
-                
-                // 이미 방문했거나 흰색 셀이면 스킵
-                if (isVisited || board[newRow][newCol] === 0) {
-                    continue;
-                }
-                
-                // 회색 셀이면 재귀 탐색
-                if (board[newRow][newCol] === 1) {
-                    dfsConnectivity(board, newRow, newCol, visited, size);
-                }
-            }
-        }
-
-        // 회색 타일 연결성 검사 (비트마스크 최적화 버전)
         function checkGrayConnect(board, size) {
             // 회색 셀 비트마스크 생성
             const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
@@ -664,53 +630,79 @@
             return true;
         }
         
-        // 백트래킹 함수 (비트마스크 최적화 버전)
+        // 회색 타일 연결성 검사 (DFS)
+        function dfsConnectivity(board, startRow, startCol, visited, size) {            
+            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
+            const pos = startRow * size + startCol;
+            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
+            
+            // 4방향 탐색
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            
+            for (const [dx, dy] of directions) {
+                const newRow = startRow + dx;
+                const newCol = startCol + dy;
+                
+                // 보드 범위 체크
+                if (newRow < 0 || newRow >= size || 
+                    newCol < 0 || newCol >= size) {
+                    continue;
+                }
+                
+                const newPos = newRow * size + newCol;
+                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
+                
+                // 이미 방문했거나 흰색 셀이면 스킵
+                if (isVisited || board[newRow][newCol] === 0) {
+                    continue;
+                }
+                
+                // 회색 셀이면 재귀 탐색
+                if (board[newRow][newCol] === 1) {
+                    dfsConnectivity(board, newRow, newCol, visited, size);
+                }
+            }
+        }
+
+        // 백트래킹 함수
         function backtrack(index) {
             globalIterationCount++;
             if (globalIterationCount % 20000000 === 0) {
                 updateProgress();
             }
             
-            // 모든 빈 셀을 처리했는지 확인
-            if (index === -1) {
-                // 회색 셀 연결성 확인
-                if (!checkGrayConnect(board, size)) return false;
-                
-                // 솔루션 추가
-                solutions.push(board.map(row => [...row]));
-                globalSolutionsCount++;
-                return solutions.length >= 3;
+            // 모든 셀이 채워졌을 때
+            if (index < 0) {
+                // 회색 타일 연결성 검사
+                if (checkGrayConnect(board, size)) {
+                    // 솔루션 복사
+                    const solution = board.map(row => [...row]);
+                    solutions.push(solution);
+                    globalSolutionsCount++;
+                    
+                    // 3개 솔루션을 찾으면 종료
+                    if (solutions.length >= 3) {
+                        return true;
+                    }
+                }
+                return false;
             }
             
-            // 현재 위치 계산
             const row = Math.floor(index / size);
             const col = index % size;
+            const pos = row * size + col;
+            const idx = Math.floor(pos / 32);
+            const mask = 1 << (pos % 32);
             
-            // 다음 빈 셀 찾기
-            let nextIndex = index - 1;
-            while (nextIndex >= 0) {
-                const nextRow = Math.floor(nextIndex / size);
-                const nextCol = nextIndex % size;
-                const nextPos = nextRow * size + nextCol;
-                const nextIdx = Math.floor(nextPos / 32);
-                const nextMask = 1 << (nextPos % 32);
-                
-                // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
-                if (!(blackCellBitmask[nextIdx] & nextMask) && board[nextRow][nextCol] === -1) {
-                    break;
-                }
-                nextIndex--;
+            // 블랙 셀이거나 이미 색이 결정된 셀이면 다음 셀로 이동
+            if ((blackCellBitmask[idx] & mask) || board[row][col] !== -1) {
+                return backtrack(index - 1);
             }
             
             // 두 가지 색상 시도 (회색, 흰색)
             for (const color of [1, 0]) {
-                // 색상 유효성 검사
+                // 연속 4개 체크
                 if (!isValidColorOptimized(board, row, col, color)) {
-                    continue;
-                }
-                
-                // 회색 타일 연결 가능성 체크
-                if (color === 1 && !canConnectToGray(board, row, col)) {
                     continue;
                 }
                 
@@ -719,11 +711,16 @@
                     continue;
                 }
                 
+                // 회색 타일 연결 가능성 체크 (회색 타일인 경우만)
+                if (color === 1 && !canConnectToGray(board, row, col)) {
+                    continue;
+                }
+                
                 // 색상 적용
                 board[row][col] = color;
                 
                 // 재귀 호출
-                if (backtrack(nextIndex)) return true;
+                if (backtrack(index - 1)) return true;
                 
                 // 백트래킹
                 board[row][col] = -1;
@@ -737,63 +734,40 @@
             let madeChanges = true;
             let totalPresetCells = 0;
             
-            // 변경사항이 없을 때까지 반복
-            while (madeChanges) {
-                madeChanges = false;
+            // 각 영역 검사
+            for (let i = 0; i < puzzle.areas.length; i++) {
+                const area = puzzle.areas[i];
+                const required = areaRequirements[i];
                 
-                // 각 영역 검사
-                for (let i = 0; i < puzzle.areas.length; i++) {
-                    const area = puzzle.areas[i];
-                    const required = areaRequirements[i];
+                // 숫자 힌트가 있는 영역만 처리
+                if (typeof required === 'number') {
+                    let grayCount = 0;
+                    let whiteCount = 0;
+                    let emptyCells = [];
                     
-                    // 숫자 힌트가 있는 영역만 처리
-                    if (typeof required === 'number') {
-                        let grayCount = 0;
-                        let whiteCount = 0;
-                        let emptyCells = [];
-                        
-                        // 영역 내 셀 상태 확인
-                        for (const [r, c] of area.cells) {
-                            if (board[r][c] === 1) grayCount++;
-                            else if (board[r][c] === 0) whiteCount++;
-                            else if (board[r][c] === -1) emptyCells.push([r, c]);
+                    // 영역 내 셀 상태 확인
+                    for (const [r, c] of area.cells) {
+                        if (board[r][c] === 1) grayCount++;
+                        else if (board[r][c] === 0) whiteCount++;
+                        else if (board[r][c] === -1) emptyCells.push([r, c]);
+                    }
+                    
+                    // 케이스 1: 힌트가 0인 경우, 모든 빈 셀을 흰색으로 설정
+                    if (required === 0 && emptyCells.length > 0) {
+                        for (const [r, c] of emptyCells) {
+                            board[r][c] = 0; // 흰색으로 설정
+                            madeChanges = true;
+                            totalPresetCells++;
                         }
-                        
-                        // 케이스 1: 힌트가 0인 경우, 모든 빈 셀을 흰색으로 설정
-                        if (required === 0 && emptyCells.length > 0) {
-                            for (const [r, c] of emptyCells) {
-                                board[r][c] = 0; // 흰색으로 설정
-                                madeChanges = true;
-                                totalPresetCells++;
-                            }
+                    }
+                    
+                    // 케이스 2: 힌트가 영역 크기와 같은 경우, 모든 빈 셀을 회색으로 설정
+                    else if (required === area.cells.length && emptyCells.length > 0) {
+                        for (const [r, c] of emptyCells) {
+                            board[r][c] = 1; // 회색으로 설정
+                            madeChanges = true;
+                            totalPresetCells++;
                         }
-                        
-                        // 케이스 2: 힌트가 영역 크기와 같은 경우, 모든 빈 셀을 회색으로 설정
-                        else if (required === area.cells.length && emptyCells.length > 0) {
-                            for (const [r, c] of emptyCells) {
-                                board[r][c] = 1; // 회색으로 설정
-                                madeChanges = true;
-                                totalPresetCells++;
-                            }
-                        }
-                        
-                        // 케이스 3: 이미 회색 셀이 힌트 수와 같으면 나머지는 흰색으로 설정
-                        // else if (grayCount === required && emptyCells.length > 0) {
-                        //     for (const [r, c] of emptyCells) {
-                        //         board[r][c] = 0; // 흰색으로 설정
-                        //         madeChanges = true;
-                        //         totalPresetCells++;
-                        //     }
-                        // }
-                        
-                        // 케이스 4: 남은 빈 셀 수 + 이미 회색인 셀 수가 힌트와 같으면 모든 빈 셀을 회색으로 설정
-                        // else if (grayCount + emptyCells.length === required && emptyCells.length > 0) {
-                        //     for (const [r, c] of emptyCells) {
-                        //         board[r][c] = 1; // 회색으로 설정
-                        //         madeChanges = true;
-                        //         totalPresetCells++;
-                        //     }
-                        // }
                     }
                 }
             }

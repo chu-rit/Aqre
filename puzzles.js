@@ -1110,6 +1110,10 @@ const PUZZLE_MAPS = [
                 required: 0
             },
             {
+                cells: [[2, 0]],
+                required: 1
+            },
+            {
                 cells: [[2, 3]],
                 required: 0
             },
