@@ -268,16 +268,12 @@
     }
 
     // 전역 진행 상황 업데이트 함수
-    function updateProgress() {
-        globalIterationCount++;
-        
-        // 10초마다 진행 상황 업데이트
+    function updateProgress() {        
         const currentTime = Date.now();
-        if (currentTime - globalLastUpdateTime >= 20000) {
-            const elapsedSeconds = ((currentTime - globalStartTime) / 1000).toFixed(0);
-            logProgress(`퍼즐 해결 중... ${elapsedSeconds}초 경과, ${globalIterationCount}회 반복, ${globalSolutionsCount}개 솔루션 발견`);
-            globalLastUpdateTime = currentTime;
-        }
+        const elapsedSeconds = ((currentTime - globalStartTime) / 1000).toFixed(0);
+        // logProgress(`퍼즐 해결 중... ${elapsedSeconds}초 경과, ${globalIterationCount}회 반복, ${globalSolutionsCount}개 솔루션 발견`);
+        logProgress(`퍼즐 해결 중... ${elapsedSeconds}초 경과, ${globalSolutionsCount}개 솔루션 발견`);
+        globalLastUpdateTime = currentTime;
     }
 
     // 퍼즐 HTML 렌더링
@@ -593,9 +589,7 @@
         }
         
         // 회색 타일 연결성 검사
-        function dfsConnectivity(board, startRow, startCol, visited, size) {
-            updateProgress();
-            
+        function dfsConnectivity(board, startRow, startCol, visited, size) {            
             // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
             const pos = startRow * size + startCol;
             visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
@@ -675,8 +669,8 @@
         // 백트래킹 함수 (비트마스크 최적화 버전)
         function backtrack(index) {
             globalIterationCount++;
-            if (globalIterationCount % 10000 === 0) {
-                updateProgressDisplay(`진행 상황: ${globalIterationCount}회 탐색 중...`);
+            if (globalIterationCount % 20000000 === 0) {
+                updateProgress();
             }
             
             // 모든 빈 셀을 처리했는지 확인

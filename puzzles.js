@@ -533,8 +533,8 @@ const PUZZLE_MAPS = [
                 required: 1
             },
             {
-                required: '1',
-                cells: [[4, 4]]
+                cells: [[4, 4]],
+                required: 1,
             }
         ],
         initialState: [
