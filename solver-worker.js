@@ -26,6 +26,9 @@ let globalIterationCount = 0;
 let globalSolutionsCount = 0;
 const progressInterval = 1000000; // 100만번 반복마다 진행 상황 업데이트 (기존 10,000에서 증가)
 
+// 퍼즐 ID
+let puzzleId = 0;
+
 // 웹 워커 메시지 이벤트 리스너
 self.onmessage = function(e) {
     const message = e.data;
@@ -38,6 +41,9 @@ self.onmessage = function(e) {
                 size = puzzleData.size;
                 areas = puzzleData.areas;
                 direction = message.direction;
+                
+                // 퍼즐 ID 저장
+                self.puzzleId = puzzleData.id || 0;
                 
                 // 보드 초기화 (사전 확정된 셀 적용)
                 board = puzzleData.initialBoard;
@@ -127,8 +133,8 @@ self.onmessage = function(e) {
     }
 };
 
-// 연속된 같은 색상 체크 함수 (최적화 버전)
-function isValidColorOptimized(board, row, col, color) {
+// 연속된 같은 색상 체크 함수
+function isValidColor(board, row, col, color) {
     // 가로 방향 체크
     let count = 1;
     // 왼쪽 체크
@@ -254,79 +260,62 @@ function canConnectToGray(board, row, col) {
     return !hasExistingGray || hasEmptyNearby;
 }
 
-// DFS로 회색 셀 연결성 검사 (비트마스크 사용)
-function dfsConnectivity(board, row, col, visitedBitmask, size) {
-    const pos = row * size + col;
-    const idx = Math.floor(pos / 32);
-    const mask = 1 << (pos % 32);
-    
-    // 이미 방문했거나 회색 셀이 아니면 종료
-    if ((visitedBitmask[idx] & mask) || board[row][col] !== 1) {
-        return;
-    }
-    
-    // 방문 표시
-    visitedBitmask[idx] |= mask;
-    
-    // 인접한 셀 탐색
+// DFS로 회색 셀 연결성 검사
+function dfsConnectivity(board, row, col, visited, size) {
     const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    
     for (const [dr, dc] of directions) {
         const newRow = row + dr;
         const newCol = col + dc;
         
         if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
-            dfsConnectivity(board, newRow, newCol, visitedBitmask, size);
+            if (board[newRow][newCol] === 1 && !visited[newRow][newCol]) {
+                visited[newRow][newCol] = true;
+                dfsConnectivity(board, newRow, newCol, visited, size);
+            }
         }
     }
 }
 
-// 회색 셀 연결성 검사 함수 (비트마스크 최적화 버전)
+// 회색 셀 연결성 검사 함수
 function checkGrayConnect(board, size) {
-    // 회색 셀 비트마스크 생성
-    const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
-    let grayCount = 0;
+    // 회색 셀 찾기
     let firstGrayCell = [-1, -1];
     
-    // 회색 셀 찾기
     for (let row = 0; row < size; row++) {
         for (let col = 0; col < size; col++) {
             if (board[row][col] === 1) {
-                const pos = row * size + col;
-                const idx = Math.floor(pos / 32);
-                const mask = 1 << (pos % 32);
-                grayBitmask[idx] |= mask;
-                grayCount++;
-                
-                if (firstGrayCell[0] === -1) {
-                    firstGrayCell = [row, col];
-                }
+                firstGrayCell = [row, col];
+                break;
             }
         }
+        if (firstGrayCell[0] !== -1) break;
     }
     
-    // 회색 셀이 없거나 하나면 연결성 체크 불필요
-    if (grayCount <= 1) return true;
+    // 회색 셀이 없으면 연결성 체크 불필요
+    if (firstGrayCell[0] === -1) return true;
     
-    // 방문 배열 초기화 (비트마스크)
-    const visitedBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+    // 방문 배열 초기화
+    const visited = new Array(size).fill(0).map(() => new Array(size).fill(false));
     
     // 첫 번째 회색 셀부터 DFS 시작
     const [startRow, startCol] = firstGrayCell;
-    dfsConnectivity(board, startRow, startCol, visitedBitmask, size);
+    visited[startRow][startCol] = true;
+    dfsConnectivity(board, startRow, startCol, visited, size);
     
-    // 모든 회색 셀 방문 확인 (비트마스크 비교)
-    for (let i = 0; i < grayBitmask.length; i++) {
-        // 방문하지 않은 회색 셀이 있는지 확인
-        // grayBitmask에는 1이지만 visitedBitmask에는 0인 비트가 있으면 연결되지 않은 것
-        if ((grayBitmask[i] & ~visitedBitmask[i]) !== 0) {
-            return false;
+    // 모든 회색 셀 방문 확인
+    for (let row = 0; row < size; row++) {
+        for (let col = 0; col < size; col++) {
+            if (board[row][col] === 1 && !visited[row][col]) {
+                return false;
+            }
         }
     }
     
     return true;
 }
 
-// 백트래킹 함수 (비트마스크 최적화 버전)
+// 백트래킹 함수
 function backtrack(index) {
     globalIterationCount++;
     
@@ -409,13 +398,13 @@ function backtrack(index) {
         }
     }
     
-    // 두 가지 색상 시도 (회색, 흰색)
-    // 항상 회색(1)부터 시도
-    const colors = [1, 0];
+    // 두 가지 색상 시도 순서 결정 - 모든 퍼즐에 동일한 전략 적용
+    // 흰색(0)을 먼저 시도
+    const colors = [0, 1];
     
     for (const color of colors) {
         // 색상 유효성 검사
-        if (!isValidColorOptimized(board, row, col, color)) {
+        if (!isValidColor(board, row, col, color)) {
             continue;
         }
         
