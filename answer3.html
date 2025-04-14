@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="puzzles.js"></script>
+
+    <title>AQRE 솔버</title>
+    <style>
+        #startScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #puzzleContainer {
+            display: none; /* 기본적으로 숨김 */
+            max-width: 700px; /* 너비 더 증가 */
+            margin: 0 auto;
+            padding: 20px;
+            max-height: 75vh;
+            min-height: auto;
+            overflow-y: auto; /* 세로 스크롤 추가 */
+            scrollbar-width: thin; /* 파이어폭스용 얇은 스크롤바 */
+            scrollbar-color: rgba(255,255,255,0.3) transparent; /* 스크롤바 색상 */
+        }
+        /* 웹킷 브라우저용 스크롤바 스타일 */
+        #puzzleContainer::-webkit-scrollbar {
+            width: 8px;
+        }
+        #puzzleContainer::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #puzzleContainer::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+        .puzzle-grid {
+            display: grid;
+            gap: 4px;
+            background-color: rgba(255,255,255,0.1);
+            padding: 8px;
+            border-radius: 4px;
+            justify-content: center;
+            width: 100%;
+        }
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            border-radius: 4px;
+            font-size: 20px;
+            text-shadow:
+                -1px 0px 0 #000,
+                1px 0px 0 #000,
+                -1px  1px 0 #000,
+                1px  1px 0 #000;
+            
+            color: white; /* 숫자 색상을 흰색으로 */
+        }
+        .cell.white {
+            background-color: rgba(255,255,255,0.2);
+            color: black;
+        }
+        .cell.gray {
+            background-color: rgba(128,128,128,0.3);
+            color: white;
+        }
+        .cell.black {
+            background-color: rgba(0,0,0,0.3);
+        }
+        /* 퍼즐 선택 화면 스타일 */
+        .puzzle-selection {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .puzzle-selection h2 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        .level-select-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+        .level-select {
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            max-width: 250px;
+        }
+        .level-select:focus {
+            outline: none;
+            border-color: #a4c8e0;
+            box-shadow: 0 0 0 3px rgba(164, 200, 224, 0.3);
+        }
+        .solve-button {
+            margin-left: 0.8rem;
+            padding: 0.8rem 1.5rem;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        .solve-button:hover {
+            background-color: #357abD;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .solve-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .puzzle-solution {
+            width: 100%;
+            max-width: 500px; /* 솔루션 최대 너비 조정 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .buffering-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <div class="puzzle-selection">
+            <h2>퍼즐 선택</h2>
+            <div class="level-select-wrapper">
+                <select id="levelSelect" class="level-select">
+                    <option value="" disabled selected>레벨을 선택하세요...</option>
+                    <!-- Level options will be generated by JavaScript -->
+                </select>
+            </div>
+        </div>
+    </div>
+    <div id="puzzleContainer"></div>
+
+    <script>
+    // 현재 선택된 퍼즐
+    let currentPuzzle = null;
+
+    // 퍼즐 선택 옵션 생성
+    function createPuzzleList() {
+        const levelSelect = document.getElementById('levelSelect');
+        levelSelect.innerHTML = '<option value="" disabled selected>레벨을 선택하세요...</option>'; // 기본 옵션
+        
+        // 배열을 복사하여 역순으로 정렬
+        const reversedPuzzles = [...PUZZLE_MAPS].reverse();
+        
+        reversedPuzzles.forEach((puzzle, index) => {
+            const option = document.createElement('option');
+            option.value = puzzle.id;
+            
+            // 퍼즐 이름에서 숫자만 추출
+            const levelNumber = puzzle.name.replace(/[^0-9]/g, '');
+            option.textContent = `Level ${levelNumber}`;
+            
+            levelSelect.appendChild(option);
+        });
+        
+        // 드롭다운 변경 이벤트
+        levelSelect.addEventListener('change', () => {
+            const selectedPuzzleId = parseInt(levelSelect.value);
+            if (selectedPuzzleId) {
+                currentPuzzle = PUZZLE_MAPS.find(puzzle => puzzle.id === selectedPuzzleId);
+                solveLevel();
+            }
+        });
+    }
+
+    // 페이지 로드 시 퍼즐 목록 생성
+    createPuzzleList();
+
+    // 진행 상황 표시 함수
+    function updateProgressDisplay(message) {
+        const progressDisplay = document.getElementById('progressDisplay') || 
+            (() => {
+                const display = document.createElement('div');
+                display.id = 'progressDisplay';
+                display.style.position = 'fixed';
+                display.style.bottom = '20px';
+                display.style.left = '50%';
+                display.style.transform = 'translateX(-50%)';
+                display.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                display.style.color = 'white';
+                display.style.padding = '10px 20px';
+                display.style.borderRadius = '10px';
+                display.style.zIndex = '1000';
+                document.body.appendChild(display);
+                return display;
+            })();
+        
+        progressDisplay.textContent = message;
+        progressDisplay.style.display = 'block';
+
+        // 4초 후에 메시지 숨기기
+        setTimeout(() => {
+            progressDisplay.style.display = 'none';
+        }, 4000);
+    }
+
+    // 전역 변수로 반복 횟수와 마지막 업데이트 시간 추적
+    let globalIterationCount = 0;
+    let globalStartTime = Date.now();
+    let globalSolutionsCount = 0;
+
+    // 시작 시 로그 출력 함수
+    function logProgress(message) {
+        const currentTime = new Date().toLocaleTimeString();
+        console.log(`[${currentTime}] ${message}`);
+    }
+
+    // 전역 진행 상황 업데이트 함수
+    function updateProgress() {        
+        const currentTime = Date.now();
+        const elapsedSeconds = ((currentTime - globalStartTime) / 1000).toFixed(0);
+        // logProgress(`퍼즐 해결 중... ${elapsedSeconds}초 경과, ${globalIterationCount}회 반복, ${globalSolutionsCount}개 솔루션 발견`);
+        logProgress(`퍼즐 해결 중... ${elapsedSeconds}초 경과, ${globalSolutionsCount}개 솔루션 발견`);
+    }
+
+    // 퍼즐 HTML 렌더링
+    function renderPuzzle(solution, title = '솔루션') {
+        const container = document.getElementById('puzzleContainer');
+        
+        // 첫 번째 솔루션일 경우에만 컨테이너 초기화
+        if (container.children.length === 0) {
+            container.style.display = 'block';
+        }
+
+        // 솔루션 래퍼 생성
+        const solutionWrapper = document.createElement('div');
+        solutionWrapper.className = 'puzzle-solution';
+
+        // 값이 2가 아닌 타일의 총 개수 계산
+        let totalNonBlockedTiles = 0;
+        let totalGrayTiles = 0;
+        let totalWhiteTiles = 0;
+        
+        solution.forEach(row => {
+            row.forEach(cellValue => {
+                if (cellValue !== 2) {
+                    totalNonBlockedTiles++;
+                    if (cellValue === 1) {
+                        totalGrayTiles++;
+                    } else if (cellValue === 0) {
+                        totalWhiteTiles++;
+                    }
+                }
+            });
+        });
+
+        // 타이틀과 타일 정보 추가
+        const titleElement = document.createElement('h2');
+        titleElement.textContent = `${title} (총 타일: ${totalNonBlockedTiles}, 회색: ${totalGrayTiles}, 흰색: ${totalWhiteTiles})`;
+        titleElement.style.fontSize = '0.9rem';
+        titleElement.style.fontWeight = '500';
+        titleElement.style.color = '#666';
+        titleElement.style.marginBottom = '10px';
+        solutionWrapper.appendChild(titleElement);
+
+        // 보드 래퍼 생성
+        const boardWrapper = document.createElement('div');
+        boardWrapper.className = 'puzzle-grid';
+        
+        // 그리드 동적 크기 설정
+        const size = solution.length;
+        boardWrapper.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+        boardWrapper.style.setProperty('--grid-size', size);
+
+        // 보드 생성
+        solution.forEach((row, rowIndex) => {
+            row.forEach((cellValue, colIndex) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.row = rowIndex;
+                cell.dataset.col = colIndex;
+                
+                // 셀 상태 설정
+                if (cellValue === 2) {
+                    cell.classList.add('black');
+                } else if (cellValue === 1) {
+                    cell.classList.add('gray');
+                }
+                
+                // 숫자 표시 (0과 1 모두)
+                cell.textContent = cellValue;
+                
+                boardWrapper.appendChild(cell);
+            });
+        });
+
+        solutionWrapper.appendChild(boardWrapper);
+        container.appendChild(solutionWrapper);
+    }
+
+    function renderBuffering() {
+        const container = document.getElementById('puzzleContainer');
+        container.innerHTML = ''; // 기존 내용 지우기
+        container.style.display = 'block';
+
+        const bufferingDiv = document.createElement('div');
+        bufferingDiv.id = 'bufferingIndicator';
+        bufferingDiv.innerHTML = `
+            <div class="buffering-spinner">
+                <div class="spinner"></div>
+                <p>솔루션 계산 중...</p>
+            </div>
+        `;
+        container.appendChild(bufferingDiv);
+    }
+
+    // 퍼즐 솔버 알고리즘
+    function solvePuzzle(puzzle) {
+        globalIterationCount = 0;
+        globalStartTime = Date.now();
+        globalSolutionsCount = 0;
+
+        const size = puzzle.size;
+        // -1: 미정, 0: 흰색, 1: 회색
+        const board = Array.from({ length: size }, () => Array(size).fill(-1));
+
+        const solutions = [];
+
+        // 초기화 단계에서 각 영역의 셀 비트마스크 미리 계산
+        const areaBitmasks = [];
+        const areaRequirements = [];
+        
+        for (let i = 0; i < puzzle.areas.length; i++) {
+            const area = puzzle.areas[i];
+            const cellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            // 영역에 속한 셀들의 비트마스크 생성
+            for (const [r, c] of area.cells) {
+                const pos = r * size + c;
+                cellBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+            }
+            
+            areaBitmasks.push(cellBitmask);
+            areaRequirements.push(area.required);
+        }
+        
+        // 빈 셀 비트마스크 초기화
+        const emptyCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+        const blackCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+        
+        // 초기 빈 셀과 블랙 셀 비트마스크 설정
+        for (let row = 0; row < size; row++) {
+            for (let col = 0; col < size; col++) {
+                const pos = row * size + col;
+                const idx = Math.floor(pos / 32);
+                const mask = 1 << (pos % 32);
+                
+                if (puzzle.initialState[row][col] === 2) {
+                    blackCellBitmask[idx] |= mask;
+                    board[row][col] = 2; // 보드에 블랙 셀 설정
+                } else {
+                    emptyCellBitmask[idx] |= mask; // 처음에는 모든 셀이 빈 셀
+                }
+            }
+        }
+
+        // 보드 상태를 비트마스크로 변환하는 함수
+        function getBoardBitmasks(board, size) {
+            const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            const emptyBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    const pos = row * size + col;
+                    const idx = Math.floor(pos / 32);
+                    const mask = 1 << (pos % 32);
+                    
+                    if (board[row][col] === 1) {
+                        grayBitmask[idx] |= mask;
+                    } else if (board[row][col] === -1) {
+                        emptyBitmask[idx] |= mask;
+                    }
+                }
+            }
+            
+            return { grayBitmask, emptyBitmask };
+        }
+        
+        // 비트 카운트 함수 (1인 비트 개수 세기)
+        function countBits(n) {
+            let count = 0;
+            while (n) {
+                count += n & 1;
+                n >>>= 1;
+            }
+            return count;
+        }
+
+        // 영역 제약조건 체크 (비트마스크 최적화 버전)
+        function checkAreaPossible(board, row, col, color) {
+            const pos = row * size + col;
+            const posMask = 1 << (pos % 32);
+            const posIndex = Math.floor(pos / 32);
+            
+            // 현재 보드 상태의 비트마스크 가져오기
+            const { grayBitmask, emptyBitmask } = getBoardBitmasks(board, size);
+            
+            for (let i = 0; i < areaBitmasks.length; i++) {
+                // 현재 셀이 이 영역에 속하는지 빠르게 확인
+                if (!(areaBitmasks[i][posIndex] & posMask)) continue;
+                
+                // 영역 내 회색/빈 타일 수 계산 (비트마스크 이용)
+                let grayCount = 0;
+                let emptyCount = 0;
+                
+                for (let j = 0; j < areaBitmasks[i].length; j++) {
+                    // 영역과 회색/빈 타일 비트마스크의 교집합으로 개수 계산
+                    const grayIntersect = areaBitmasks[i][j] & grayBitmask[j];
+                    const emptyIntersect = areaBitmasks[i][j] & emptyBitmask[j];
+                    
+                    // 1인 비트 개수 세기
+                    grayCount += countBits(grayIntersect);
+                    emptyCount += countBits(emptyIntersect);
+                }
+                
+                // 현재 타일 색상 고려
+                if (board[row][col] === -1) {
+                    if (color === 1) grayCount++;
+                    else emptyCount--;
+                }
+                
+                // 제약조건 검사
+                const required = areaRequirements[i];
+                
+                // 숫자 영역 검사
+                if (typeof required === 'number') {
+                    if (grayCount > required || grayCount + emptyCount < required) {
+                        return false;
+                    }
+                }
+                // J 영역 검사 (제약 없음)
+                else if (required === 'J') {
+                    continue;
+                }
+                // 빈 영역 검사 (최소 1개 회색 필요)
+                else {
+                    if (grayCount + emptyCount === 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 연속 4개 체크
+        function isValidColorOptimized(board, row, col, color) {
+            // 현재 위치에 색상을 임시로 설정
+            const oldColor = board[row][col];
+            board[row][col] = color;
+            
+            // 가로 방향 연속 색상 체크
+            let rowMask = 0;
+            for (let c = Math.max(0, col - 3); c <= Math.min(size - 1, col + 3); c++) {
+                rowMask = (rowMask << 1) | (board[row][c] === color ? 1 : 0);
+                
+                // 연속된 4개 패턴 (1111) 검사
+                if (c >= col - 3 + 3 && (rowMask & 0xF) === 0xF) {
+                    board[row][col] = oldColor; // 원래 상태로 복원
+                    return false;
+                }
+            }
+            
+            // 세로 방향 연속 색상 체크
+            let colMask = 0;
+            for (let r = Math.max(0, row - 3); r <= Math.min(size - 1, row + 3); r++) {
+                colMask = (colMask << 1) | (board[r][col] === color ? 1 : 0);
+                
+                // 연속된 4개 패턴 (1111) 검사
+                if (r >= row - 3 + 3 && (colMask & 0xF) === 0xF) {
+                    board[row][col] = oldColor; // 원래 상태로 복원
+                    return false;
+                }
+            }
+            
+            // 원래 상태로 복원
+            board[row][col] = oldColor;
+            return true;
+        }
+
+        // 회색 타일 연결 체크
+        function canConnectToGray(board, row, col) {
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            
+            // 인접한 회색 타일 확인
+            for (let i = 0; i < directions.length; i++) {
+                const [dx, dy] = directions[i];
+                const newRow = row + dx;
+                const newCol = col + dy;
+                
+                if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+                    if (board[newRow][newCol] === 1) {
+                        return true;
+                    }
+                }
+            }
+            
+            // 인접한 빈 칸 확인
+            let hasEmptyNearby = false;
+            for (let i = 0; i < directions.length; i++) {
+                const [dx, dy] = directions[i];
+                const newRow = row + dx;
+                const newCol = col + dy;
+                
+                if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+                    if (board[newRow][newCol] === -1) {
+                        hasEmptyNearby = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!hasEmptyNearby) return false;
+
+            // 기존 회색 타일 존재 여부 확인
+            let hasExistingGray = false;
+            outerLoop: for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (board[i][j] === 1) {
+                        hasExistingGray = true;
+                        break outerLoop;
+                    }
+                }
+            }
+
+            return !hasExistingGray || hasEmptyNearby;
+        }
+        
+        // 회색 타일 연결성 검사
+        function checkGrayConnect(board, size) {
+            // 회색 셀 비트마스크 생성
+            const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            let grayCount = 0;
+            let firstGrayCell = [-1, -1];
+            
+            // 회색 셀 찾기 및 비트마스크 설정
+            for (let row = 0; row < size; row++) {
+                for (let col = 0; col < size; col++) {
+                    if (board[row][col] === 1) {
+                        const pos = row * size + col;
+                        grayBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+                        grayCount++;
+                        
+                        if (firstGrayCell[0] === -1) {
+                            firstGrayCell = [row, col];
+                        }
+                    }
+                }
+            }
+            
+            // 회색 셀이 없거나 하나면 연결성 체크 불필요
+            if (grayCount <= 1) return true;
+            
+            // 방문 배열 초기화 (비트마스크)
+            const visitedBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            // 첫 번째 회색 셀부터 DFS 시작
+            const [startRow, startCol] = firstGrayCell;
+            dfsConnectivity(board, startRow, startCol, visitedBitmask, size);
+            
+            // 모든 회색 셀 방문 확인 (비트마스크 비교)
+            for (let i = 0; i < grayBitmask.length; i++) {
+                // 방문하지 않은 회색 셀이 있는지 확인
+                // grayBitmask에는 1이지만 visitedBitmask에는 0인 비트가 있으면 연결되지 않은 것
+                if ((grayBitmask[i] & ~visitedBitmask[i]) !== 0) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // 회색 타일 연결성 검사 (DFS)
+        function dfsConnectivity(board, startRow, startCol, visited, size) {            
+            // 비트마스크로 방문 표시 (row * size + col 위치의 비트를 1로 설정)
+            const pos = startRow * size + startCol;
+            visited[Math.floor(pos / 32)] |= (1 << (pos % 32));
+            
+            // 4방향 탐색
+            const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            
+            for (const [dx, dy] of directions) {
+                const newRow = startRow + dx;
+                const newCol = startCol + dy;
+                
+                // 보드 범위 체크
+                if (newRow < 0 || newRow >= size || 
+                    newCol < 0 || newCol >= size) {
+                    continue;
+                }
+                
+                const newPos = newRow * size + newCol;
+                const isVisited = visited[Math.floor(newPos / 32)] & (1 << (newPos % 32));
+                
+                // 이미 방문했거나 흰색 셀이면 스킵
+                if (isVisited || board[newRow][newCol] === 0) {
+                    continue;
+                }
+                
+                // 회색 셀이면 재귀 탐색
+                if (board[newRow][newCol] === 1) {
+                    dfsConnectivity(board, newRow, newCol, visited, size);
+                }
+            }
+        }
+
+        // 백트래킹 함수
+        function backtrack(index) {
+            globalIterationCount++;
+            if (globalIterationCount % 20000000 === 0) {
+                updateProgress();
+            }
+            
+            // 모든 셀이 채워졌을 때
+            if (index < 0) {
+                // 회색 타일 연결성 검사
+                if (checkGrayConnect(board, size)) {
+                    // 솔루션 복사
+                    const solution = board.map(row => [...row]);
+                    solutions.push(solution);
+                    globalSolutionsCount++;
+                    
+                    // 3개 솔루션을 찾으면 종료
+                    if (solutions.length >= 3) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            const row = Math.floor(index / size);
+            const col = index % size;
+            const pos = row * size + col;
+            const idx = Math.floor(pos / 32);
+            const mask = 1 << (pos % 32);
+            
+            // 블랙 셀이거나 이미 색이 결정된 셀이면 다음 셀로 이동
+            if ((blackCellBitmask[idx] & mask) || board[row][col] !== -1) {
+                return backtrack(index - 1);
+            }
+            
+            // 두 가지 색상 시도 (회색, 흰색)
+            for (const color of [1, 0]) {
+                // 연속 4개 체크
+                if (!isValidColorOptimized(board, row, col, color)) {
+                    continue;
+                }
+                
+                // 영역 제약조건 체크
+                if (!checkAreaPossible(board, row, col, color)) {
+                    continue;
+                }
+                
+                // 회색 타일 연결 가능성 체크 (회색 타일인 경우만)
+                if (color === 1 && !canConnectToGray(board, row, col)) {
+                    continue;
+                }
+                
+                // 색상 적용
+                board[row][col] = color;
+                
+                // 재귀 호출
+                if (backtrack(index - 1)) return true;
+                
+                // 백트래킹
+                board[row][col] = -1;
+            }
+            
+            return false;
+        }
+        
+        // 백트래킹 시작 전에 영역 규칙에 따라 셀을 미리 확정하는 함수
+        function presetCellsByAreaRules() {
+            let madeChanges = true;
+            let totalPresetCells = 0;
+            
+            // 각 영역 검사
+            for (let i = 0; i < puzzle.areas.length; i++) {
+                const area = puzzle.areas[i];
+                const required = areaRequirements[i];
+                
+                // 숫자 힌트가 있는 영역만 처리
+                if (typeof required === 'number') {
+                    let grayCount = 0;
+                    let whiteCount = 0;
+                    let emptyCells = [];
+                    
+                    // 영역 내 셀 상태 확인
+                    for (const [r, c] of area.cells) {
+                        if (board[r][c] === 1) grayCount++;
+                        else if (board[r][c] === 0) whiteCount++;
+                        else if (board[r][c] === -1) emptyCells.push([r, c]);
+                    }
+                    
+                    // 케이스 1: 힌트가 0인 경우, 모든 빈 셀을 흰색으로 설정
+                    if (required === 0 && emptyCells.length > 0) {
+                        for (const [r, c] of emptyCells) {
+                            board[r][c] = 0; // 흰색으로 설정
+                            madeChanges = true;
+                            totalPresetCells++;
+                        }
+                    }
+                    
+                    // 케이스 2: 힌트가 영역 크기와 같은 경우, 모든 빈 셀을 회색으로 설정
+                    else if (required === area.cells.length && emptyCells.length > 0) {
+                        for (const [r, c] of emptyCells) {
+                            board[r][c] = 1; // 회색으로 설정
+                            madeChanges = true;
+                            totalPresetCells++;
+                        }
+                    }
+                }
+            }
+            
+            if (totalPresetCells > 0) {
+                logProgress(`영역 규칙에 따라 ${totalPresetCells}개의 셀을 미리 확정했습니다.`);
+            }
+            
+            return totalPresetCells;
+        }
+        
+        // 영역 규칙에 따라 셀 미리 확정
+        const presetCellsCount = presetCellsByAreaRules();
+        
+        // 첫 번째 빈 셀 찾기
+        let startIndex = size * size - 1;
+        while (startIndex >= 0) {
+            const startRow = Math.floor(startIndex / size);
+            const startCol = startIndex % size;
+            const startPos = startRow * size + startCol;
+            const startIdx = Math.floor(startPos / 32);
+            const startMask = 1 << (startPos % 32);
+            
+            // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
+            if (!(blackCellBitmask[startIdx] & startMask) && board[startRow][startCol] === -1) {
+                break;
+            }
+            startIndex--;
+        }
+        
+        // 백트래킹 시작
+        backtrack(startIndex);
+
+        const endTime = Date.now();
+        const totalTime = (endTime - globalStartTime) / 1000;
+
+        // 결과 표시
+        if (solutions.length > 0) {
+            const displayMessage = `퍼즐 해결 완료! 총 솔루션 수: ${solutions.length}, 총 반복 횟수: ${globalIterationCount}, 총 소요 시간: ${totalTime.toFixed(2)}초`;
+            updateProgressDisplay(displayMessage);
+            logProgress(displayMessage);
+        } else {
+            updateProgressDisplay('퍼즐 해결 실패');
+            logProgress('퍼즐 해결 실패');
+        }
+
+        return solutions;
+    }
+
+    // 퍼즐 선택 즉시 솔버 실행
+    function solveLevel() {
+        // 버퍼링 표시
+        renderBuffering();
+
+        // 버퍼링 후 솔버 실행 (0.5초 지연)
+        setTimeout(() => {
+            // 초기 로그 메시지
+            console.log(`[${new Date().toLocaleTimeString()}] 솔루션 계산 시작`);
+
+            const solutions = solvePuzzle(currentPuzzle);
+
+            // 버퍼링 제거 및 솔루션 렌더링
+            const puzzleContainer = document.getElementById('puzzleContainer');
+            puzzleContainer.innerHTML = '';
+
+            // 솔루션 렌더링
+            if (solutions.length > 0) {
+                solutions.forEach((solution, index) => {
+                    renderPuzzle(solution, `솔루션 ${index + 1}`);
+                });
+                console.log(`[${new Date().toLocaleTimeString()}] 솔루션 계산 및 렌더링 완료`);
+            } else {
+                updateProgressDisplay('퍼즐 해결 실패');
+                console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 해결 실패`);
+            }
+        }, 500);
+    }
+    </script>
+</body>
+</html>
