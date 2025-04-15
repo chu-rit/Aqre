@@ -193,8 +193,7 @@
 
     <script>
     // 전역 변수로 워커 참조 저장
-    let globalForwardWorker = null;
-    let globalBackwardWorker = null;
+    let globalWorkers = [];
     
     // 솔버 시작 시간 저장
     let solverStartTime = 0;
@@ -439,15 +438,11 @@
     function stopSolver() {
         console.log(`[${new Date().toLocaleTimeString()}] 사용자가 솔버를 중지했습니다.`);
         
-        if (globalForwardWorker) {
-            globalForwardWorker.terminate();
-            globalForwardWorker = null;
-        }
-        
-        if (globalBackwardWorker) {
-            globalBackwardWorker.terminate();
-            globalBackwardWorker = null;
-        }
+        // 모든 워커 종료
+        globalWorkers.forEach(worker => {
+            worker.terminate();
+        });
+        globalWorkers = [];
         
         // 버퍼링 표시 업데이트
         const bufferingText = document.querySelector('#bufferingIndicator p');
@@ -474,124 +469,168 @@
             try {
                 console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 솔버 시작`);
                 
-                // 웹 워커 생성
-                globalForwardWorker = new Worker('solver-worker.js');
-                globalBackwardWorker = new Worker('solver-worker.js');
+                // 퍼즐 크기에 따라 워커 수 결정
+                let workerCount = 2; // 기본값
                 
-                // 워커 메시지 처리 함수
-                function handleWorkerMessage(e) {
-                    const data = e.data;
+                if (puzzle.size <= 6) {
+                    workerCount = 2;
+                } else if (puzzle.size === 7) {
+                    workerCount = 4;
+                } else if (puzzle.size >= 8) {
+                    workerCount = 8;
+                }
+                
+                console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 크기: ${puzzle.size}x${puzzle.size}, 워커 수: ${workerCount}`);
+                
+                // 워커 방향 설정 - 단순화된 방식
+                const directions = [];
+                for (let i = 0; i < workerCount; i++) {
+                    if (i % 2 === 0) {
+                        directions.push(`forward_${Math.floor(i/2) + 1}`);
+                    } else {
+                        directions.push(`backward_${Math.floor(i/2) + 1}`);
+                    }
+                }
+                
+                // 완료된 워커 수 추적
+                let completedWorkers = 0;
+                
+                // 워커 생성
+                for (let i = 0; i < workerCount; i++) {
+                    const worker = new Worker('solver-worker.js');
+                    globalWorkers.push(worker);
                     
-                    switch (data.type) {
-                        case 'progress':
-                            // 진행 상황 업데이트 (경과 시간과 솔루션 개수만 표시)
-                            const elapsedTime = (Date.now() - solverStartTime) / 1000;
-                            
-                            // 두 워커의 로그를 합쳐서 3초마다 한 번만 출력
-                            const now = Date.now();
-                            if (now - lastLogTime > 20000) { // 3초마다 로그 출력
-                                console.log(`[${new Date().toLocaleTimeString()}] 경과 시간: ${elapsedTime.toFixed(1)}초, 찾은 솔루션: ${solutions.length}개`);
-                                lastLogTime = now;
-                            }
-                            break;
-                            
-                        case 'solution':
-                            // 솔루션 중복 체크
-                            const solutionStr = JSON.stringify(data.solution);
-                            const isDuplicate = solutions.some(sol => JSON.stringify(sol) === solutionStr);
-                            
-                            if (!isDuplicate) {
-                                // 경과 시간 계산
-                                const solutionElapsedTime = (Date.now() - solverStartTime) / 1000;
-                                console.log(`[${new Date().toLocaleTimeString()}] 솔루션 발견! 경과 시간: ${solutionElapsedTime.toFixed(1)}초, 총 ${solutions.length + 1}개`);
+                    // 워커 메시지 처리 함수
+                    worker.onmessage = function(e) {
+                        const data = e.data;
+                        
+                        switch (data.type) {
+                            case 'progress':
+                                // 진행 상황 업데이트 (경과 시간과 솔루션 개수만 표시)
+                                const elapsedTime = (Date.now() - solverStartTime) / 1000;
                                 
-                                solutions.push(data.solution);
-                                
-                                // 솔루션을 찾은 워커의 ID를 다른 워커에게 알려서 중복 검색 방지
-                                if (data.direction === 'forward' && globalBackwardWorker) {
-                                    globalBackwardWorker.postMessage({
-                                        type: 'solutionFound',
-                                        solutionId: solutionStr
-                                    });
-                                } else if (data.direction === 'backward' && globalForwardWorker) {
-                                    globalForwardWorker.postMessage({
-                                        type: 'solutionFound',
-                                        solutionId: solutionStr
-                                    });
+                                // 워커의 로그를 합쳐서 20초마다 한 번만 출력
+                                const now = Date.now();
+                                if (now - lastLogTime > 20000) {
+                                    console.log(`[${new Date().toLocaleTimeString()}] 경과 시간: ${elapsedTime.toFixed(1)}초, 찾은 솔루션: ${solutions.length}개`);
+                                    lastLogTime = now;
                                 }
+                                break;
                                 
-                                // 백트래킹 도중에도 솔루션 즉시 표시
-                                renderSingleSolution(data.solution, solutions.length);
+                            case 'solution':
+                                // 솔루션 중복 체크
+                                const solutionStr = JSON.stringify(data.solution);
+                                const isDuplicate = solutions.some(sol => JSON.stringify(sol) === solutionStr);
                                 
-                                // 충분한 솔루션을 찾았으면 다른 워커 종료
-                                if (solutions.length >= 3) {
-                                    if (globalForwardWorker) globalForwardWorker.terminate();
-                                    if (globalBackwardWorker) globalBackwardWorker.terminate();
+                                if (!isDuplicate) {
+                                    // 경과 시간 계산
+                                    const solutionElapsedTime = (Date.now() - solverStartTime) / 1000;
+                                    console.log(`[${new Date().toLocaleTimeString()}] 솔루션 발견! 경과 시간: ${solutionElapsedTime.toFixed(1)}초, 총 ${solutions.length + 1}개`);
+                                    
+                                    solutions.push(data.solution);
+                                    
+                                    // 솔루션을 찾은 워커의 ID를 다른 워커에게 알려서 중복 검색 방지
+                                    globalWorkers.forEach(otherWorker => {
+                                        if (otherWorker !== worker) {
+                                            otherWorker.postMessage({
+                                                type: 'solutionFound',
+                                                solutionId: solutionStr
+                                            });
+                                        }
+                                    });
+                                    
+                                    // 백트래킹 도중에도 솔루션 즉시 표시
+                                    renderSingleSolution(data.solution, solutions.length);
+                                    
+                                    // 충분한 솔루션을 찾았으면 다른 워커 종료
+                                    if (solutions.length >= 3) {
+                                        console.log(`[${new Date().toLocaleTimeString()}] 3개의 솔루션을 찾았습니다. 모든 워커를 종료합니다.`);
+                                        globalWorkers.forEach(worker => {
+                                            worker.terminate();
+                                        });
+                                        globalWorkers = [];
+                                        
+                                        // 솔루션 렌더링
+                                        renderSolutions(solutions);
+                                        resolve(solutions);
+                                    }
+                                }
+                                break;
+                                
+                            case 'complete':
+                                const completeElapsedTime = (Date.now() - solverStartTime) / 1000;
+                                console.log(`[${new Date().toLocaleTimeString()}] 워커 완료: 경과 시간 ${completeElapsedTime.toFixed(1)}초, 찾은 솔루션 ${solutions.length}개`);
+                                
+                                // 워커 완료 처리
+                                completedWorkers++;
+                                
+                                // 모든 워커가 완료되었는지 확인
+                                if (completedWorkers === workerCount) {
+                                    // 경과 시간 계산
+                                    const totalElapsedTime = (Date.now() - solverStartTime) / 1000;
+                                    console.log(`[${new Date().toLocaleTimeString()}] 모든 워커 완료! 경과 시간: ${totalElapsedTime.toFixed(1)}초, 총 ${solutions.length}개 솔루션 발견`);
+                                    
+                                    // 모든 워커 종료
+                                    globalWorkers.forEach(worker => {
+                                        worker.terminate();
+                                    });
+                                    globalWorkers = [];
                                     
                                     // 솔루션 렌더링
                                     renderSolutions(solutions);
                                     resolve(solutions);
                                 }
-                            }
-                            break;
-                            
-                        case 'complete':
-                            // 경과 시간 계산
-                            const completeElapsedTime = (Date.now() - solverStartTime) / 1000;
-                            console.log(`[${new Date().toLocaleTimeString()}] 워커 완료: 경과 시간 ${completeElapsedTime.toFixed(1)}초, 찾은 솔루션 ${solutions.length}개`);
-                            
-                            if (data.direction === 'forward') {
-                                globalForwardWorker.terminate();
-                                globalForwardWorker = null;
-                            } else {
-                                globalBackwardWorker.terminate();
-                                globalBackwardWorker = null;
-                            }
-                            
-                            // 두 워커 모두 완료되었는지 확인
-                            if (!globalForwardWorker && !globalBackwardWorker) {
-                                // 솔루션 렌더링
-                                renderSolutions(solutions);
-                                resolve(solutions);
-                            }
-                            break;
-                            
-                        case 'log':
-                            console.log(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} ${data.message}`);
-                            break;
-                            
-                        case 'error':
-                            console.error(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} 오류: ${data.message}`);
-                            break;
-                    }
+                                break;
+                                
+                            case 'log':
+                                console.log(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} ${data.message}`);
+                                break;
+                                
+                            case 'error':
+                                console.error(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} 오류: ${data.message}`);
+                                
+                                // 워커 오류 처리
+                                const errorWorkerIndex = globalWorkers.indexOf(worker);
+                                if (errorWorkerIndex !== -1) {
+                                    worker.terminate();
+                                    globalWorkers.splice(errorWorkerIndex, 1);
+                                }
+                                
+                                // 완료된 워커 수 증가
+                                completedWorkers++;
+                                
+                                // 모든 워커가 완료되었는지 확인
+                                if (completedWorkers === workerCount) {
+                                    // 솔루션 렌더링
+                                    renderSolutions(solutions);
+                                    resolve(solutions);
+                                }
+                                break;
+                        }
+                    };
+                    
+                    // 워커 오류 처리
+                    worker.onerror = (e) => {
+                        console.error(`[${new Date().toLocaleTimeString()}] 워커 오류: ${e.message}`);
+                        
+                        // 워커 종료
+                        const workerIndex = globalWorkers.indexOf(worker);
+                        if (workerIndex !== -1) {
+                            worker.terminate();
+                            globalWorkers.splice(workerIndex, 1);
+                        }
+                        
+                        // 완료된 워커 수 증가
+                        completedWorkers++;
+                        
+                        // 모든 워커가 완료되었는지 확인
+                        if (completedWorkers === workerCount) {
+                            // 솔루션 렌더링
+                            renderSolutions(solutions);
+                            resolve(solutions);
+                        }
+                    };
                 }
-                
-                // 워커 메시지 이벤트 리스너 설정
-                globalForwardWorker.onmessage = handleWorkerMessage;
-                globalBackwardWorker.onmessage = handleWorkerMessage;
-                
-                // 워커 오류 처리
-                globalForwardWorker.onerror = (e) => {
-                    console.error(`[${new Date().toLocaleTimeString()}] 정방향 워커 오류: ${e.message}`);
-                    globalForwardWorker.terminate();
-                    globalForwardWorker = null;
-                    
-                    // 두 워커 모두 종료되었는지 확인
-                    if (!globalForwardWorker && !globalBackwardWorker) {
-                        resolve(solutions);
-                    }
-                };
-                
-                globalBackwardWorker.onerror = (e) => {
-                    console.error(`[${new Date().toLocaleTimeString()}] 역방향 워커 오류: ${e.message}`);
-                    globalBackwardWorker.terminate();
-                    globalBackwardWorker = null;
-                    
-                    // 두 워커 모두 종료되었는지 확인
-                    if (!globalForwardWorker && !globalBackwardWorker) {
-                        resolve(solutions);
-                    }
-                };
                 
                 // 사전 셀 확정 로직 수행
                 const board = [];
@@ -675,22 +714,17 @@
                     blackCellBitmask: blackCellBitmask
                 };
                 
-                // 정방향 워커 초기화
-                globalForwardWorker.postMessage({
-                    type: 'init',
-                    data: puzzleData,
-                    direction: 'forward'
-                });
-                
-                // 역방향 워커 초기화
-                globalBackwardWorker.postMessage({
-                    type: 'init',
-                    data: puzzleData,
-                    direction: 'backward'
+                // 각 워커에 시작 메시지 전송
+                globalWorkers.forEach((worker, index) => {
+                    worker.postMessage({
+                        type: 'init',
+                        data: puzzleData,
+                        direction: directions[index]
+                    });
                 });
                 
                 // 워커 시작
-                console.log(`[${new Date().toLocaleTimeString()}] 병렬 퍼즐 솔버 시작: 두 방향에서 동시에 탐색합니다.`);
+                console.log(`[${new Date().toLocaleTimeString()}] 병렬 퍼즐 솔버 시작: ${workerCount}개의 워커에서 동시에 탐색합니다.`);
             } catch (error) {
                 console.error(`[${new Date().toLocaleTimeString()}] 워커 초기화 오류: ${error.message}`);
                 reject(error);

@@ -52,19 +52,83 @@ self.onmessage = function(e) {
                 blackCellBitmask = puzzleData.blackCellBitmask;
                 
                 // 영역 맵 생성
+                areaMap = {}; // 초기화
                 for (let i = 0; i < areas.length; i++) {
                     const area = areas[i];
-                    for (let j = 0; j < area.cells.length; j++) {
-                        const [row, col] = area.cells[j];
+                    const cells = area.cells;
+                    
+                    for (let j = 0; j < cells.length; j++) {
+                        const [row, col] = cells[j];
                         areaMap[`${row},${col}`] = i;
                     }
                 }
                 
-                // 시작 인덱스 결정 (방향에 따라)
-                let startIndex;
-                if (direction === 'forward') {
-                    // 앞에서 뒤로 탐색
-                    for (let i = 0; i < size * size; i++) {
+                // 방향 파싱
+                let isForward = direction.startsWith('forward');
+                let segmentNumber = 1;
+                
+                // 방향에서 세그먼트 번호 추출 (forward_1, backward_2 등)
+                if (direction.includes('_')) {
+                    segmentNumber = parseInt(direction.split('_')[1]);
+                }
+                
+                // 전체 보드 크기
+                const totalCells = size * size;
+                
+                // 시작 인덱스 결정
+                let startIndex = -1;
+                
+                // 8x8 사이즈의 경우 각 워커의 시작점을 각 줄의 첫 번째 칸으로 지정
+                if (size === 8 && segmentNumber <= 8) {
+                    // 워커 번호에 따라 담당 줄 결정 (0~7)
+                    const row = segmentNumber - 1;
+                    
+                    // 해당 줄의 첫 번째 빈 셀 찾기
+                    for (let col = 0; col < size; col++) {
+                        const pos = row * size + col;
+                        const idx = Math.floor(pos / 32);
+                        const mask = 1 << (pos % 32);
+                        
+                        if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
+                            startIndex = pos;
+                            break;
+                        }
+                    }
+                    
+                    // 시작 인덱스를 찾지 못했으면 다른 줄에서 찾기
+                    if (startIndex === -1) {
+                        for (let r = 0; r < size; r++) {
+                            if (r === row) continue; // 이미 검사한 줄은 건너뛰기
+                            
+                            for (let col = 0; col < size; col++) {
+                                const pos = r * size + col;
+                                const idx = Math.floor(pos / 32);
+                                const mask = 1 << (pos % 32);
+                                
+                                if (!(blackCellBitmask[idx] & mask) && board[r][col] === -1) {
+                                    startIndex = pos;
+                                    break;
+                                }
+                            }
+                            
+                            if (startIndex !== -1) break;
+                        }
+                    }
+                    
+                    // 시작 메시지 전송
+                    self.postMessage({
+                        type: 'log',
+                        message: `${direction} 워커 시작: ${row}번 줄 첫 칸에서 시작, 인덱스 ${startIndex}`,
+                        direction: direction
+                    });
+                } else if (isForward) {
+                    // 정방향 워커는 앞에서부터 탐색
+                    // 세그먼트 번호에 따라 다른 시작점 사용 (균등 분배)
+                    const startPercentage = (segmentNumber - 1) / 4; // 0%, 25%, 50%, 75%
+                    const startPos = Math.floor(totalCells * startPercentage);
+                    
+                    // 시작 인덱스 찾기
+                    for (let i = startPos; i < totalCells; i++) {
                         const row = Math.floor(i / size);
                         const col = i % size;
                         const pos = row * size + col;
@@ -74,11 +138,32 @@ self.onmessage = function(e) {
                         if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
                             startIndex = i;
                             break;
+                        }
+                    }
+                    
+                    // 앞에서 빈 셀을 찾지 못했으면 처음부터 다시 찾기
+                    if (startIndex === -1) {
+                        for (let i = 0; i < startPos; i++) {
+                            const row = Math.floor(i / size);
+                            const col = i % size;
+                            const pos = row * size + col;
+                            const idx = Math.floor(pos / 32);
+                            const mask = 1 << (pos % 32);
+                            
+                            if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
+                                startIndex = i;
+                                break;
+                            }
                         }
                     }
                 } else {
-                    // 뒤에서 앞으로 탐색
-                    for (let i = size * size - 1; i >= 0; i--) {
+                    // 역방향 워커는 뒤에서부터 탐색
+                    // 세그먼트 번호에 따라 다른 시작점 사용 (균등 분배)
+                    const startPercentage = (segmentNumber - 1) / 4; // 0%, 25%, 50%, 75%
+                    const startPos = totalCells - 1 - Math.floor(totalCells * startPercentage);
+                    
+                    // 시작 인덱스 찾기
+                    for (let i = startPos; i >= 0; i--) {
                         const row = Math.floor(i / size);
                         const col = i % size;
                         const pos = row * size + col;
@@ -90,22 +175,56 @@ self.onmessage = function(e) {
                             break;
                         }
                     }
+                    
+                    // 뒤에서 빈 셀을 찾지 못했으면 끝에서부터 다시 찾기
+                    if (startIndex === -1) {
+                        for (let i = totalCells - 1; i > startPos; i--) {
+                            const row = Math.floor(i / size);
+                            const col = i % size;
+                            const pos = row * size + col;
+                            const idx = Math.floor(pos / 32);
+                            const mask = 1 << (pos % 32);
+                            
+                            if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
+                                startIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 시작 인덱스를 찾지 못했으면 오류
+                if (startIndex === -1) {
+                    self.postMessage({
+                        type: 'log',
+                        message: `${direction} 워커: 빈 셀을 찾을 수 없음`,
+                        direction: direction
+                    });
+                    
+                    self.postMessage({
+                        type: 'complete',
+                        solutions: 0,
+                        iterations: 0,
+                        elapsedTime: 0,
+                        direction: direction
+                    });
+                    return;
                 }
                 
                 // 시작 메시지 전송
                 self.postMessage({
                     type: 'log',
-                    message: `${direction} 워커 시작: 인덱스 ${startIndex}부터 탐색`,
+                    message: `${direction} 워커 시작: 인덱스 ${startIndex}`,
                     direction: direction
                 });
                 
-                // 백트래킹 시작
+                // 백트래킹 시작 - 전체 보드 탐색
                 const startTime = Date.now();
-                const result = backtrack(startIndex);
+                backtrack(board, startIndex, 0, totalCells - 1, isForward);
                 const endTime = Date.now();
-                const elapsedTime = (endTime - startTime) / 1000;
                 
                 // 완료 메시지 전송
+                const elapsedTime = (endTime - startTime) / 1000;
                 self.postMessage({
                     type: 'complete',
                     solutions: solutions.length,
@@ -116,12 +235,16 @@ self.onmessage = function(e) {
                 break;
                 
             case 'solutionFound':
-                // 다른 워커가 찾은 솔루션 ID 추가
+                // 다른 워커가 찾은 솔루션 ID 저장
                 knownSolutionIds.add(message.solutionId);
                 break;
                 
             default:
-                console.error(`알 수 없는 메시지 타입: ${message.type}`);
+                self.postMessage({
+                    type: 'error',
+                    message: `알 수 없는 메시지 타입: ${message.type}`,
+                    direction: direction
+                });
         }
     } catch (error) {
         self.postMessage({
@@ -132,6 +255,49 @@ self.onmessage = function(e) {
         });
     }
 };
+
+// 영역 제약 조건 검사 함수
+function checkAreaConstraints(board, row, col, color) {
+    // 현재 셀이 속한 영역 찾기
+    const areaIndex = areaMap[`${row},${col}`];
+    if (areaIndex === undefined) return true;
+    
+    const area = areas[areaIndex];
+    const required = area.required; // hint 대신 required 속성 사용
+    
+    // 힌트가 없으면 제약 없음
+    if (required === undefined) return true;
+    
+    // 현재 영역의 회색 셀 수와 빈 셀 수 계산
+    let grayCount = 0;
+    let undecidedCount = 0;
+    
+    for (let i = 0; i < area.cells.length; i++) {
+        const [r, c] = area.cells[i];
+        if (r === row && c === col) {
+            // 현재 셀은 색상 적용 전이므로 파라미터로 받은 색상 사용
+            if (color === 1) grayCount++;
+        } else if (board[r][c] === 1) {
+            grayCount++;
+        } else if (board[r][c] === -1) {
+            undecidedCount++;
+        }
+    }
+    
+    // 이미 힌트보다 많은 회색 셀이 있으면 실패
+    if (grayCount > required) return false;
+    
+    // 남은 셀을 모두 회색으로 채워도 힌트를 만족할 수 없으면 실패
+    if (grayCount + undecidedCount < required) return false;
+    
+    // 현재 셀을 회색으로 설정하려는데, 이미 영역 내 회색 셀이 힌트와 같으면 실패
+    if (color === 1 && grayCount > required) return false;
+    
+    // 현재 셀을 흰색으로 설정하려는데, 남은 빈 셀을 모두 회색으로 채워도 힌트에 도달할 수 없으면 실패
+    if (color === 0 && grayCount + undecidedCount < required) return false;
+    
+    return true;
+}
 
 // 연속된 같은 색상 체크 함수
 function isValidColor(board, row, col, color) {
@@ -180,44 +346,11 @@ function isValidColor(board, row, col, color) {
     return true;
 }
 
-// 영역 제약 조건 검사 함수
-function checkAreaConstraints(board, row, col, color) {
-    const areaIndex = areaMap[`${row},${col}`];
-    if (areaIndex === undefined) return true;
-    
-    const area = areas[areaIndex];
-    const required = area.required; // hint 대신 required 속성 사용
-    
-    // 힌트가 없으면 제약 없음
-    if (required === undefined) return true;
-    
-    // 현재 영역의 회색 셀 수 계산
-    let grayCount = 0;
-    let undecidedCount = 0;
-    
-    for (let i = 0; i < area.cells.length; i++) {
-        const [r, c] = area.cells[i];
-        if (board[r][c] === 1 || (r === row && c === col && color === 1)) {
-            grayCount++;
-        } else if (board[r][c] === -1 && !(r === row && c === col)) {
-            undecidedCount++;
-        }
-    }
-    
-    // 이미 힌트보다 많은 회색 셀이 있으면 실패
-    if (grayCount > required) return false;
-    
-    // 남은 셀을 모두 회색으로 채워도 힌트를 만족할 수 없으면 실패
-    if (grayCount + undecidedCount < required) return false;
-    
-    return true;
-}
-
 // 회색 셀 연결 가능성 체크 함수
 function canConnectToGray(board, row, col) {
-    // 인접한 셀 중 회색 셀이 있는지 확인
     const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
     
+    // 인접한 회색 타일 확인
     for (const [dr, dc] of directions) {
         const newRow = row + dr;
         const newCol = col + dc;
@@ -244,172 +377,196 @@ function canConnectToGray(board, row, col) {
     }
     
     if (!hasEmptyNearby) return false;
-    
+
     // 기존 회색 타일 존재 여부 확인
     let hasExistingGray = false;
-    for (let r = 0; r < size; r++) {
+    outerLoop: for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
             if (board[r][c] === 1) {
                 hasExistingGray = true;
-                break;
+                break outerLoop;
             }
         }
-        if (hasExistingGray) break;
     }
-    
-    return !hasExistingGray || hasEmptyNearby;
-}
 
-// DFS로 회색 셀 연결성 검사
-function dfsConnectivity(board, row, col, visited, size) {
-    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    
-    for (const [dr, dc] of directions) {
-        const newRow = row + dr;
-        const newCol = col + dc;
-        
-        if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
-            if (board[newRow][newCol] === 1 && !visited[newRow][newCol]) {
-                visited[newRow][newCol] = true;
-                dfsConnectivity(board, newRow, newCol, visited, size);
-            }
-        }
-    }
+    return !hasExistingGray || hasEmptyNearby;
 }
 
 // 회색 셀 연결성 검사 함수
 function checkGrayConnect(board, size) {
-    // 회색 셀 찾기
+    // 회색 셀 비트마스크 생성
+    const grayBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+    let grayCount = 0;
     let firstGrayCell = [-1, -1];
     
+    // 회색 셀 찾기 및 비트마스크 설정
     for (let row = 0; row < size; row++) {
         for (let col = 0; col < size; col++) {
             if (board[row][col] === 1) {
-                firstGrayCell = [row, col];
-                break;
+                const pos = row * size + col;
+                grayBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+                grayCount++;
+                
+                if (firstGrayCell[0] === -1) {
+                    firstGrayCell = [row, col];
+                }
             }
         }
-        if (firstGrayCell[0] !== -1) break;
     }
     
-    // 회색 셀이 없으면 연결성 체크 불필요
-    if (firstGrayCell[0] === -1) return true;
+    // 회색 셀이 없거나 하나면 연결성 체크 불필요
+    if (grayCount <= 1) return true;
     
-    // 방문 배열 초기화
-    const visited = new Array(size).fill(0).map(() => new Array(size).fill(false));
+    // 방문 배열 초기화 (비트마스크)
+    const visitedBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
     
     // 첫 번째 회색 셀부터 DFS 시작
     const [startRow, startCol] = firstGrayCell;
-    visited[startRow][startCol] = true;
-    dfsConnectivity(board, startRow, startCol, visited, size);
     
-    // 모든 회색 셀 방문 확인
-    for (let row = 0; row < size; row++) {
-        for (let col = 0; col < size; col++) {
-            if (board[row][col] === 1 && !visited[row][col]) {
-                return false;
-            }
+    // DFS로 연결된 회색 셀 탐색
+    function dfs(row, col) {
+        if (row < 0 || row >= size || col < 0 || col >= size) {
+            return;
+        }
+        
+        const pos = row * size + col;
+        const idx = Math.floor(pos / 32);
+        const mask = 1 << (pos % 32);
+        
+        // 이미 방문했거나 회색 셀이 아니면 건너뜀
+        if ((visitedBitmask[idx] & mask) || board[row][col] !== 1) {
+            return;
+        }
+        
+        // 방문 표시
+        visitedBitmask[idx] |= mask;
+        
+        // 4방향 탐색
+        dfs(row - 1, col); // 위
+        dfs(row + 1, col); // 아래
+        dfs(row, col - 1); // 왼쪽
+        dfs(row, col + 1); // 오른쪽
+    }
+    
+    dfs(startRow, startCol);
+    
+    // 모든 회색 셀 방문 확인 (비트마스크 비교)
+    for (let i = 0; i < grayBitmask.length; i++) {
+        // 방문하지 않은 회색 셀이 있는지 확인
+        // grayBitmask에는 1이지만 visitedBitmask에는 0인 비트가 있으면 연결되지 않은 것
+        if ((grayBitmask[i] & ~visitedBitmask[i]) !== 0) {
+            return false;
         }
     }
     
     return true;
 }
 
-// 백트래킹 함수
-function backtrack(index) {
+// 백트래킹 알고리즘
+function backtrack(board, index, startPosition, endPosition, isForward) {
     globalIterationCount++;
-    
-    // 진행 상황 업데이트
-    if (globalIterationCount % progressInterval === 0) {
-        const progress = (globalIterationCount / 1000000) * 100; // 진행률 계산 (예상 반복 횟수 기준)
-        self.postMessage({
-            type: 'progress',
-            progress: Math.min(progress, 99.9), // 100%가 되지 않도록 제한
-            iterationCount: globalIterationCount,
-            direction: direction
-        });
+    if (globalIterationCount % 20000000 === 0) {
+        updateProgress();
     }
     
-    // 모든 빈 셀을 처리했는지 확인
-    if (index === -1) {
-        // 회색 셀 연결성 확인
-        if (!checkGrayConnect(board, size)) return false;
-        
-        // 솔루션 추가
-        const solutionCopy = board.map(row => [...row]);
-        const solutionStr = JSON.stringify(solutionCopy);
-        
-        // 이미 다른 워커가 찾은 솔루션인지 확인
-        if (knownSolutionIds.has(solutionStr)) {
-            return false; // 이미 알려진 솔루션이면 건너뛰기
-        }
-        
-        solutions.push(solutionCopy);
-        globalSolutionsCount++;
-        
-        // 솔루션 발견 메시지 전송
-        self.postMessage({
-            type: 'solution',
-            solution: solutionCopy,
-            solutionIndex: globalSolutionsCount,
-            direction: direction
-        });
-        
-        // 3개 솔루션을 찾으면 종료
-        return solutions.length >= 3;
-    }
-    
-    // 현재 위치 계산
-    const row = Math.floor(index / size);
-    const col = index % size;
-    
-    // 다음 빈 셀 찾기 - 단순히 방향에 따라 순차적으로 탐색
+    // 모든 셀이 채워졌는지 확인
+    let allFilled = true;
     let nextIndex = -1;
     
-    if (direction === 'forward') {
-        // 앞에서 뒤로 탐색
-        for (let i = index + 1; i < size * size; i++) {
-            const nextRow = Math.floor(i / size);
-            const nextCol = i % size;
-            const nextPos = nextRow * size + nextCol;
-            const nextIdx = Math.floor(nextPos / 32);
-            const nextMask = 1 << (nextPos % 32);
+    // 전체 보드 검사
+    const totalCells = size * size;
+    for (let i = 0; i < totalCells; i++) {
+        const row = Math.floor(i / size);
+        const col = i % size;
+        const pos = row * size + col;
+        const idx = Math.floor(pos / 32);
+        const mask = 1 << (pos % 32);
+        
+        // 블랙 셀이 아니고 아직 채워지지 않은 셀인 경우
+        if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
+            allFilled = false;
             
-            // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
-            if (!(blackCellBitmask[nextIdx] & nextMask) && board[nextRow][nextCol] === -1) {
-                nextIndex = i;
-                break;
+            // 방향에 따라 다음 인덱스 결정
+            if (isForward) {
+                // 정방향은 현재 인덱스 이후의 첫 번째 빈 셀
+                if (i >= index) {
+                    nextIndex = i;
+                    break;
+                }
+            } else {
+                // 역방향은 현재 인덱스 이전의 첫 번째 빈 셀
+                if (i <= index) {
+                    nextIndex = i;
+                    // 역방향은 계속 검색하여 가장 큰 인덱스 찾기
+                }
             }
         }
-    } else {
-        // 뒤에서 앞으로 탐색
-        for (let i = index - 1; i >= 0; i--) {
-            const nextRow = Math.floor(i / size);
-            const nextCol = i % size;
-            const nextPos = nextRow * size + nextCol;
-            const nextIdx = Math.floor(nextPos / 32);
-            const nextMask = 1 << (nextPos % 32);
+    }
+    
+    // 역방향에서 nextIndex를 찾지 못했는데 빈 셀이 있는 경우, 처음부터 다시 검색
+    if (!isForward && nextIndex === -1 && !allFilled) {
+        for (let i = totalCells - 1; i >= 0; i--) {
+            const row = Math.floor(i / size);
+            const col = i % size;
+            const pos = row * size + col;
+            const idx = Math.floor(pos / 32);
+            const mask = 1 << (pos % 32);
             
-            // 블랙 셀이 아니고 아직 색이 결정되지 않은 셀인지 확인
-            if (!(blackCellBitmask[nextIdx] & nextMask) && board[nextRow][nextCol] === -1) {
+            if (!(blackCellBitmask[idx] & mask) && board[row][col] === -1) {
                 nextIndex = i;
                 break;
             }
         }
     }
     
-    // 두 가지 색상 시도 순서 결정 - 모든 퍼즐에 동일한 전략 적용
-    // 흰색(0)을 먼저 시도
-    const colors = [0, 1];
+    // 모든 셀이 채워졌으면 회색 셀 연결성 검사
+    if (allFilled) {
+        // 회색 셀 연결성 검사
+        if (checkGrayConnect(board, size)) {
+            // 솔루션 발견
+            const solution = board.map(row => [...row]);
+            
+            // 솔루션 문자열 생성
+            const solutionStr = JSON.stringify(solution);
+            
+            // 이미 알려진 솔루션인지 확인
+            if (!knownSolutionIds.has(solutionStr)) {
+                // 솔루션 저장
+                solutions.push(solution);
+                globalSolutionsCount++;
+                
+                // 솔루션 ID 저장
+                knownSolutionIds.add(solutionStr);
+                
+                // 솔루션 메시지 전송
+                self.postMessage({
+                    type: 'solution',
+                    solution: solution,
+                    solutionIndex: globalSolutionsCount,
+                    direction: direction
+                });
+                
+                // 3개 솔루션을 찾으면 종료
+                if (globalSolutionsCount >= 3) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     
-    for (const color of colors) {
+    // 다음 빈 셀이 없으면 실패
+    if (nextIndex === -1) {
+        return false;
+    }
+    
+    const row = Math.floor(nextIndex / size);
+    const col = nextIndex % size;
+    
+    // 회색(1)을 먼저 시도 (색상 순서 최적화)
+    for (let color of [1, 0]) {
         // 색상 유효성 검사
         if (!isValidColor(board, row, col, color)) {
-            continue;
-        }
-        
-        // 회색 타일 연결 가능성 체크
-        if (color === 1 && !canConnectToGray(board, row, col)) {
             continue;
         }
         
@@ -418,11 +575,17 @@ function backtrack(index) {
             continue;
         }
         
-        // 색상 설정
+        // 회색 셀 연결 가능성 검사 (회색 셀인 경우만)
+        if (color === 1 && !canConnectToGray(board, row, col)) {
+            continue;
+        }
+        
+        // 색상 적용
         board[row][col] = color;
         
-        // 재귀 호출
-        if (backtrack(nextIndex)) {
+        // 재귀 호출 - 다음 인덱스는 방향에 따라 결정
+        const nextStartIndex = isForward ? nextIndex + 1 : nextIndex - 1;
+        if (backtrack(board, nextStartIndex, startPosition, endPosition, isForward)) {
             return true;
         }
         
@@ -431,4 +594,18 @@ function backtrack(index) {
     }
     
     return false;
+}
+
+// 진행 상황 업데이트 함수
+function updateProgress() {
+    // 진행률 계산 (대략적인 추정)
+    const progress = Math.min((globalIterationCount / 10000000) * 100, 99.9);
+    
+    // 진행 상황 메시지 전송
+    self.postMessage({
+        type: 'progress',
+        progress: Math.min(progress, 99.9), // 100%가 되지 않도록 제한
+        iterationCount: globalIterationCount,
+        direction: direction
+    });
 }
