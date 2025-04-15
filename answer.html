@@ -482,13 +482,15 @@
                 
                 console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 크기: ${puzzle.size}x${puzzle.size}, 워커 수: ${workerCount}`);
                 
-                // 워커 방향 설정 - 단순화된 방식
+                // 워커 방향 설정 - 명확한 번호 부여
                 const directions = [];
                 for (let i = 0; i < workerCount; i++) {
-                    if (i % 2 === 0) {
-                        directions.push(`forward_${Math.floor(i/2) + 1}`);
+                    if (i < workerCount / 2) {
+                        // 앞쪽 절반은 forward 워커 (1~4)
+                        directions.push(`워커_${i + 1}`);
                     } else {
-                        directions.push(`backward_${Math.floor(i/2) + 1}`);
+                        // 뒤쪽 절반은 backward 워커 (5~8)
+                        directions.push(`워커_${i + 1}`);
                     }
                 }
                 
@@ -559,7 +561,7 @@
                                 
                             case 'complete':
                                 const completeElapsedTime = (Date.now() - solverStartTime) / 1000;
-                                console.log(`[${new Date().toLocaleTimeString()}] 워커 완료: 경과 시간 ${completeElapsedTime.toFixed(1)}초, 찾은 솔루션 ${solutions.length}개`);
+                                console.log(`[${new Date().toLocaleTimeString()}] 워커 ${data.workerNumber} 완료: 경과 시간 ${completeElapsedTime.toFixed(1)}초, 찾은 솔루션 ${solutions.length}개`);
                                 
                                 // 워커 완료 처리
                                 completedWorkers++;
@@ -583,11 +585,11 @@
                                 break;
                                 
                             case 'log':
-                                console.log(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} ${data.message}`);
+                                console.log(`[${new Date().toLocaleTimeString()}] ${data.message}`);
                                 break;
                                 
                             case 'error':
-                                console.error(`[${new Date().toLocaleTimeString()}] ${data.direction || ''} 오류: ${data.message}`);
+                                console.error(`[${new Date().toLocaleTimeString()}] 오류: ${data.message}`);
                                 
                                 // 워커 오류 처리
                                 const errorWorkerIndex = globalWorkers.indexOf(worker);
@@ -719,7 +721,8 @@
                     worker.postMessage({
                         type: 'init',
                         data: puzzleData,
-                        direction: directions[index]
+                        direction: directions[index],
+                        workerNumber: index + 1 // 워커 번호 추가
                     });
                 });
                 

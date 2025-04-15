@@ -63,14 +63,13 @@ self.onmessage = function(e) {
                     }
                 }
                 
-                // 방향 파싱
-                let isForward = direction.startsWith('forward');
-                let segmentNumber = 1;
+                // 방향 파싱 - 워커 번호에 따라 방향 결정
+                const workerNumber = parseInt(direction.split('워커_')[1]);
+                // 워커 번호가 1~4면 forward, 5~8이면 backward
+                let isForward = workerNumber <= 4;
                 
-                // 방향에서 세그먼트 번호 추출 (forward_1, backward_2 등)
-                if (direction.includes('_')) {
-                    segmentNumber = parseInt(direction.split('_')[1]);
-                }
+                // 워커 번호 조정 (backward 워커는 5~8이지만 계산을 위해 1~4로 변환)
+                const adjustedWorkerNumber = isForward ? workerNumber : (workerNumber - 4);
                 
                 // 전체 보드 크기
                 const totalCells = size * size;
@@ -79,9 +78,9 @@ self.onmessage = function(e) {
                 let startIndex = -1;
                 
                 // 8x8 사이즈의 경우 각 워커의 시작점을 각 줄의 첫 번째 칸으로 지정
-                if (size === 8 && segmentNumber <= 8) {
+                if (size === 8 && workerNumber <= 8) {
                     // 워커 번호에 따라 담당 줄 결정 (0~7)
-                    const row = segmentNumber - 1;
+                    const row = workerNumber - 1;
                     
                     // 해당 줄의 첫 번째 빈 셀 찾기
                     for (let col = 0; col < size; col++) {
@@ -118,13 +117,13 @@ self.onmessage = function(e) {
                     // 시작 메시지 전송
                     self.postMessage({
                         type: 'log',
-                        message: `${direction} 워커 시작: ${row}번 줄 첫 칸에서 시작, 인덱스 ${startIndex}`,
+                        message: `워커 ${workerNumber} 시작: ${row}번 줄 첫 칸에서 시작, 인덱스 ${startIndex}`,
                         direction: direction
                     });
                 } else if (isForward) {
                     // 정방향 워커는 앞에서부터 탐색
-                    // 세그먼트 번호에 따라 다른 시작점 사용 (균등 분배)
-                    const startPercentage = (segmentNumber - 1) / 4; // 0%, 25%, 50%, 75%
+                    // 워커 번호에 따라 다른 시작점 사용 (균등 분배)
+                    const startPercentage = (adjustedWorkerNumber - 1) / 4; // 0%, 25%, 50%, 75%
                     const startPos = Math.floor(totalCells * startPercentage);
                     
                     // 시작 인덱스 찾기
@@ -158,8 +157,8 @@ self.onmessage = function(e) {
                     }
                 } else {
                     // 역방향 워커는 뒤에서부터 탐색
-                    // 세그먼트 번호에 따라 다른 시작점 사용 (균등 분배)
-                    const startPercentage = (segmentNumber - 1) / 4; // 0%, 25%, 50%, 75%
+                    // 워커 번호에 따라 다른 시작점 사용 (균등 분배)
+                    const startPercentage = (adjustedWorkerNumber - 1) / 4; // 0%, 25%, 50%, 75%
                     const startPos = totalCells - 1 - Math.floor(totalCells * startPercentage);
                     
                     // 시작 인덱스 찾기
@@ -197,7 +196,7 @@ self.onmessage = function(e) {
                 if (startIndex === -1) {
                     self.postMessage({
                         type: 'log',
-                        message: `${direction} 워커: 빈 셀을 찾을 수 없음`,
+                        message: `워커 ${workerNumber}: 빈 셀을 찾을 수 없음`,
                         direction: direction
                     });
                     
@@ -206,7 +205,8 @@ self.onmessage = function(e) {
                         solutions: 0,
                         iterations: 0,
                         elapsedTime: 0,
-                        direction: direction
+                        direction: direction,
+                        workerNumber: workerNumber
                     });
                     return;
                 }
@@ -214,7 +214,7 @@ self.onmessage = function(e) {
                 // 시작 메시지 전송
                 self.postMessage({
                     type: 'log',
-                    message: `${direction} 워커 시작: 인덱스 ${startIndex}`,
+                    message: `워커 ${workerNumber} 시작: 인덱스 ${startIndex}부터 ${isForward ? '정방향' : '역방향'} 탐색`,
                     direction: direction
                 });
                 
@@ -230,7 +230,8 @@ self.onmessage = function(e) {
                     solutions: solutions.length,
                     iterations: globalIterationCount,
                     elapsedTime: elapsedTime,
-                    direction: direction
+                    direction: direction,
+                    workerNumber: workerNumber
                 });
                 break;
                 
