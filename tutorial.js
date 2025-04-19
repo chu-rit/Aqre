@@ -101,11 +101,29 @@ function createTutorial(config = {}) {
     skipButton.style.right = '10px';
     tutorialOverlay.appendChild(skipButton); 
 
-    // -SKIP- 버튼 클릭 시 듀토리얼 숨기기
+    // -SKIP- 버튼 클릭 시 튜토리얼 완전히 종료
     skipButton.addEventListener('click', function() {
         const tutorialOverlay = document.getElementById('tutorialOverlay');
         if (tutorialOverlay) {
-            tutorialOverlay.style.display = 'none';
+            // 하이라이트된 모든 셀의 하이라이트 제거
+            document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {
+                cell.classList.remove('tutorial-highlight');
+                cell.classList.remove('with-z-index');
+            });
+            
+            // 모든 하이라이트 오버레이 제거
+            document.querySelectorAll('.highlight-overlay').forEach(el => {
+                el.remove();
+            });
+            
+            // 튜토리얼 오버레이 제거
+            tutorialOverlay.remove();
+            
+            // 이벤트 리스너 제거
+            if (globalTutorialCellClickHandler) {
+                document.removeEventListener('click', globalTutorialCellClickHandler);
+                globalTutorialCellClickHandler = null;
+            }
         }
     });
 

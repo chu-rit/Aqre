@@ -2,11 +2,12 @@
 const BOARD_SIZE = 6;
 const COLOR_STATES = ['white', 'gray'];
 
-// 퍼즐 데이터 
-let currentLevel = 0;
+// 전역 변수 선언
+let currentLevel = 1;
 let gameBoard = [];
-let moves = 0;
 let gameStarted = false;
+let moves = 0;
+let gameStartTime = 0; // 게임 시작 시간 기록용 변수
 
 // 클리어된 레벨 정보 (localStorage 사용)
 let clearedLevels = new Set(JSON.parse(localStorage.getItem('clearedLevels') || '[]'));
@@ -223,6 +224,7 @@ function startGame(levelId = 11) {
     // 게임 시작 상태 설정
     gameStarted = true;
     moves = 0;
+    gameStartTime = Date.now(); // 게임 시작 시간 기록
     
     // 게임 보드 렌더링
     renderBoard();
@@ -852,6 +854,20 @@ function showGameClearPopup() {
 
     // 움직임 수 표시
     clearMoves.textContent = moves;
+    
+    // 경과 시간 계산 및 표시
+    const clearTime = document.getElementById('clearTime');
+    if (clearTime && gameStartTime > 0) {
+        const elapsedTime = Math.floor((Date.now() - gameStartTime) / 1000); // 초 단위로 변환
+        const minutes = Math.floor(elapsedTime / 60);
+        const seconds = elapsedTime % 60;
+        
+        if (minutes > 0) {
+            clearTime.textContent = `${minutes}분 ${seconds}초`;
+        } else {
+            clearTime.textContent = `${seconds}초`;
+        }
+    }
 
     // gameClearMessage.textContent = "Game clear!";
     clearPopupButton.textContent = "Go to list";
