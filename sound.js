@@ -13,10 +13,11 @@ let isSoundEnabled = true;
 // 배경음 설정
 let isBgmEnabled = true;
 
-// BGM 오디오 요소 생성
-const bgmAudio = new Audio('sound/bgm.mp3');
-bgmAudio.loop = true;
-bgmAudio.volume = 0.3;
+// BGM 관련 변수
+let bgmBuffer = null;
+let bgmSource = null;
+let bgmGainNode = null;
+let bgmPlaying = false;
 
 // 게임 활성화 상태 추적 변수
 let isGameActive = false;
@@ -51,6 +52,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tapBuffer = await loadSound('sound/tap.mp3');
     clearBuffer = await loadSound('sound/clear.mp3');
+    
+    // BGM 로드
+    try {
+        bgmBuffer = await loadSound('sound/bgm.mp3');
+        console.log('BGM 로드 완료');
+    } catch (error) {
+        console.error('BGM 로드 실패:', error);
+    }
+
+    // BGM 게인 노드 생성 (볼륨 조절용)
+    bgmGainNode = audioCtx.createGain();
+    bgmGainNode.gain.value = 0.3; // 볼륨 설정 (0.3 = 30%)
+    bgmGainNode.connect(audioCtx.destination);
 
     // Add a flag to ensure AudioContext.resume() is called only once
     let audioCtxResumed = false;
@@ -116,9 +130,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         bgmToggle.addEventListener('change', function() {
             isBgmEnabled = this.checked;
             if (isBgmEnabled) {
-                bgmAudio.play(); // Use bgmAudio
+                playBGM(); // Web Audio API로 BGM 재생
             } else {
-                bgmAudio.pause(); // Use bgmAudio
+                pauseBGM(); // Web Audio API로 BGM 정지
             }
             localStorage.setItem('bgmEnabled', isBgmEnabled);
         });
@@ -130,9 +144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         isBgmEnabled = savedBgmSetting === 'true';
         if (bgmToggle) {
             bgmToggle.checked = isBgmEnabled;
-            if (isBgmEnabled) {
-                bgmAudio.play(); // Use bgmAudio
-            }
         }
     }
 
@@ -150,37 +161,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         soundToggle.checked = isSoundEnabled;
     }
 
-    // BGM 재생 함수
+    // BGM 재생 함수 (Web Audio API 사용)
     function playBGM() {
         // 게임이 활성화 상태가 아니면 재생하지 않음
         if (!isGameActive) return;
 
         // 이미 재생 중이면 무시
-        if (!bgmAudio.paused) return;
+        if (bgmPlaying) return;
 
         // BGM 토글 상태 확인
-        if (!isBgmEnabled) return;
+        if (!isBgmEnabled || !bgmBuffer) return;
         
         // AudioContext 재개
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
 
-        // BGM 재생
-        bgmAudio.play()
-            .then(() => {
-                console.log('BGM 재생 시작');
-                // 최초 재생 시 로컬 스토리지에 저장
-                localStorage.setItem(BGM_STORAGE_KEY, 'true');
-            })
-            .catch(error => {
-                console.error('BGM 재생 실패:', error);
-            });
+        try {
+            // 이전 소스 정리
+            if (bgmSource) {
+                bgmSource.stop();
+                bgmSource.disconnect();
+            }
+            
+            // 새 소스 생성
+            bgmSource = audioCtx.createBufferSource();
+            bgmSource.buffer = bgmBuffer;
+            bgmSource.loop = true;
+            bgmSource.connect(bgmGainNode);
+            
+            // BGM 재생 시작
+            bgmSource.start(0);
+            bgmPlaying = true;
+            
+            // 소스 종료 시 처리
+            bgmSource.onended = () => {
+                if (bgmSource) {
+                    bgmPlaying = false;
+                }
+            };
+            
+            console.log('BGM 재생 시작');
+            localStorage.setItem(BGM_STORAGE_KEY, 'true');
+        } catch (error) {
+            console.error('BGM 재생 실패:', error);
+        }
     }
 
     // BGM 일시정지 함수
     function pauseBGM() {
-        bgmAudio.pause();
+        if (bgmSource && bgmPlaying) {
+            try {
+                bgmSource.stop();
+                bgmPlaying = false;
+            } catch (error) {
+                console.error('BGM 정지 실패:', error);
+            }
+        }
     }
 
     // 게임 활성화 상태 설정 함수
