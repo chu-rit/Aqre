@@ -238,9 +238,36 @@ export default function Page() {
         </View>
         {/* violationMessages를 게임보드 하단에만 표시 */}
         {violationMessages.length > 0 && (
-          <View style={{ marginTop: 16, marginBottom: 4 }}>
+          <View style={{
+            marginTop: 16,
+            marginBottom: 4,
+            backgroundColor: '#ffeaea',
+            borderRadius: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            shadowColor: '#e00',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 8,
+            elevation: 4,
+            alignSelf: 'center',
+            width: '95%',
+            borderWidth: 1.5,
+            borderColor: '#ffb3b3',
+          }}>
             {violationMessages.map((msg, idx) => (
-              <Text key={idx} style={{ color: 'red', fontWeight: 'bold', textAlign: 'center' }}>{msg}</Text>
+              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                <Text style={{ fontSize: 19, marginRight: 6 }}>⚠️</Text>
+                <Text style={{
+                  color: '#b00020',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  textAlign: 'center',
+                  flexShrink: 1,
+                }}>
+                  {msg}
+                </Text>
+              </View>
             ))}
           </View>
         )}
