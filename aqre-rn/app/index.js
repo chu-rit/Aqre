@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAqreSound } from '../src/hooks/sound';
 import { Switch } from 'react-native';
 import { StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
 
@@ -6,8 +7,10 @@ import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import { checkGameRules } from '../src/logic/gameRules';
 
 // Aqre React Native 메인 페이지
-// Aqre React Native 메인 페이지
 export default function Page() {
+  // 사운드 객체 ref (커스텀 훅으로 대체)
+  const { bgmSound, tapSound, clearSound, bgmPlay, bgmReady } = useAqreSound();
+
   // ... 기존 state
   const [optionVisible, setOptionVisible] = useState(false); // 옵션 팝업 표시 여부
   const [soundEnabled, setSoundEnabled] = useState(true); // 효과음
@@ -18,7 +21,7 @@ export default function Page() {
   const [moveCount, setMoveCount] = useState(0); // 조작 횟수
   const [startTime, setStartTime] = useState(null); // 퍼즐 시작 시간 (Date.now())
   const [clearTime, setClearTime] = useState(null); // 클리어 시각
-  // ...
+
   // 모든 훅 선언은 컴포넌트 최상단에 위치해야 함
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null); // 현재 선택된 퍼즐
@@ -71,6 +74,20 @@ export default function Page() {
     setClearPopupVisible(false);
   }, [selectedPuzzle]);
 
+  // 배경음 토글 시 즉시 반영
+  useEffect(() => {
+    if (bgmReady && bgmSound.current) {
+      if (bgmEnabled) {
+        // 모바일: 안전하게 재생
+        if (Platform.OS !== 'web') {
+          bgmPlay();
+        }
+      } else {
+        try { bgmSound.current.stopAsync(); } catch (e) {}
+      }
+    }
+  }, [bgmEnabled, bgmReady]);
+
 
   // 레벨 선택 화면(levelScreen)
   if (screen === 'level') {
@@ -84,7 +101,15 @@ export default function Page() {
     return (
       <SafeAreaView style={styles.levelScreen}>
         <View style={styles.levelHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setScreen('start')}>
+          <TouchableOpacity style={styles.backButton} onPress={async () => {
+            if (soundEnabled && tapSound.current) {
+              try { await tapSound.current.replayAsync(); } catch (e) {}
+            }
+            if (bgmEnabled && Platform.OS === 'web') {
+              bgmPlay();
+            }
+            setScreen('start');
+          }}>
             <Text style={styles.backButtonText}>{'<'}</Text>
           </TouchableOpacity>
           <Text style={styles.levelTitle}>Level Select</Text>
@@ -100,7 +125,13 @@ export default function Page() {
                   <TouchableOpacity
                     key={puzzle.id}
                     style={styles.levelButton}
-                    onPress={() => {
+                    onPress={async () => {
+                      if (soundEnabled && tapSound.current) {
+                        try { await tapSound.current.replayAsync(); } catch (e) {}
+                      }
+                      if (bgmEnabled && Platform.OS === 'web') {
+                        bgmPlay();
+                      }
                       setSelectedPuzzle(puzzle);
                       setScreen('game');
                     }}
@@ -132,7 +163,12 @@ export default function Page() {
           <View style={{ position: 'absolute', left: 0, top: 0, width: '100%', flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 8 }}>
             <TouchableOpacity
               style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}
-              onPress={() => setOptionVisible(false)}
+              onPress={async () => {
+                if (soundEnabled && tapSound.current) {
+                  try { await tapSound.current.replayAsync(); } catch (e) {}
+                }
+                setOptionVisible(false);
+              }}
             >
               <Text style={{ fontSize: 28, color: '#1976d2', fontWeight: 'bold' }}>{'<'}</Text>
             </TouchableOpacity>
@@ -217,12 +253,21 @@ export default function Page() {
         )
       );
       setMoveCount(cnt => cnt + 1);
+      // 셀 클릭 시 tap 사운드
+      if (soundEnabled && tapSound.current) {
+        tapSound.current.replayAsync();
+      }
     };
 
     return (
       <SafeAreaView style={styles.levelScreen}>
         <View style={styles.levelHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setScreen('level')}>
+          <TouchableOpacity style={styles.backButton} onPress={() => {
+            if (soundEnabled && tapSound.current) {
+              tapSound.current.replayAsync();
+            }
+            setScreen('level');
+          }}>
             <Text style={styles.backButtonText}>{'<'}</Text>
           </TouchableOpacity>
           <Text style={styles.levelTitle}>Level {selectedPuzzle.id}</Text>
@@ -449,7 +494,12 @@ export default function Page() {
           <View style={{ position: 'absolute', left: 0, top: 0, width: '100%', flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 8 }}>
             <TouchableOpacity
               style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}
-              onPress={() => setOptionVisible(false)}
+              onPress={async () => {
+                if (soundEnabled && tapSound.current) {
+                  try { await tapSound.current.replayAsync(); } catch (e) {}
+                }
+                setOptionVisible(false);
+              }}
             >
               <Text style={{ fontSize: 28, color: '#1976d2', fontWeight: 'bold' }}>{'<'}</Text>
             </TouchableOpacity>
@@ -517,78 +567,104 @@ export default function Page() {
         />
         <Text style={styles.versionTag}>v1.0.14</Text>
         <View style={styles.startContainer}>
-          <TouchableOpacity style={styles.gameButton} onPress={() => setScreen('level')}>
+          <TouchableOpacity
+            style={styles.gameButton}
+            onPress={async () => {
+              // 버튼 클릭 시 tap 사운드
+              if (soundEnabled && tapSound.current) {
+                try { await tapSound.current.replayAsync(); } catch (e) {}
+              }
+              if (Platform.OS === 'web') {
+                if (bgmSound.current) {
+                  if (bgmEnabled) {
+                    try { await bgmSound.current.playAsync(); } catch (e) {}
+                  } else {
+                    try { await bgmSound.current.stopAsync(); } catch (e) {}
+                  }
+                }
+              }
+              setScreen('level');
+            }}
+          >
             <Text style={styles.startText}>Touch to start</Text>
           </TouchableOpacity>
         </View>
         </View>
-      {/* 옵션 팝업 */}
-      {optionVisible && (
-        <View style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.28)',
-          zIndex: 200,
-        }}>
-          {/* 반투명 배경 위에 옵션 전체 화면 */}
+        {/* 옵션 팝업 */}
+        {optionVisible && (
           <View style={{
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: '#a4c8e0',
-          }} />
-          {/* 옵션 헤더 */}
-          <View style={{ position: 'absolute', left: 0, top: 0, width: '100%', flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 8 }}>
-            <TouchableOpacity
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}
-              onPress={() => setOptionVisible(false)}
-            >
-              <Text style={{ fontSize: 28, color: '#1976d2', fontWeight: 'bold' }}>{'<'}</Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1976d2', marginLeft: 12 }}>옵션</Text>
-          </View>
-          <View style={{ width: '85%', maxWidth: 340, backgroundColor: 'rgba(255,255,255,0.98)', borderRadius: 18, padding: 24, marginTop: 74, alignSelf: 'center', borderWidth: 2, borderColor: '#90caf9', shadowColor: '#1976d2', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.13, shadowRadius: 14, elevation: 7 }}>
-            {/* 클리어 데이터 버튼 */}
-            <TouchableOpacity
-              style={{ width: '100%', height: 44, borderRadius: 12, backgroundColor: '#e3f2fd', borderWidth: 1, borderColor: '#90caf9', marginBottom: 20, alignItems: 'center', justifyContent: 'center' }}
-              onPress={() => {
-                setMoveCount(0); setStartTime(Date.now()); setClearTime(null); setBoard(selectedPuzzle ? selectedPuzzle.initialState.map(row => [...row]) : []); setViolations([]); setViolationMessages([]); setClearPopupVisible(false);
+            backgroundColor: 'rgba(0,0,0,0.28)',
+            zIndex: 200,
+          }}>
+            {/* 반투명 배경 위에 옵션 전체 화면 */}
+            <View style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: '#a4c8e0',
+            }} />
+            {/* 옵션 헤더 */}
+            <View style={{ position: 'absolute', left: 0, top: 0, width: '100%', flexDirection: 'row', alignItems: 'center', height: 60, paddingHorizontal: 8 }}>
+              <TouchableOpacity
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}
+                onPress={async () => {
+                if (soundEnabled && tapSound.current) {
+                  try { await tapSound.current.replayAsync(); } catch (e) {}
+                }
+                setOptionVisible(false);
               }}
-            >
-              <Text style={{ color: '#1976d2', fontWeight: 'bold', fontSize: 16 }}>클리어 데이터 지우기</Text>
-            </TouchableOpacity>
-            {/* 효과음 토글 */}
-            <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>효과음</Text>
-              <Switch
-                value={soundEnabled}
-                onValueChange={setSoundEnabled}
-                trackColor={{ false: '#b0bec5', true: '#1976d2' }}
-                thumbColor={soundEnabled ? '#90caf9' : '#eee'}
-              />
+              >
+                <Text style={{ fontSize: 28, color: '#1976d2', fontWeight: 'bold' }}>{'<'}</Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1976d2', marginLeft: 12 }}>옵션</Text>
             </View>
-            {/* 배경음 토글 */}
-            <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>배경음</Text>
-              <Switch
-                value={bgmEnabled}
-                onValueChange={setBgmEnabled}
-                trackColor={{ false: '#b0bec5', true: '#1976d2' }}
-                thumbColor={bgmEnabled ? '#90caf9' : '#eee'}
-              />
-            </View>
-            {/* 진동 토글 */}
-            <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>진동</Text>
-              <Switch
-                value={vibrationEnabled}
-                onValueChange={setVibrationEnabled}
-                trackColor={{ false: '#b0bec5', true: '#1976d2' }}
-                thumbColor={vibrationEnabled ? '#90caf9' : '#eee'}
-              />
+            <View style={{ width: '85%', maxWidth: 340, backgroundColor: 'rgba(255,255,255,0.98)', borderRadius: 18, padding: 24, marginTop: 74, alignSelf: 'center', borderWidth: 2, borderColor: '#90caf9', shadowColor: '#1976d2', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.13, shadowRadius: 14, elevation: 7 }}>
+              {/* 클리어 데이터 버튼 */}
+              <TouchableOpacity
+                style={{ width: '100%', height: 44, borderRadius: 12, backgroundColor: '#e3f2fd', borderWidth: 1, borderColor: '#90caf9', marginBottom: 20, alignItems: 'center', justifyContent: 'center' }}
+                onPress={async () => {
+                  if (soundEnabled && tapSound.current) {
+                    try { await tapSound.current.replayAsync(); } catch (e) {}
+                  }
+                  setMoveCount(0); setStartTime(Date.now()); setClearTime(null); setBoard(selectedPuzzle ? selectedPuzzle.initialState.map(row => [...row]) : []); setViolations([]); setViolationMessages([]); setClearPopupVisible(false);
+                }}
+              >
+                <Text style={{ color: '#1976d2', fontWeight: 'bold', fontSize: 16 }}>클리어 데이터 지우기</Text>
+              </TouchableOpacity>
+              {/* 효과음 토글 */}
+              <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>효과음</Text>
+                <Switch
+                  value={soundEnabled}
+                  onValueChange={setSoundEnabled}
+                  trackColor={{ false: '#b0bec5', true: '#1976d2' }}
+                  thumbColor={soundEnabled ? '#90caf9' : '#eee'}
+                />
+              </View>
+              {/* 배경음 토글 */}
+              <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>배경음</Text>
+                <Switch
+                  value={bgmEnabled}
+                  onValueChange={setBgmEnabled}
+                  trackColor={{ false: '#b0bec5', true: '#1976d2' }}
+                  thumbColor={bgmEnabled ? '#90caf9' : '#eee'}
+                />
+              </View>
+              {/* 진동 토글 */}
+              <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 18, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>진동</Text>
+                <Switch
+                  value={vibrationEnabled}
+                  onValueChange={setVibrationEnabled}
+                  trackColor={{ false: '#b0bec5', true: '#1976d2' }}
+                  thumbColor={vibrationEnabled ? '#90caf9' : '#eee'}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
       </SafeAreaView>
     );
   }
