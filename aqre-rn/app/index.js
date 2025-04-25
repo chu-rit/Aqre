@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
 
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
@@ -6,6 +6,21 @@ import { PUZZLE_MAPS } from '../src/logic/puzzles';
 export default function Page() {
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null); // 현재 선택된 퍼즐
+  const [board, setBoard] = useState([]); // 보드 상태
+
+  // 퍼즐이 바뀔 때마다 보드 초기화
+  useEffect(() => {
+    if (selectedPuzzle) {
+      const size = selectedPuzzle.size;
+      if (selectedPuzzle.initialState) {
+        // deep copy to avoid mutation
+        const initial = selectedPuzzle.initialState.map(row => [...row]);
+        setBoard(initial);
+      } else {
+        setBoard(Array.from({ length: size }, () => Array(size).fill(0)));
+      }
+    }
+  }, [selectedPuzzle]);
 
   // 레벨 선택 화면(levelScreen)
   if (screen === 'level') {
@@ -53,8 +68,20 @@ export default function Page() {
     );
   }
 
-  // 게임 화면(상단 텍스트와 버튼만)
+  // 게임 화면(보드 렌더링 포함)
   if (screen === 'game' && selectedPuzzle) {
+    const size = selectedPuzzle.size;
+    const GAP = 2;
+    const handleCellPress = (rowIdx, colIdx) => {
+      setBoard(prev =>
+        prev.map((row, r) =>
+          row.map((cell, c) =>
+            r === rowIdx && c === colIdx ? (cell === 0 ? 1 : cell === 1 ? 0 : 2) : cell
+          )
+        )
+      );
+    };
+
     return (
       <SafeAreaView style={styles.levelScreen}>
         <View style={styles.levelHeader}>
@@ -68,33 +95,57 @@ export default function Page() {
         </View>
         <View style={styles.gameInfoContainer}>
           {/* 예시: 영역 요구사항, 남은 회색 타일 등 표시 */}
-
-
         </View>
-        {/* 게임보드 생략, 하단 버튼 등 필요시 추가 */}
-      </SafeAreaView>
-    );
-  }
-
-  // 게임 화면(상단 텍스트와 버튼만)
-  if (screen === 'game' && selectedPuzzle) {
-    return (
-      <SafeAreaView style={styles.levelScreen}>
-        <View style={styles.levelHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setScreen('level')}>
-            <Text style={styles.backButtonText}>{'<'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.levelTitle}>Level {selectedPuzzle.id}</Text>
-          <TouchableOpacity style={styles.optionsButton} onPress={() => {}}>
-            <Text style={styles.optionsButtonText}>☰</Text>
-          </TouchableOpacity>
+        {/* 게임보드 */}
+        <View
+          style={[
+            boardStyles.boardWrapper,
+            {
+              width: '90%', // 반응형, 원하는 비율로 조정 가능
+              aspectRatio: 1, // 정사각형
+              alignSelf: 'center',
+              padding: 8, // 안쪽 여백
+              borderRadius: 12,
+              overflow: 'hidden',
+            },
+          ]}
+        >
+          {board.map((row, rowIdx) => (
+            <View
+              key={rowIdx}
+              style={{
+                flexDirection: 'row',
+                flex: 1,
+              }}
+            >
+              {row.map((cell, colIdx) => {
+                let cellStyle = [
+                  boardStyles.cellBase,
+                  {
+                    flex: 1,
+                    aspectRatio: 1,
+                    marginRight: colIdx === size - 1 ? 0 : GAP,
+                    marginBottom: rowIdx === size - 1 ? 0 : GAP,
+                    borderRadius: 8,
+                  },
+                ];
+                if (cell === 0) cellStyle.push(boardStyles.cellWhite);
+                else if (cell === 1) cellStyle.push(boardStyles.cellGray);
+                else if (cell === 2) cellStyle.push(boardStyles.cellInactive);
+                return (
+                  <TouchableOpacity
+                    key={colIdx}
+                    style={cellStyle}
+                    activeOpacity={0.8}
+                    onPress={() => handleCellPress(rowIdx, colIdx)}
+                  >
+                    {/* 셀 내부 텍스트 등 필요시 */}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
         </View>
-        <View style={styles.gameInfoContainer}>
-          {/* 예시: 영역 요구사항, 남은 회색 타일 등 표시 */}
-
-
-        </View>
-        {/* 게임보드 생략, 하단 버튼 등 필요시 추가 */}
       </SafeAreaView>
     );
   }
@@ -130,6 +181,51 @@ export default function Page() {
     </View>
   );
 }
+
+// 게임보드 스타일(웹 디자인 최대 반영)
+const boardStyles = StyleSheet.create({
+  boardWrapper: { 
+    backgroundColor: '#2a2a2a',
+    padding: 4,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 18,
+  },
+  boardRow: {
+    flexDirection: 'row',
+  },
+  cellBase: {
+    margin: 2,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cellWhite: {
+    backgroundColor: '#fff', // 원본게임 기본(흰색)
+  },
+  cellBlack: {
+    backgroundColor: '#222', // 원본게임 검정(혹은 '#222' 또는 '#111')
+  },
+  cellGray: {
+    backgroundColor: '#999', // type2 (밝은 회색)
+  },
+  cellInactive: {
+    backgroundColor: 'steelblue', // type3 (비활성)
+  },
+  // 추후 영역 경계 스타일 예시
+  cellBoundary: {
+    borderWidth: 3,
+    borderColor: 'deepskyblue',
+  },
+  cellText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    fontSize: 18,
+  },
+});
 
 const styles = StyleSheet.create({
   levelScreen: {
