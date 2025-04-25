@@ -2,25 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
 
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
+import { checkGameRules } from '../src/logic/gameRules';
 
+// Aqre React Native 메인 페이지
+// Aqre React Native 메인 페이지
 export default function Page() {
+  // 모든 훅 선언은 컴포넌트 최상단에 위치해야 함
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null); // 현재 선택된 퍼즐
   const [board, setBoard] = useState([]); // 보드 상태
+  const [violations, setViolations] = useState([]);
+  const [violationMessages, setViolationMessages] = useState([]);
 
   // 퍼즐이 바뀔 때마다 보드 초기화
   useEffect(() => {
     if (selectedPuzzle) {
       const size = selectedPuzzle.size;
-      if (selectedPuzzle.initialState) {
-        // deep copy to avoid mutation
-        const initial = selectedPuzzle.initialState.map(row => [...row]);
-        setBoard(initial);
-      } else {
-        setBoard(Array.from({ length: size }, () => Array(size).fill(0)));
-      }
+      setBoard(
+        selectedPuzzle.initialState
+          ? selectedPuzzle.initialState.map(row => [...row])
+          : Array.from({ length: size }, () => Array(size).fill(0))
+      );
     }
   }, [selectedPuzzle]);
+
+  // 게임 규칙 검사 (board와 selectedPuzzle 모두 정상적으로 준비된 경우에만)
+  useEffect(() => {
+    if (
+      screen === 'game' &&
+      selectedPuzzle &&
+      Array.isArray(board) &&
+      board.length === selectedPuzzle.size &&
+      board.every(row => Array.isArray(row) && row.length === selectedPuzzle.size)
+    ) {
+      const result = checkGameRules(board, selectedPuzzle);
+      setViolations(result.violations);
+      setViolationMessages(result.violationMessages);
+    } else {
+      setViolations([]);
+      setViolationMessages([]);
+    }
+  }, [board, screen, selectedPuzzle]);
 
   // 레벨 선택 화면(levelScreen)
   if (screen === 'level') {
@@ -69,9 +91,28 @@ export default function Page() {
   }
 
   // 게임 화면(보드 렌더링 포함)
-  if (screen === 'game' && selectedPuzzle) {
+  if (
+    screen === 'game' &&
+    selectedPuzzle &&
+    Array.isArray(selectedPuzzle.areas) &&
+    typeof selectedPuzzle.size === 'number' &&
+    selectedPuzzle.size > 0 &&
+    Array.isArray(board) &&
+    board.length === selectedPuzzle.size
+  ) {
     const size = selectedPuzzle.size;
-    const GAP = 2;
+    const GAP = 1;
+
+    // 1. areaMap 생성 (각 셀의 영역ID)
+    const areaMap = Array.from({ length: size }, () => Array(size).fill(-1));
+    selectedPuzzle.areas.forEach((area, areaIdx) => {
+      area.cells.forEach(([r, c]) => {
+        areaMap[r][c] = areaIdx;
+      });
+    });
+
+
+
     const handleCellPress = (rowIdx, colIdx) => {
       setBoard(prev =>
         prev.map((row, r) =>
@@ -93,9 +134,7 @@ export default function Page() {
             <Text style={styles.optionsButtonText}>☰</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.gameInfoContainer}>
-          {/* 예시: 영역 요구사항, 남은 회색 타일 등 표시 */}
-        </View>
+        <View style={styles.gameInfoContainer} />
         {/* 게임보드 */}
         <View
           style={[
@@ -110,6 +149,7 @@ export default function Page() {
             },
           ]}
         >
+          {/* 셀 렌더링 (기존과 동일) */}
           {board.map((row, rowIdx) => (
             <View
               key={rowIdx}
@@ -119,6 +159,31 @@ export default function Page() {
               }}
             >
               {row.map((cell, colIdx) => {
+                // 기본 border: 검정색, 영역선만 파란색
+                let borders = {
+                  borderTopColor: 'transparent', borderTopWidth: 5,
+                  borderBottomColor: 'transparent', borderBottomWidth: 5,
+                  borderLeftColor: 'transparent', borderLeftWidth: 5,
+                  borderRightColor: 'transparent', borderRightWidth: 5,
+                };
+                if (areaMap[rowIdx][colIdx] !== -1) {
+                  // 상
+                  if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) {
+                    borders.borderTopColor = 'deepskyblue';
+                  }
+                  // 하
+                  if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) {
+                    borders.borderBottomColor = 'deepskyblue';
+                  }
+                  // 좌
+                  if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) {
+                    borders.borderLeftColor = 'deepskyblue';
+                  }
+                  // 우
+                  if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) {
+                    borders.borderRightColor = 'deepskyblue';
+                  }
+                }
                 let cellStyle = [
                   boardStyles.cellBase,
                   {
@@ -126,7 +191,8 @@ export default function Page() {
                     aspectRatio: 1,
                     marginRight: colIdx === size - 1 ? 0 : GAP,
                     marginBottom: rowIdx === size - 1 ? 0 : GAP,
-                    borderRadius: 8,
+                    borderRadius: 2,
+                    ...borders,
                   },
                 ];
                 if (cell === 0) cellStyle.push(boardStyles.cellWhite);
@@ -139,13 +205,46 @@ export default function Page() {
                     activeOpacity={0.8}
                     onPress={() => handleCellPress(rowIdx, colIdx)}
                   >
-                    {/* 셀 내부 텍스트 등 필요시 */}
+                    {/* 영역별 힌트(숫자) 표시: 각 영역의 첫 셀에만 */}
+                    {(() => {
+                      const areaIdx = areaMap[rowIdx][colIdx];
+                      if (areaIdx !== -1) {
+                        const area = selectedPuzzle.areas[areaIdx];
+                        // 이 셀이 해당 영역의 첫 셀(왼쪽 위)이고 required가 'J'가 아닐 때만
+                        if (area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx && area.required !== 'J') {
+                          return (
+                            <Text style={{
+                              position: 'absolute',
+                              left: 2,
+                              top: 2,
+                              color: '#333',
+                              fontWeight: 'bold',
+                              fontSize: 21,
+                              backgroundColor: 'transparent',
+                              zIndex: 10,
+                            }}>
+                              {area.required}
+                            </Text>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
                   </TouchableOpacity>
                 );
               })}
             </View>
           ))}
         </View>
+        {/* violationMessages를 게임보드 하단에만 표시 */}
+        {violationMessages.length > 0 && (
+          <View style={{ marginTop: 16, marginBottom: 4 }}>
+            {violationMessages.map((msg, idx) => (
+              <Text key={idx} style={{ color: 'red', fontWeight: 'bold', textAlign: 'center' }}>{msg}</Text>
+            ))}
+          </View>
+        )}
+
       </SafeAreaView>
     );
   }
