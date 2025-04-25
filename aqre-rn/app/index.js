@@ -7,23 +7,30 @@ import { checkGameRules } from '../src/logic/gameRules';
 // Aqre React Native 메인 페이지
 // Aqre React Native 메인 페이지
 export default function Page() {
+  // ... 기존 state
+  const [moveCount, setMoveCount] = useState(0); // 조작 횟수
+  const [startTime, setStartTime] = useState(null); // 퍼즐 시작 시간 (Date.now())
+  const [clearTime, setClearTime] = useState(null); // 클리어 시각
+  // ...
   // 모든 훅 선언은 컴포넌트 최상단에 위치해야 함
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null); // 현재 선택된 퍼즐
   const [board, setBoard] = useState([]); // 보드 상태
   const [violations, setViolations] = useState([]);
   const [violationMessages, setViolationMessages] = useState([]);
+  const [clearPopupVisible, setClearPopupVisible] = useState(false);
+
 
   // 퍼즐이 바뀔 때마다 보드 초기화
   useEffect(() => {
-    if (selectedPuzzle) {
-      const size = selectedPuzzle.size;
-      setBoard(
-        selectedPuzzle.initialState
-          ? selectedPuzzle.initialState.map(row => [...row])
-          : Array.from({ length: size }, () => Array(size).fill(0))
-      );
-    }
+    if (!selectedPuzzle) return;
+    setBoard(selectedPuzzle.initialState.map(row => [...row]));
+    setViolations([]);
+    setViolationMessages([]);
+    setClearPopupVisible(false);
+    setMoveCount(0);
+    setStartTime(Date.now());
+    setClearTime(null);
   }, [selectedPuzzle]);
 
   // 게임 규칙 검사 (board와 selectedPuzzle 모두 정상적으로 준비된 경우에만)
@@ -38,11 +45,24 @@ export default function Page() {
       const result = checkGameRules(board, selectedPuzzle);
       setViolations(result.violations);
       setViolationMessages(result.violationMessages);
+
+      // 룰체크 결과가 위반 없을 때만 팝업
+      if (result.violationMessages.length === 0) {
+        setClearPopupVisible(true);
+        if (!clearTime) setClearTime(Date.now());
+      }
+      // 팝업이 떠 있으면 자동으로 닫지 않음
     } else {
       setViolations([]);
       setViolationMessages([]);
+      // setClearPopupVisible(false); // 자동 닫힘 제거
     }
   }, [board, screen, selectedPuzzle]);
+
+  // 퍼즐이 바뀔 때만 팝업을 닫음
+  useEffect(() => {
+    setClearPopupVisible(false);
+  }, [selectedPuzzle]);
 
   // 레벨 선택 화면(levelScreen)
   if (screen === 'level') {
@@ -121,6 +141,7 @@ export default function Page() {
           )
         )
       );
+      setMoveCount(cnt => cnt + 1);
     };
 
     return (
@@ -269,6 +290,69 @@ export default function Page() {
                 </Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* 클리어 팝업 */}
+        {clearPopupVisible && (
+          <View style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 100,
+          }}>
+            <View style={{
+              backgroundColor: '#e3f2fd', // 연한 하늘색
+              borderRadius: 22,
+              paddingVertical: 40,
+              paddingHorizontal: 34,
+              alignItems: 'center',
+              borderWidth: 2,
+              borderColor: '#90caf9', // 하늘색 테두리
+              shadowColor: '#1976d2',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.16,
+              shadowRadius: 16,
+              elevation: 8,
+              minWidth: 250,
+            }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#2a7', marginBottom: 18, textShadowColor: '#eee', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 }}>
+                클리어!
+              </Text>
+              <Text style={{ color: '#2a7', fontWeight: 'bold', fontSize: 17, marginTop: 10 }}>
+                조작 횟수: {moveCount}회
+              </Text>
+              <Text style={{ color: '#1976d2', fontWeight: 'bold', fontSize: 17, marginTop: 4 }}>
+                걸린 시간: {clearTime && startTime ? Math.floor((clearTime-startTime)/1000) : 0}초
+              </Text>
+              <TouchableOpacity
+                  style={{
+                    marginTop: 16,
+                    backgroundColor: '#1976d2', // 진한 하늘색
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    paddingHorizontal: 44,
+                    shadowColor: '#1976d2',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 8,
+                    elevation: 4,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    setClearPopupVisible(false);
+                    setScreen('level');
+                    setMoveCount(0);
+                    setStartTime(null);
+                    setClearTime(null);
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1 }}>리스트로</Text>
+                </TouchableOpacity>
+            </View>
           </View>
         )}
 
