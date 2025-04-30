@@ -1,35 +1,86 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAqreSound } from '../src/hooks/sound';
-import { Switch } from 'react-native';
-import { StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
-
+import { Switch, StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import { checkGameRules } from '../src/logic/gameRules';
 
 // Aqre React Native 메인 페이지
 export default function Page() {
-  // 사운드 객체 ref (커스텀 훅으로 대체)
+  // ===== 사운드 및 옵션 =====
   const { bgmSound, tapSound, clearSound, bgmPlay, bgmReady } = useAqreSound();
+  const [optionVisible, setOptionVisible] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [bgmEnabled, setBgmEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
-  // ... 기존 state
-  const [optionVisible, setOptionVisible] = useState(false); // 옵션 팝업 표시 여부
-  const [soundEnabled, setSoundEnabled] = useState(true); // 효과음
-  const [bgmEnabled, setBgmEnabled] = useState(true); // 배경음
-  const [vibrationEnabled, setVibrationEnabled] = useState(true); // 진동(햅틱)
+  // ===== 게임 진행 상태 =====
+  const [moveCount, setMoveCount] = useState(0);
+  const [startTime, setStartTime] = useState(null);
+  const [clearTime, setClearTime] = useState(null);
 
-  // ... 기존 state
-  const [moveCount, setMoveCount] = useState(0); // 조작 횟수
-  const [startTime, setStartTime] = useState(null); // 퍼즐 시작 시간 (Date.now())
-  const [clearTime, setClearTime] = useState(null); // 클리어 시각
-
-  // 모든 훅 선언은 컴포넌트 최상단에 위치해야 함
+  // ===== 화면 전환 및 퍼즐 상태 =====
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
-  const [selectedPuzzle, setSelectedPuzzle] = useState(null); // 현재 선택된 퍼즐
-  const [board, setBoard] = useState([]); // 보드 상태
+  const [selectedPuzzle, setSelectedPuzzle] = useState(null);
+  const [board, setBoard] = useState([]);
   const [violations, setViolations] = useState([]);
   const [violationMessages, setViolationMessages] = useState([]);
   const [clearPopupVisible, setClearPopupVisible] = useState(false);
 
+  // ===== 퍼즐이 바뀔 때 보드 초기화 =====
+  useEffect(() => {
+    if (!selectedPuzzle) return;
+    setBoard(selectedPuzzle.initialState.map(row => [...row]));
+    setViolations([]);
+    setViolationMessages([]);
+    setClearPopupVisible(false);
+    setMoveCount(0);
+    setStartTime(Date.now());
+    setClearTime(null);
+  }, [selectedPuzzle]);
+
+  // ===== 게임 규칙 검사 =====
+  useEffect(() => {
+    if (
+      screen === 'game' &&
+      selectedPuzzle &&
+      Array.isArray(board) &&
+      board.length === selectedPuzzle.size &&
+      board.every(row => Array.isArray(row) && row.length === selectedPuzzle.size)
+    ) {
+      const result = checkGameRules(board, selectedPuzzle);
+      setViolations(result.violations);
+      setViolationMessages(result.violationMessages);
+      if (result.violationMessages.length === 0) {
+        setClearPopupVisible(true);
+        if (!clearTime) setClearTime(Date.now());
+      }
+    } else {
+      setViolations([]);
+      setViolationMessages([]);
+    }
+  }, [board, screen, selectedPuzzle]);
+
+  // ===== 퍼즐이 바뀔 때 팝업 닫기 =====
+  useEffect(() => {
+    setClearPopupVisible(false);
+  }, [selectedPuzzle]);
+
+  // ===== 배경음 토글 =====
+  useEffect(() => {
+    if (bgmReady && bgmSound.current) {
+      try {
+        if (bgmEnabled) {
+          bgmPlay(); // 항상 재생 시도
+        } else {
+          // 무조건 정지, 상태와 무관하게
+          bgmSound.current.stopAsync();
+        }
+      } catch (error) {
+        console.error('배경음 토글 중 오류:', error);
+      }
+    }
+  }, [bgmEnabled, bgmReady, bgmPlay]);
 
   // 퍼즐이 바뀔 때마다 보드 초기화
   useEffect(() => {
@@ -102,8 +153,15 @@ export default function Page() {
       <SafeAreaView style={styles.levelScreen}>
         <View style={styles.levelHeader}>
           <TouchableOpacity style={styles.backButton} onPress={async () => {
-            if (soundEnabled && tapSound.current) {
-              try { await tapSound.current.replayAsync(); } catch (e) {}
+            if (tapSound.current) {
+              try { 
+                if (soundEnabled) {
+                  await tapSound.current.replayAsync(); 
+                }
+                if (vibrationEnabled) {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+              } catch (e) {}
             }
             if (bgmEnabled && Platform.OS === 'web') {
               bgmPlay();
