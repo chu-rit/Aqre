@@ -62,13 +62,39 @@ export const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   optionsButtonText: {
-    fontSize: 26,
+    fontSize: 24,
     color: '#333',
     fontWeight: 'bold',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  side: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: Platform.OS === 'web' ? 20 : 24,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
   levelContainer: {
     paddingHorizontal: 10,
-    paddingBottom: 32,
+    paddingBottom: 20,
+    marginTop: 40,
     alignItems: 'center',
   },
   levelGrid: {

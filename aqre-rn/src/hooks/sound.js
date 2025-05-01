@@ -62,15 +62,18 @@ export function useAqreSound() {
   const bgmPlay = async () => {
   try {
     if (bgmSound.current) {
-      await bgmSound.current.unloadAsync();
-      bgmSound.current = null;
+      const status = await bgmSound.current.getStatusAsync();
+      if (!status.isPlaying) {
+        await bgmSound.current.playAsync();
+      }
+    } else {
+      const bgm = await Audio.Sound.createAsync(
+        require('../../assets/bgm.mp3'),
+        { isLooping: true, volume: 0.6 }
+      );
+      bgmSound.current = bgm.sound;
+      await bgmSound.current.playAsync();
     }
-    const bgm = await Audio.Sound.createAsync(
-      require('../../assets/bgm.mp3'),
-      { isLooping: true, volume: 0.6 }
-    );
-    bgmSound.current = bgm.sound;
-    await bgmSound.current.playAsync();
   } catch (e) {}
 };
 

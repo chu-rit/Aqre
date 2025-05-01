@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { styles } from '../styles';
 
@@ -7,8 +8,8 @@ import { styles } from '../styles';
 export default function LevelScreen({ rows, soundEnabled, tapSound, vibrationEnabled, bgmEnabled, bgmPlay, setScreen, handleLevelSelect, setSoundEnabled, setBgmEnabled, setVibrationEnabled, clearedPuzzles }) {
   return (
     <SafeAreaView style={styles.levelScreen}>
-      <View style={styles.levelHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={async () => {
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.side} onPress={async () => {
           if (tapSound.current) {
             try {
               if (soundEnabled) {
@@ -24,11 +25,13 @@ export default function LevelScreen({ rows, soundEnabled, tapSound, vibrationEna
           }
           setScreen('start');
         }}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+          <Ionicons name="chevron-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text style={styles.levelTitle}>Level Select</Text>
-        <TouchableOpacity style={styles.optionsButton} onPress={() => setScreen('options')}>
-          <Text style={styles.optionsButtonText}>☰</Text>
+        <View style={styles.center}>
+          <Text style={styles.title}>Level Select</Text>
+        </View>
+        <TouchableOpacity style={styles.side} onPress={() => setScreen('options')}>
+          <Ionicons name="ellipsis-vertical" size={24} color="black" />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.levelContainer} showsVerticalScrollIndicator={false}>

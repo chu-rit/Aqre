@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles';
 
 export default function OptionsScreen({ 
@@ -42,17 +43,24 @@ export default function OptionsScreen({
   };
 
   return (
-    <SafeAreaView style={styles.optionsContainer}>
-      <TouchableOpacity style={[styles.backButton, { position: 'absolute', top: 10, left: 10 }]} onPress={onClose}>
-        <Text style={styles.backButtonText}>{'<'}</Text>
-      </TouchableOpacity>
-      <View style={{ height: 44 }} />
-      <TouchableOpacity 
-        style={styles.clearDataButton}
-        onPress={clearAllData}
-      >
-        <Text style={styles.clearDataButtonText}>클리어 데이터 지우기</Text>
-      </TouchableOpacity>
+    <SafeAreaView style={styles.levelScreen}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.side} onPress={onClose}>
+          <Ionicons name="chevron-back" size={24} color="black" />
+        </TouchableOpacity>
+        <View style={styles.center}>
+          <Text style={styles.title}>Options</Text>
+        </View>
+        <View style={styles.side} />
+      </View>
+      <View style={{ width: '100%', paddingHorizontal: 20, marginTop: 20 }}>
+        <TouchableOpacity 
+          style={styles.clearDataButton}
+          onPress={clearAllData}
+        >
+          <Text style={styles.clearDataButtonText}>클리어 데이터 지우기</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.toggleContainer}>
         <Text style={styles.toggleText}>효과음</Text>
         <Switch
