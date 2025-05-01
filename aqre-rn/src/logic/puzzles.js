@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // 퍼즐 맵 데이터
 export const PUZZLE_MAPS = [
     {   // 1

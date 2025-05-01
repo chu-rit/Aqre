@@ -1,11 +1,179 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform, StatusBar } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
-  // 기존 스타일들...
-  
-  // 튜토리얼 스타일 추가
+  levelScreen: {
+    flex: 1,
+    backgroundColor: '#a4c8e0',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  gameInfoContainer: {
+    alignItems: 'center',
+    marginTop: 18,
+    marginBottom: 12,
+  },
+  gameInfoText: {
+    fontSize: 16,
+    color: '#444',
+    marginVertical: 2,
+    fontWeight: '500',
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 26,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  levelTitle: {
+    fontSize: 22,
+    color: '#222',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  optionsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionsScreen: {
+    flex: 1,
+    backgroundColor: '#a4c8e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  optionsButtonText: {
+    fontSize: 26,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  levelContainer: {
+    paddingHorizontal: 10,
+    paddingBottom: 32,
+    alignItems: 'center',
+  },
+  levelGrid: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  levelRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  levelButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.09,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  levelButtonText: {
+    fontSize: 20,
+    color: '#3a3a3a',
+    fontWeight: 'bold',
+  },
+  levelContinued: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.8,
+    fontWeight: '600',
+  },
+  startScreen: {
+    flex: 1,
+    backgroundColor: '#a4c8e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  innerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  mainImage: {
+    width: 320,
+    height: 320,
+    resizeMode: 'cover',
+  },
+  logo: {
+    width: 220,
+    height: 90,
+    marginBottom: 36,
+    resizeMode: 'contain',
+  },
+  versionTag: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  startContainer: {
+    marginTop: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  startText: {
+    fontSize: 22,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
+    paddingVertical: 6,
+  },
+  gameButton: {
+    width: '80%',
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: '#fff',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tutorialContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -37,22 +205,119 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  tutorialNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '90%',
-    marginTop: 20,
+  optionsContainer: {
+    flex: 1,
+    backgroundColor: '#b2d0e7', // 연한 파란색
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingHorizontal: 32,
   },
-  tutorialNavButton: {
-    backgroundColor: '#1976d2',
-    padding: 10,
-    borderRadius: 5,
-    minWidth: 100,
+  optionsCard: {
+    width: '90%',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
     alignItems: 'center',
   },
-  tutorialNavButtonText: {
-    color: 'white',
+  clearDataButton: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginBottom: 30,
+    width: '85%',
+    alignItems: 'center',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  clearDataButtonText: {
+    color: '#fff',
+    fontSize: 20,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 18,
+    width: '85%',
+    alignSelf: 'center',
+    paddingHorizontal: 0,
+  },
+  toggleText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '500',
+    textAlign: 'left',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 26,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+});
+
+export const boardStyles = StyleSheet.create({
+  boardWrapper: { 
+    backgroundColor: '#2a2a2a',
+    padding: 4,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 18,
+  },
+  boardRow: {
+    flexDirection: 'row',
+  },
+  cellBase: {
+    margin: 2,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cellWhite: {
+    backgroundColor: '#fff',
+  },
+  cellBlack: {
+    backgroundColor: '#222',
+  },
+  cellGray: {
+    backgroundColor: '#999',
+  },
+  cellInactive: {
+    backgroundColor: 'steelblue',
+  },
+  cellBoundary: {
+    borderWidth: 3,
+    borderColor: 'deepskyblue',
+  },
+  cellText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    fontSize: 18,
   },
 });
 
