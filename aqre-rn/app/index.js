@@ -3,6 +3,7 @@ import { useAqreSound } from '../src/hooks/sound';
 import { Switch, StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
+import { TutorialScreen, tutorialOpen } from './tutorial';
 import { checkGameRules } from '../src/logic/gameRules';
 
 // Aqre React Native 메인 페이지
@@ -13,6 +14,35 @@ export default function Page() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
+
+  // 옵션 상태 로드 및 저장 함수
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+
+  const saveOption = async (key, value) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`${key} 저장 중 오류:`, error);
+    }
+  };
+
+  const loadOptions = async () => {
+    try {
+      const savedSoundEnabled = await AsyncStorage.getItem('soundEnabled');
+      const savedBgmEnabled = await AsyncStorage.getItem('bgmEnabled');
+      const savedVibrationEnabled = await AsyncStorage.getItem('vibrationEnabled');
+
+      if (savedSoundEnabled !== null) setSoundEnabled(JSON.parse(savedSoundEnabled));
+      if (savedBgmEnabled !== null) setBgmEnabled(JSON.parse(savedBgmEnabled));
+      if (savedVibrationEnabled !== null) setVibrationEnabled(JSON.parse(savedVibrationEnabled));
+    } catch (error) {
+      console.error('옵션 로드 중 오류:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadOptions();
+  }, []);
 
   // ===== 게임 진행 상태 =====
   const [moveCount, setMoveCount] = useState(0);
@@ -26,6 +56,24 @@ export default function Page() {
   const [violations, setViolations] = useState([]);
   const [violationMessages, setViolationMessages] = useState([]);
   const [clearPopupVisible, setClearPopupVisible] = useState(false);
+
+  // ===== 튜토리얼 및 레벨 선택 함수 =====
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialLevelId, setTutorialLevelId] = useState(null);
+
+  const handleLevelSelect = (puzzle) => {
+    // 튜토리얼 자동 트리거
+    const tutorialSteps = tutorialOpen(puzzle.id);
+    if (tutorialSteps) {
+      setTutorialLevelId(puzzle.id);
+      setShowTutorial(true);
+      return;
+    }
+
+    // 퍼즐 선택 기본 로직
+    setSelectedPuzzle(puzzle);
+    setScreen('game');
+  };
 
   // ===== 퍼즐이 바뀔 때 보드 초기화 =====
   useEffect(() => {
@@ -183,15 +231,11 @@ export default function Page() {
                   <TouchableOpacity
                     key={puzzle.id}
                     style={styles.levelButton}
-                    onPress={async () => {
-                      if (soundEnabled && tapSound.current) {
-                        try { await tapSound.current.replayAsync(); } catch (e) {}
-                      }
+                    onPress={() => {
                       if (bgmEnabled && Platform.OS === 'web') {
                         bgmPlay();
                       }
-                      setSelectedPuzzle(puzzle);
-                      setScreen('game');
+                      handleLevelSelect(puzzle);
                     }}
                     activeOpacity={0.7}
                   >
@@ -247,7 +291,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>효과음</Text>
               <Switch
                 value={soundEnabled}
-                onValueChange={setSoundEnabled}
+                onValueChange={(newValue) => {
+                   setSoundEnabled(newValue);
+                   saveOption('soundEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={soundEnabled ? '#90caf9' : '#eee'}
               />
@@ -257,7 +304,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>배경음</Text>
               <Switch
                 value={bgmEnabled}
-                onValueChange={setBgmEnabled}
+                onValueChange={(newValue) => {
+                   setBgmEnabled(newValue);
+                   saveOption('bgmEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={bgmEnabled ? '#90caf9' : '#eee'}
               />
@@ -267,7 +317,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>진동</Text>
               <Switch
                 value={vibrationEnabled}
-                onValueChange={setVibrationEnabled}
+                onValueChange={(newValue) => {
+                   setVibrationEnabled(newValue);
+                   saveOption('vibrationEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={vibrationEnabled ? '#90caf9' : '#eee'}
               />
@@ -578,7 +631,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>효과음</Text>
               <Switch
                 value={soundEnabled}
-                onValueChange={setSoundEnabled}
+                onValueChange={(newValue) => {
+                   setSoundEnabled(newValue);
+                   saveOption('soundEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={soundEnabled ? '#90caf9' : '#eee'}
               />
@@ -588,7 +644,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>배경음</Text>
               <Switch
                 value={bgmEnabled}
-                onValueChange={setBgmEnabled}
+                onValueChange={(newValue) => {
+                   setBgmEnabled(newValue);
+                   saveOption('bgmEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={bgmEnabled ? '#90caf9' : '#eee'}
               />
@@ -598,7 +657,10 @@ export default function Page() {
               <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>진동</Text>
               <Switch
                 value={vibrationEnabled}
-                onValueChange={setVibrationEnabled}
+                onValueChange={(newValue) => {
+                   setVibrationEnabled(newValue);
+                   saveOption('vibrationEnabled', newValue);
+                 }}
                 trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                 thumbColor={vibrationEnabled ? '#90caf9' : '#eee'}
               />
@@ -695,7 +757,10 @@ export default function Page() {
                 <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>효과음</Text>
                 <Switch
                   value={soundEnabled}
-                  onValueChange={setSoundEnabled}
+                  onValueChange={(value) => {
+                    setSoundEnabled(value);
+                    saveOption('soundEnabled', value);
+                  }}
                   trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                   thumbColor={soundEnabled ? '#90caf9' : '#eee'}
                 />
@@ -705,7 +770,10 @@ export default function Page() {
                 <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>배경음</Text>
                 <Switch
                   value={bgmEnabled}
-                  onValueChange={setBgmEnabled}
+                  onValueChange={(value) => {
+                    setBgmEnabled(value);
+                    saveOption('bgmEnabled', value);
+                  }}
                   trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                   thumbColor={bgmEnabled ? '#90caf9' : '#eee'}
                 />
@@ -715,7 +783,10 @@ export default function Page() {
                 <Text style={{ fontSize: 16, color: '#1976d2', fontWeight: 'bold' }}>진동</Text>
                 <Switch
                   value={vibrationEnabled}
-                  onValueChange={setVibrationEnabled}
+                  onValueChange={(value) => {
+                    setVibrationEnabled(value);
+                    saveOption('vibrationEnabled', value);
+                  }}
                   trackColor={{ false: '#b0bec5', true: '#1976d2' }}
                   thumbColor={vibrationEnabled ? '#90caf9' : '#eee'}
                 />
@@ -733,6 +804,44 @@ export default function Page() {
       <Text>다른 화면은 아직 준비 중입니다.</Text>
     </View>
   );
+
+  // 튜토리얼 추가
+  {showTutorial && (
+    <TutorialScreen 
+      levelId={tutorialLevelId}
+      onClose={() => {
+        setShowTutorial(false);
+        setSelectedPuzzle(PUZZLE_MAPS[tutorialLevelId]);
+        setScreen('game');
+      }}
+      onHighlight={(highlightCells) => {
+        // 하이라이트 로직 구현
+        const newBoard = board.map((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            // 하이라이트 대상 셀이면 2(하이라이트), 아니면 기존 상태 유지
+            const isHighlighted = highlightCells.some(([r, c]) => 
+              r === rowIndex && c === colIndex
+            );
+            return isHighlighted ? 2 : cell;
+          })
+        );
+        setBoard(newBoard);
+      }}
+      onAllowedCells={(allowedCells) => {
+        // 허용된 셀 로직 구현
+        const newBoard = board.map((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            // 허용된 셀이면 3(비활성), 아니면 기존 상태 유지
+            const isAllowed = allowedCells.some(([r, c]) => 
+              r === rowIndex && c === colIndex
+            );
+            return isAllowed ? 3 : cell;
+          })
+        );
+        setBoard(newBoard);
+      }}
+    />
+  )}
 }
 
 // 게임보드 스타일(웹 디자인 최대 반영)
