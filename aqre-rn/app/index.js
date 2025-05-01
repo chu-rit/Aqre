@@ -41,6 +41,7 @@ export default function Page() {
 
   useEffect(() => {
     loadOptions();
+    loadClearedPuzzles();
   }, []);
 
   // 옵션 setter 래핑
@@ -69,6 +70,28 @@ export default function Page() {
   const [violationMessages, setViolationMessages] = useState([]);
   const [clearPopupVisible, setClearPopupVisible] = useState(false);
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
+
+  // 클리어된 퍼즐 저장
+  const saveClearedPuzzles = async (puzzles) => {
+    try {
+      await AsyncStorage.setItem('clearedPuzzles', JSON.stringify(puzzles));
+    } catch (e) {
+      console.error('Failed to save cleared puzzles', e);
+    }
+  };
+
+  // 클리어된 퍼즐 불러오기
+  const loadClearedPuzzles = async () => {
+    try {
+      const puzzlesJson = await AsyncStorage.getItem('clearedPuzzles');
+      if (puzzlesJson) {
+        const parsedPuzzles = JSON.parse(puzzlesJson);
+        setClearedPuzzles(parsedPuzzles);
+      }
+    } catch (e) {
+      console.error('Failed to load cleared puzzles', e);
+    }
+  };
 
   
   const [showTutorial, setShowTutorial] = useState(false);
@@ -124,7 +147,9 @@ export default function Page() {
       if (result.violationMessages.length === 0 && !clearedPuzzles.includes(selectedPuzzle.id)) {
         setClearPopupVisible(true);
         if (!clearTime) setClearTime(Date.now());
-        setClearedPuzzles(prev => [...prev, selectedPuzzle.id]);
+        const updatedClearedPuzzles = [...clearedPuzzles, selectedPuzzle.id];
+        setClearedPuzzles(updatedClearedPuzzles);
+        saveClearedPuzzles(updatedClearedPuzzles);
       }
     } else {
       setViolations([]);
@@ -163,6 +188,7 @@ export default function Page() {
         setSoundEnabled={setSoundEnabled}
         setBgmEnabled={setBgmEnabled}
         setVibrationEnabled={setVibrationEnabled}
+        clearedPuzzles={clearedPuzzles}
       />
     );
   }
@@ -202,6 +228,7 @@ export default function Page() {
         setBgmEnabled={setBgmEnabled}
         vibrationEnabled={vibrationEnabled}
         setVibrationEnabled={setVibrationEnabled}
+        clearedPuzzles={clearedPuzzles}
 
       />
     );
@@ -216,6 +243,7 @@ export default function Page() {
         setBgmEnabled={setBgmEnabled}
         vibrationEnabled={vibrationEnabled}
         setVibrationEnabled={setVibrationEnabled}
+        clearedPuzzles={clearedPuzzles}
         onClose={() => {
           setScreen('start');
         }}
