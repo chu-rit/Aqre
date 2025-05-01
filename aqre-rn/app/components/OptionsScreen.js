@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Switch, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform } from 'react-native';
 import { styles } from '../styles';
 
 export default function OptionsScreen({ 
@@ -9,15 +9,48 @@ export default function OptionsScreen({
   setBgmEnabled, 
   vibrationEnabled, 
   setVibrationEnabled,
-  onClose 
+  onClose,
+  clearedPuzzles,
+  setClearedPuzzles
 }) {
+  const clearAllData = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('게임 클리어 데이터를 정말로 지우시겠습니까?')) {
+        setClearedPuzzles([]);
+        window.alert('게임 데이터를 성공적으로 초기화하였습니다.');
+      }
+    } else {
+      Alert.alert(
+        '데이터 초기화', 
+        '게임 클리어 데이터를 정말로 지우시겠습니까?', 
+        [
+          {
+            text: '취소', 
+            style: 'cancel'
+          },
+          {
+            text: '초기화', 
+            style: 'destructive', 
+            onPress: () => {
+              setClearedPuzzles([]);
+              Alert.alert('초기화 완료', '게임 데이터를 성공적으로 초기화하였습니다.');
+            }
+          }
+        ]
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.optionsContainer}>
       <TouchableOpacity style={[styles.backButton, { position: 'absolute', top: 10, left: 10 }]} onPress={onClose}>
         <Text style={styles.backButtonText}>{'<'}</Text>
       </TouchableOpacity>
       <View style={{ height: 44 }} />
-      <TouchableOpacity style={styles.clearDataButton}>
+      <TouchableOpacity 
+        style={styles.clearDataButton}
+        onPress={clearAllData}
+      >
         <Text style={styles.clearDataButtonText}>클리어 데이터 지우기</Text>
       </TouchableOpacity>
       <View style={styles.toggleContainer}>

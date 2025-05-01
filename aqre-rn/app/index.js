@@ -144,12 +144,14 @@ export default function Page() {
       const result = checkGameRules(board, selectedPuzzle);
       setViolations(result.violations);
       setViolationMessages(result.violationMessages);
-      if (result.violationMessages.length === 0 && !clearedPuzzles.includes(selectedPuzzle.id)) {
+      if (result.violationMessages.length === 0) {
         setClearPopupVisible(true);
         if (!clearTime) setClearTime(Date.now());
-        const updatedClearedPuzzles = [...clearedPuzzles, selectedPuzzle.id];
-        setClearedPuzzles(updatedClearedPuzzles);
-        saveClearedPuzzles(updatedClearedPuzzles);
+        if (!clearedPuzzles.includes(selectedPuzzle.id)) {
+          const updatedClearedPuzzles = [...clearedPuzzles, selectedPuzzle.id];
+          setClearedPuzzles(updatedClearedPuzzles);
+          saveClearedPuzzles(updatedClearedPuzzles);
+        }
       }
     } else {
       setViolations([]);
@@ -244,6 +246,7 @@ export default function Page() {
         vibrationEnabled={vibrationEnabled}
         setVibrationEnabled={setVibrationEnabled}
         clearedPuzzles={clearedPuzzles}
+        setClearedPuzzles={setClearedPuzzles}
         onClose={() => {
           setScreen('start');
         }}
