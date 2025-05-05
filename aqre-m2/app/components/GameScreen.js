@@ -4,67 +4,46 @@ import { styles, boardStyles } from '../styles';
 
 
 export default function GameScreen({
-  puzzle,
+  selectedPuzzle,
+  board,
+  handleCellPress,
+  violationMessages,
+  clearPopupVisible,
   setScreen,
-  soundEnabled,
-  vibrationEnabled,
-  tapSound,
-  bgmSound,
-  clearSound,
-  bgmPlay,
-}) {
-  // 게임 상태 useState로 관리
-  const [board, setBoard] = React.useState(puzzle.initialState.map(row => [...row]));
-  const [moveCount, setMoveCount] = React.useState(0);
-  const [startTime, setStartTime] = React.useState(Date.now());
-  const [clearTime, setClearTime] = React.useState(null);
-  const [violationMessages, setViolationMessages] = React.useState([]);
-  const [clearPopupVisible, setClearPopupVisible] = React.useState(false);
 
-  // 게임 상태 초기화 함수
+  moveCount,
+  startTime,
+  clearTime,
+  setClearPopupVisible,
+  setMoveCount,
+  setStartTime,
+  setClearTime,
+  soundEnabled,
+  setSoundEnabled,
+  bgmEnabled,
+  setBgmEnabled,
+  vibrationEnabled,
+  setVibrationEnabled,
+
+
+}) {
   const resetGameState = () => {
-    setBoard(puzzle.initialState.map(row => [...row]));
+    setBoard(selectedPuzzle.initialState.map(row => [...row]));
     setMoveCount(0);
     setStartTime(Date.now());
     setClearTime(null);
-    setViolationMessages([]);
-    setClearPopupVisible(false);
   };
 
-  // 퍼즐이 변경될 때마다 상태 초기화
-  React.useEffect(() => {
-    resetGameState();
-    // eslint-disable-next-line
-  }, [puzzle]);
-
-  // 게임 판 검사 및 클리어 팝업
-  React.useEffect(() => {
-    if (
-      puzzle &&
-      Array.isArray(board) &&
-      board.length === puzzle.size &&
-      board.every(row => Array.isArray(row) && row.length === puzzle.size)
-    ) {
-      // checkGameRules는 필요에 따라 import
-      // const result = checkGameRules(board, puzzle);
-      // setViolationMessages(result.violationMessages);
-      // if (result.violationMessages.length === 0) {
-      //   setClearPopupVisible(true);
-      //   if (!clearTime) setClearTime(Date.now());
-      // }
-    }
-  }, [board, puzzle]);
-
-  if (!puzzle || !puzzle.size || !puzzle.areas) {
+  if (!selectedPuzzle || !selectedPuzzle.size || !selectedPuzzle.areas) {
     // 유효하지 않은 퍼즐일 경우 레벨 선택 화면으로 돌아감
     setScreen('level');
     return null;
   }
 
-  const size = puzzle.size;
+  const size = selectedPuzzle.size;
   const GAP = 1;
   const areaMap = Array.from({ length: size }, () => Array(size).fill(-1));
-  puzzle.areas.forEach((area, areaIdx) => {
+  selectedPuzzle.areas.forEach((area, areaIdx) => {
     area.cells.forEach(([r, c]) => {
       areaMap[r][c] = areaIdx;
     });
@@ -76,7 +55,7 @@ export default function GameScreen({
         <TouchableOpacity style={styles.backButton} onPress={() => setScreen('level')}>
           <Text style={styles.backButtonText}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.levelTitle}>Level {puzzle.id}</Text>
+        <Text style={styles.levelTitle}>Level {selectedPuzzle.id}</Text>
         <TouchableOpacity style={styles.optionsButton} onPress={() => setScreen('options')}>
           <Text style={styles.optionsButtonText}>☰</Text>
         </TouchableOpacity>
@@ -142,26 +121,13 @@ export default function GameScreen({
                 <TouchableOpacity
                   key={colIdx}
                   style={cellStyle}
-                  onPress={() => {
-                    setBoard(prev =>
-                      prev.map((row, r) =>
-                        row.map((cell, c) =>
-                          r === rowIdx && c === colIdx ? (cell === 0 ? 1 : cell === 1 ? 0 : 2) : cell
-                        )
-                      )
-                    );
-                    setMoveCount(cnt => cnt + 1);
-                    if (soundEnabled && tapSound && tapSound.current) {
-                      tapSound.current.replayAsync();
-                    }
-                  }}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
+                  onPress={() => handleCellPress(rowIdx, colIdx)}
                 >
-                  {/* 필요시 영역 힌트 표시 */}
                   {(() => {
                     const areaIdx = areaMap[rowIdx][colIdx];
                     if (areaIdx !== -1) {
-                      const area = puzzle.areas[areaIdx];
+                      const area = selectedPuzzle.areas[areaIdx];
                       if (area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx && area.required !== 'J') {
                         return (
                           <Text style={{
@@ -255,7 +221,6 @@ export default function GameScreen({
               }}
               onPress={() => {
                 setClearPopupVisible(false);
-                resetGameState();
               }}
             >
               <Text style={{ fontSize: 20, color: '#999' }}>✕</Text>
@@ -287,13 +252,27 @@ export default function GameScreen({
               onPress={() => {
                 setClearPopupVisible(false);
                 setScreen('level');
-                resetGameState();
+                setMoveCount(0);
+                setStartTime(null);
+                setClearTime(null);
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1 }}>리스트로</Text>
             </TouchableOpacity>
           </View>
         </View>
+      )}
+
+      {false && (
+        <OptionsScreen
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+          bgmEnabled={bgmEnabled}
+          setBgmEnabled={setBgmEnabled}
+          vibrationEnabled={vibrationEnabled}
+          setVibrationEnabled={setVibrationEnabled}
+          onClose={() => setOptionVisible(false)}
+        />
       )}
     </SafeAreaView>
   );

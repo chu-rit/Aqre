@@ -15,150 +15,31 @@ export default function Page() {
   
   const { bgmSound, tapSound, clearSound, bgmPlay, bgmReady } = useAqreSound();
 
-  const [soundEnabled, setSoundEnabledState] = useState(true);
-  const [bgmEnabled, setBgmEnabledState] = useState(true);
-  const [vibrationEnabled, setVibrationEnabledState] = useState(true);
 
-  // 옵션 저장
-  const saveOptions = async (options) => {
-    try {
-      await AsyncStorage.setItem('options', JSON.stringify(options));
-    } catch (e) {}
-  };
-
-  // 옵션 불러오기
-  const loadOptions = async () => {
-    try {
-      const options = await AsyncStorage.getItem('options');
-      if (options) {
-        const parsed = JSON.parse(options);
-        setSoundEnabledState(parsed.soundEnabled ?? true);
-        setBgmEnabledState(parsed.bgmEnabled ?? true);
-        setVibrationEnabledState(parsed.vibrationEnabled ?? true);
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    loadOptions();
-    loadClearedPuzzles();
-  }, []);
-
-  // 옵션 setter 래핑
-  const setSoundEnabled = (val) => {
-    setSoundEnabledState(val);
-    saveOptions({ soundEnabled: val, bgmEnabled, vibrationEnabled });
-  };
-  const setBgmEnabled = (val) => {
-    setBgmEnabledState(val);
-    saveOptions({ soundEnabled, bgmEnabled: val, vibrationEnabled });
-  };
-  const setVibrationEnabled = (val) => {
-    setVibrationEnabledState(val);
-    saveOptions({ soundEnabled, bgmEnabled, vibrationEnabled: val });
-  };
-
-  const [moveCount, setMoveCount] = useState(0);
-  const [startTime, setStartTime] = useState(null);
-  const [clearTime, setClearTime] = useState(null);
-
-  
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
-  const [board, setBoard] = useState([]);
-  const [violations, setViolations] = useState([]);
-  const [violationMessages, setViolationMessages] = useState([]);
-  const [clearPopupVisible, setClearPopupVisible] = useState(false);
-  const [clearedPuzzles, setClearedPuzzles] = useState([]);
-
-  // 클리어된 퍼즐 저장
-  const saveClearedPuzzles = async (puzzles) => {
-    try {
-      await AsyncStorage.setItem('clearedPuzzles', JSON.stringify(puzzles));
-    } catch (e) {
-      console.error('Failed to save cleared puzzles', e);
-    }
-  };
-
-  // 클리어된 퍼즐 불러오기
-  const loadClearedPuzzles = async () => {
-    try {
-      const puzzlesJson = await AsyncStorage.getItem('clearedPuzzles');
-      if (puzzlesJson) {
-        const parsedPuzzles = JSON.parse(puzzlesJson);
-        setClearedPuzzles(parsedPuzzles);
-      }
-    } catch (e) {
-      console.error('Failed to load cleared puzzles', e);
-    }
-  };
-
   
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialLevelId, setTutorialLevelId] = useState(null);
 
+  const [soundEnabled] = useState(true);
+  const [bgmEnabled] = useState(true);
+  const [vibrationEnabled] = useState(true);
 
   const handleLevelSelect = (puzzle) => {
-    
     const tutorialSteps = tutorialOpen(puzzle.id);
     if (tutorialSteps) {
       setTutorialLevelId(puzzle.id);
       setShowTutorial(true);
       return;
     }
-
-    // 게임 상태 초기화
-    setBoard(puzzle.initialState.map(row => [...row]));
-    setViolations([]);
-    setViolationMessages([]);
-    setClearPopupVisible(false);
-    setMoveCount(0);
-    setStartTime(Date.now());
-    setClearTime(null);
-    
     setSelectedPuzzle(puzzle);
     setScreen('game');
   };
 
-  
-  useEffect(() => {
-    if (!selectedPuzzle) return;
-    setBoard(selectedPuzzle.initialState.map(row => [...row]));
-    setViolations([]);
-    setViolationMessages([]);
-    setClearPopupVisible(false);
-    setMoveCount(0);
-    setStartTime(Date.now());
-    setClearTime(null);
-  }, [selectedPuzzle]);
 
-  
-  useEffect(() => {
-    if (
-      screen === 'game' &&
-      selectedPuzzle &&
-      Array.isArray(board) &&
-      board.length === selectedPuzzle.size &&
-      board.every(row => Array.isArray(row) && row.length === selectedPuzzle.size)
-    ) {
-      const result = checkGameRules(board, selectedPuzzle);
-      setViolations(result.violations);
-      setViolationMessages(result.violationMessages);
-      if (result.violationMessages.length === 0) {
-        setClearPopupVisible(true);
-        if (!clearTime) setClearTime(Date.now());
-        if (!clearedPuzzles.includes(selectedPuzzle.id)) {
-          const updatedClearedPuzzles = [...clearedPuzzles, selectedPuzzle.id];
-          setClearedPuzzles(updatedClearedPuzzles);
-          saveClearedPuzzles(updatedClearedPuzzles);
-        }
-      }
-    } else {
-      setViolations([]);
-      setViolationMessages([]);
-    }
-  }, [board, screen, selectedPuzzle, clearedPuzzles]);
 
+  // BGM 관리
   useEffect(() => {
     if (bgmReady && bgmSound.current) {
       if (bgmEnabled) {
@@ -170,27 +51,12 @@ export default function Page() {
   }, [bgmEnabled, bgmReady, bgmPlay]);
 
   if (screen === 'level') {
-    const levelsPerRow = 5;
-    const rows = [];
-    for (let i = 0; i < PUZZLE_MAPS.length; i += levelsPerRow) {
-      rows.push(PUZZLE_MAPS.slice(i, i + levelsPerRow));
-    }
-
     return (
       <LevelScreen
-        rows={rows}
-        soundEnabled={soundEnabled}
-        tapSound={tapSound}
-        vibrationEnabled={vibrationEnabled}
-        bgmEnabled={bgmEnabled}
-        bgmPlay={bgmPlay}
         setScreen={setScreen}
-
-        handleLevelSelect={handleLevelSelect}
-        setSoundEnabled={setSoundEnabled}
-        setBgmEnabled={setBgmEnabled}
-        setVibrationEnabled={setVibrationEnabled}
-        clearedPuzzles={clearedPuzzles}
+        onSelectPuzzle={handleLevelSelect}
+        tapSound={tapSound}
+        bgmPlay={bgmPlay}
       />
     );
   }
@@ -198,40 +64,14 @@ export default function Page() {
   if (screen === 'game' && selectedPuzzle) {
     return (
       <GameScreen
-        selectedPuzzle={selectedPuzzle}
-        board={board}
-        handleCellPress={(rowIdx, colIdx) => {
-          setBoard(prev =>
-            prev.map((row, r) =>
-              row.map((cell, c) =>
-                r === rowIdx && c === colIdx ? (cell === 0 ? 1 : cell === 1 ? 0 : 2) : cell
-              )
-            )
-          );
-          setMoveCount(cnt => cnt + 1);
-          if (soundEnabled && tapSound.current) {
-            tapSound.current.replayAsync();
-          }
-        }}
-        violationMessages={violationMessages}
-        clearPopupVisible={clearPopupVisible}
+        puzzle={selectedPuzzle}
         setScreen={setScreen}
-
-        moveCount={moveCount}
-        startTime={startTime}
-        clearTime={clearTime}
-        setClearPopupVisible={setClearPopupVisible}
-        setMoveCount={setMoveCount}
-        setStartTime={setStartTime}
-        setClearTime={setClearTime}
         soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-        bgmEnabled={bgmEnabled}
-        setBgmEnabled={setBgmEnabled}
         vibrationEnabled={vibrationEnabled}
-        setVibrationEnabled={setVibrationEnabled}
-        clearedPuzzles={clearedPuzzles}
-
+        tapSound={tapSound}
+        bgmSound={bgmSound}
+        clearSound={clearSound}
+        bgmPlay={bgmPlay}
       />
     );
   }
@@ -239,14 +79,6 @@ export default function Page() {
   if (screen === 'options') {
     return (
       <OptionsScreen
-        soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-        bgmEnabled={bgmEnabled}
-        setBgmEnabled={setBgmEnabled}
-        vibrationEnabled={vibrationEnabled}
-        setVibrationEnabled={setVibrationEnabled}
-        clearedPuzzles={clearedPuzzles}
-        setClearedPuzzles={setClearedPuzzles}
         onClose={() => {
           setScreen('start');
         }}

@@ -5,42 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { styles } from '../styles';
 
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import { PUZZLE_MAPS } from '../../src/logic/puzzles';
-
-export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, bgmEnabled, bgmPlay, setScreen, onSelectPuzzle }) {
-  const [clearedPuzzles, setClearedPuzzles] = React.useState([]);
-
-  // 클리어된 퍼즐 저장
-  const saveClearedPuzzles = async (puzzles) => {
-    try {
-      await AsyncStorage.setItem('clearedPuzzles', JSON.stringify(puzzles));
-    } catch (e) {}
-  };
-
-  // 클리어된 퍼즐 불러오기
-  const loadClearedPuzzles = async () => {
-    try {
-      const puzzlesJson = await AsyncStorage.getItem('clearedPuzzles');
-      if (puzzlesJson) {
-        const parsedPuzzles = JSON.parse(puzzlesJson);
-        setClearedPuzzles(parsedPuzzles);
-      }
-    } catch (e) {}
-  };
-
-  React.useEffect(() => {
-    loadClearedPuzzles();
-  }, []);
-
-  // 레벨 목록 rows 생성
-  const levelsPerRow = 5;
-  const rows = [];
-  for (let i = 0; i < PUZZLE_MAPS.length; i += levelsPerRow) {
-    rows.push(PUZZLE_MAPS.slice(i, i + levelsPerRow));
-  }
-
+export default function LevelScreen({ rows, soundEnabled, tapSound, vibrationEnabled, bgmEnabled, bgmPlay, setScreen, handleLevelSelect, setSoundEnabled, setBgmEnabled, setVibrationEnabled, clearedPuzzles }) {
   return (
     <SafeAreaView style={styles.levelScreen}>
       <View style={styles.header}>
@@ -87,7 +52,7 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
                     if (bgmEnabled && Platform.OS === 'web') {
                       bgmPlay();
                     }
-                    onSelectPuzzle(puzzle);
+                    handleLevelSelect(puzzle);
                   }}
                   activeOpacity={0.7}
                 >

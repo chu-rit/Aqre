@@ -1,48 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function OptionsScreen({ 
   soundEnabled, 
+  setSoundEnabled, 
   bgmEnabled, 
+  setBgmEnabled, 
   vibrationEnabled, 
-  onClose
+  setVibrationEnabled,
+  onClose,
+  clearedPuzzles,
+  setClearedPuzzles
 }) {
-  const [soundEnabledState, setSoundEnabledState] = useState(soundEnabled);
-  const [bgmEnabledState, setBgmEnabledState] = useState(bgmEnabled);
-  const [vibrationEnabledState, setVibrationEnabledState] = useState(vibrationEnabled);
-
-
-  // 옵션 저장
-  const saveOptions = async (options) => {
-    try {
-      await AsyncStorage.setItem('options', JSON.stringify(options));
-    } catch (e) {}
-  };
-
-  // 옵션 불러오기
-  const loadOptions = async () => {
-    try {
-      const options = await AsyncStorage.getItem('options');
-      if (options) {
-        const parsed = JSON.parse(options);
-        setSoundEnabledState(parsed.soundEnabled ?? true);
-        setBgmEnabledState(parsed.bgmEnabled ?? true);
-        setVibrationEnabledState(parsed.vibrationEnabled ?? true);
-      }
-    } catch (e) {}
-  };
-
-
-  useEffect(() => {
-    loadOptions();
-  }, []);
-
-  // setter 래핑
-
-
   const clearAllData = () => {
     if (Platform.OS === 'web') {
       if (window.confirm('게임 클리어 데이터를 정말로 지우시겠습니까?')) {
@@ -93,26 +64,26 @@ export default function OptionsScreen({
       <View style={styles.toggleContainer}>
         <Text style={styles.toggleText}>효과음</Text>
         <Switch
-          value={soundEnabledState}
-          onValueChange={setSoundEnabledState}
+          value={soundEnabled}
+          onValueChange={setSoundEnabled}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
-          thumbColor={soundEnabledState ? '#fff' : '#eee'}
+          thumbColor={soundEnabled ? '#fff' : '#eee'}
         />
       </View>
       <View style={styles.toggleContainer}>
         <Text style={styles.toggleText}>배경음</Text>
         <Switch
-          value={bgmEnabledState}
-          onValueChange={setBgmEnabledState}
+          value={bgmEnabled}
+          onValueChange={setBgmEnabled}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
-          thumbColor={bgmEnabledState ? '#fff' : '#eee'}
+          thumbColor={bgmEnabled ? '#fff' : '#eee'}
         />
       </View>
       <View style={styles.toggleContainer}>
         <Text style={styles.toggleText}>진동</Text>
         <Switch
-          value={vibrationEnabledState}
-          onValueChange={setVibrationEnabledState}
+          value={vibrationEnabled}
+          onValueChange={setVibrationEnabled}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
           thumbColor={vibrationEnabled ? '#fff' : '#eee'}
         />
