@@ -1,20 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAqreSound } from '../src/hooks/sound';
 import { Switch, View, Text, Image, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
 import { styles, boardStyles } from './styles';
 import * as Haptics from 'expo-haptics';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import { TutorialScreen, tutorialOpen } from './tutorial';
-import { checkGameRules } from '../src/logic/gameRules';
 import OptionsScreen from './components/OptionsScreen';
 import LevelScreen from './components/LevelScreen';
 import GameScreen from './components/GameScreen';
+import StartScreen from './components/StartScreen';
 
 export default function Page() {
   
   const { bgmSound, tapSound, clearSound, bgmPlay, bgmReady } = useAqreSound();
-
 
   const [screen, setScreen] = useState('start'); // 'start', 'level', 'game', 'option'
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
@@ -37,8 +35,6 @@ export default function Page() {
     setScreen('game');
   };
 
-
-
   // BGM 관리
   useEffect(() => {
     if (bgmReady && bgmSound.current) {
@@ -49,6 +45,15 @@ export default function Page() {
       }
     }
   }, [bgmEnabled, bgmReady, bgmPlay]);
+
+  if (screen === 'start') {
+    return (
+      <StartScreen
+        setScreen={setScreen}
+        tapSound={tapSound}
+      />
+    );
+  }
 
   if (screen === 'level') {
     return (
@@ -91,11 +96,11 @@ export default function Page() {
       <SafeAreaView style={styles.startScreen}>
         <View style={styles.innerContainer}>
           <Image
-            source={require('../assets/image.png')}
+            source={require('../assets/images/image.png')}
             style={styles.mainImage}
           />
           <Image
-            source={require('../assets/logo1.png')}
+            source={require('../assets/images/logo1.png')}
             style={styles.logo}
           />
           <Text style={styles.versionTag}>v1.0.14</Text>

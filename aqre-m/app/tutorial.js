@@ -64,7 +64,7 @@ export const TutorialScreen = ({
 
       <View style={styles.dialogContainer}>
         <Image 
-          source={require('./assets/nurse.png')} 
+          source={require('../assets/images/nurse.png')} 
           style={styles.dialogAvatar} 
         />
         
