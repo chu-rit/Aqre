@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, SafeAreaView } from 'react-native';
 import { styles, boardStyles } from '../styles';
 
 
@@ -19,6 +19,7 @@ export default function GameScreen({
   const [startTime, setStartTime] = React.useState(Date.now());
   const [clearTime, setClearTime] = React.useState(null);
   const [violationMessages, setViolationMessages] = React.useState([]);
+  const [highlightedViolationCells, setHighlightedViolationCells] = React.useState([]);
   const [clearPopupVisible, setClearPopupVisible] = React.useState(false);
 
   // 게임 상태 초기화 함수
@@ -69,12 +70,22 @@ export default function GameScreen({
             const requiredCount = parseInt(area.required);
             if (grayCount > requiredCount) {
                 violations.areaOverflow = true;
-                violationMessages.add('영역의 회색 칸 수가 초과되었습니다.');
+                const overflowCells = area.cells.filter(([row, col]) => board[row][col] === 1);
+                violationMessages.add(JSON.stringify({
+                    type: '영역 회색 칸 초과',
+                    message: '영역의 회색 칸 수가 초과되었습니다.',
+                    cells: overflowCells.map(([row, col]) => ({row, col}))
+                }));
                 break;
             }
             if (grayCount < requiredCount) {
                 violations.areaOverflow = true;
-                violationMessages.add('영역의 회색 칸 수가 부족합니다.');
+                const underflowCells = area.cells.filter(([row, col]) => board[row][col] !== 1);
+                violationMessages.add(JSON.stringify({
+                    type: '영역 회색 칸 부족',
+                    message: '영역의 회색 칸 수가 부족합니다.',
+                    cells: underflowCells.map(([row, col]) => ({row, col}))
+                }));
                 break;
             }
         }
@@ -89,6 +100,7 @@ export default function GameScreen({
             for (let i = 0; i < puzzle.size; i++) {
                 for (let j = 0; j <= puzzle.size - 4; j++) {
                     const sequence = [];
+                    const violationCells = [];
 
                     for (let k = 0; k < 4; k++) {
                         const row = dir.dy === 1 ? j + k : i;
@@ -98,12 +110,17 @@ export default function GameScreen({
                             ? board[i][j + k]
                             : board[j + k][i];
                         sequence.push(color);
+                        violationCells.push({row, col});
                     }
 
                     // 4개 연속 같은 색상 체크 (흰색 또는 회색만)
                     if (sequence.every(color => color === 0) || sequence.every(color => color === 1)) {
                         violations.consecutiveColors[dir.key] = true;
-                        violationMessages.add(`${dir.name} 방향 4칸 연속 색상 위반`);
+                        violationMessages.add(JSON.stringify({
+                            type: `${dir.name} 연속 색상 위반`,
+                            message: `${dir.name} 방향 4칸 연속 색상 위반`,
+                            cells: violationCells
+                        }));
                         break;
                     }
                 }
@@ -140,7 +157,15 @@ export default function GameScreen({
 
             if (visited.size !== grayCells.length) {
                 violations.cellConnectivity = true;
-                violationMessages.add('회색 칸들이 서로 연결되어 있지 않습니다.');
+                
+                // 연결되지 않은 회색 셀 찾기
+                const unconnectedCells = grayCells.filter(([r, c]) => !visited.has(`${r},${c}`));
+                
+                violationMessages.add(JSON.stringify({
+                    type: '회색 칸 연결성 위반',
+                    message: '회색 칸들이 서로 연결되어 있지 않습니다.',
+                    cells: unconnectedCells.map(([row, col]) => ({row, col}))
+                }));
             }
         }
 
@@ -151,8 +176,15 @@ export default function GameScreen({
     };
 
       const result = checkGameRules(board, puzzle);
-      setViolationMessages(result.violationMessages);
-      if (result.violationMessages.length === 0) {
+      const parsedViolationMessages = result.violationMessages.map(msg => {
+        try {
+          return JSON.parse(msg);
+        } catch {
+          return { type: 'unknown', message: msg, cells: [] };
+        }
+      });
+      setViolationMessages(parsedViolationMessages);
+      if (parsedViolationMessages.length === 0) {
         setClearPopupVisible(true);
         if (!clearTime) setClearTime(Date.now());
       }
@@ -228,6 +260,85 @@ export default function GameScreen({
                   borders.borderRightColor = 'deepskyblue';
                 }
               }
+              // 애니메이션 값 생성
+              const violationAnimValue = useRef(new Animated.Value(0)).current;
+              
+              // 애니메이션 설정
+              useEffect(() => {
+                Animated.loop(
+                  Animated.sequence([
+                    Animated.timing(violationAnimValue, {
+                      toValue: 1,
+                      duration: 1500,
+                      useNativeDriver: false
+                    }),
+                    Animated.timing(violationAnimValue, {
+                      toValue: 0,
+                      duration: 1500,
+                      useNativeDriver: false
+                    })
+                  ])
+                ).start();
+              }, []);
+
+              const isViolationCell = highlightedViolationCells.some(cell => cell.row === rowIdx && cell.col === colIdx);
+              
+              // 애니메이션 값 생성
+              const violationDotAnim = useRef(new Animated.Value(0)).current;
+              
+              // 애니메이션 설정
+              useEffect(() => {
+                const animationLoop = Animated.loop(
+                  Animated.sequence([
+                    Animated.timing(violationDotAnim, {
+                      toValue: 1,
+                      duration: 1500,
+                      useNativeDriver: false
+                    }),
+                    Animated.timing(violationDotAnim, {
+                      toValue: 0,
+                      duration: 1500,
+                      useNativeDriver: false
+                    })
+                  ])
+                );
+                animationLoop.start();
+                return () => animationLoop.stop();
+              }, [violationDotAnim]);
+
+              const ViolationDot = () => {
+                if (!isViolationCell) return null;
+
+                const dotSize = violationDotAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [6, 10]
+                });
+                const dotOpacity = violationDotAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.8, 0]
+                });
+
+                return (
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: [{ translateX: -5 }, { translateY: -5 }],
+                      width: dotSize,
+                      height: dotSize,
+                      borderRadius: 5,
+                      backgroundColor: 'rgba(46, 204, 113, 1)',
+                      opacity: dotOpacity,
+                      ...Platform.select({
+                        ios: { shadowColor: 'rgba(46, 204, 113, 0.5)', shadowOpacity: 0.5, shadowRadius: 5 },
+                        android: { elevation: 3 }
+                      })
+                    }}
+                  />
+                );
+              };
+
               let cellStyle = [
                 boardStyles.cellBase,
                 {
@@ -242,18 +353,19 @@ export default function GameScreen({
               if (cell === 0) cellStyle.push(boardStyles.cellWhite);
               else if (cell === 1) cellStyle.push(boardStyles.cellGray);
               else if (cell === 2) cellStyle.push(boardStyles.cellInactive);
+              
+              // 위반된 셀 하이라이트
+              if (isViolationCell) {
+                cellStyle.push({
+                  position: 'relative',
+                });
+              }
               return (
                 <TouchableOpacity
-                  key={colIdx}
+                  key={`cell-${rowIdx}-${colIdx}`}
                   style={cellStyle}
                   onPress={() => {
-                    setBoard(prev =>
-                      prev.map((row, r) =>
-                        row.map((cell, c) =>
-                          r === rowIdx && c === colIdx ? (cell === 0 ? 1 : cell === 1 ? 0 : 2) : cell
-                        )
-                      )
-                    );
+                    toggleCellColor(rowIdx, colIdx);
                     setMoveCount(cnt => cnt + 1);
                     if (soundEnabled && tapSound && tapSound.current) {
                       tapSound.current.replayAsync();
@@ -261,6 +373,7 @@ export default function GameScreen({
                   }}
                   activeOpacity={0.7}
                 >
+                  <ViolationDot />
                   {/* 필요시 영역 힌트 표시 */}
                   {(() => {
                     const areaIdx = areaMap[rowIdx][colIdx];
@@ -310,7 +423,35 @@ export default function GameScreen({
           borderColor: '#ffb3b3',
         }}>
           {violationMessages.map((msg, idx) => (
-            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+            <TouchableOpacity 
+              key={idx} 
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                marginBottom: 2,
+                padding: 5,
+                borderRadius: 8,
+                backgroundColor: highlightedViolationCells.length > 0 && highlightedViolationCells.some(cell => cell.type === msg.type) ? '#ffeeee' : 'transparent'
+              }}
+              onPress={() => {
+                console.log('Violation Message Clicked:', msg);
+                console.log('Current Highlighted Cells:', highlightedViolationCells);
+                
+                // 이미 하이라이트된 위반 유형이면 하이라이트 해제, 아니면 해당 위반 유형의 셀 하이라이트
+                setHighlightedViolationCells(prev => {
+                  const isAlreadyHighlighted = prev.length > 0 && prev[0].type === msg.type;
+                  console.log('Is Already Highlighted:', isAlreadyHighlighted);
+                  
+                  const newHighlightedCells = isAlreadyHighlighted 
+                    ? [] 
+                    : msg.cells.map(cell => ({...cell, type: msg.type}));
+                  
+                  console.log('New Highlighted Cells:', newHighlightedCells);
+                  return newHighlightedCells;
+                });
+              }}
+            >
               <Text style={{ fontSize: 19, marginRight: 6 }}>⚠️</Text>
               <Text style={{
                 color: '#b00020',
@@ -319,9 +460,9 @@ export default function GameScreen({
                 textAlign: 'center',
                 flexShrink: 1,
               }}>
-                {msg}
+                {msg.message}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
