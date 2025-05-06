@@ -45,13 +45,117 @@ export default function GameScreen({
       board.length === puzzle.size &&
       board.every(row => Array.isArray(row) && row.length === puzzle.size)
     ) {
-      // checkGameRules는 필요에 따라 import
-      // const result = checkGameRules(board, puzzle);
-      // setViolationMessages(result.violationMessages);
-      // if (result.violationMessages.length === 0) {
-      //   setClearPopupVisible(true);
-      //   if (!clearTime) setClearTime(Date.now());
-      // }
+      const checkGameRules = (board, puzzle) => {
+        const violations = {
+            areaOverflow: false,
+            consecutiveColors: {
+                horizontal: false,
+                vertical: false
+            },
+            cellConnectivity: false
+        };
+        const violationMessages = new Set();
+
+        // 1. 각 영역의 회색 칸 수 확인
+        for (const area of puzzle.areas) {
+            const grayCount = area.cells.reduce((count, [row, col]) => {
+                return count + (board[row][col] === 1 ? 1 : 0);
+            }, 0);
+
+            // 'J'인 경우는 검사하지 않음
+            if (area.required === 'J') continue;
+
+            // 문자열로 된 숫자를 정수로 변환하여 비교
+            const requiredCount = parseInt(area.required);
+            if (grayCount > requiredCount) {
+                violations.areaOverflow = true;
+                violationMessages.add('영역의 회색 칸 수가 초과되었습니다.');
+                break;
+            }
+            if (grayCount < requiredCount) {
+                violations.areaOverflow = true;
+                violationMessages.add('영역의 회색 칸 수가 부족합니다.');
+                break;
+            }
+        }
+
+        // 2. 연속된 같은 색상 체크 (가로, 세로)
+        const directions = [
+            { dx: 1, dy: 0, name: '가로', key: 'horizontal' },  // 가로
+            { dx: 0, dy: 1, name: '세로', key: 'vertical' }   // 세로
+        ];
+
+        for (const dir of directions) {
+            for (let i = 0; i < puzzle.size; i++) {
+                for (let j = 0; j <= puzzle.size - 4; j++) {
+                    const sequence = [];
+
+                    for (let k = 0; k < 4; k++) {
+                        const row = dir.dy === 1 ? j + k : i;
+                        const col = dir.dx === 1 ? j + k : i;
+
+                        const color = dir.dx === 1
+                            ? board[i][j + k]
+                            : board[j + k][i];
+                        sequence.push(color);
+                    }
+
+                    // 4개 연속 같은 색상 체크 (흰색 또는 회색만)
+                    if (sequence.every(color => color === 0) || sequence.every(color => color === 1)) {
+                        violations.consecutiveColors[dir.key] = true;
+                        violationMessages.add(`${dir.name} 방향 4칸 연속 색상 위반`);
+                        break;
+                    }
+                }
+
+                // 이미 해당 방향의 위반을 찾았다면 더 이상 확인하지 않음
+                if (violations.consecutiveColors[dir.key]) break;
+            }
+        }
+
+        // 3. 회색 칸 연결성 확인
+        const grayCells = [];
+        for (let i = 0; i < puzzle.size; i++) {
+            for (let j = 0; j < puzzle.size; j++) {
+                if (board[i][j] === 1) {
+                    grayCells.push([i, j]);
+                }
+            }
+        }
+
+        // 회색 칸이 없으면 통과
+        if (grayCells.length > 0) {
+            const visited = new Set();
+            const dfs = (r, c) => {
+                if (r < 0 || r >= puzzle.size || c < 0 || c >= puzzle.size || board[r][c] !== 1 || visited.has(`${r},${c}`)) return;
+                visited.add(`${r},${c}`);
+                dfs(r+1, c);
+                dfs(r-1, c);
+                dfs(r, c+1);
+                dfs(r, c-1);
+            };
+
+            const [startR, startC] = grayCells[0];
+            dfs(startR, startC);
+
+            if (visited.size !== grayCells.length) {
+                violations.cellConnectivity = true;
+                violationMessages.add('회색 칸들이 서로 연결되어 있지 않습니다.');
+            }
+        }
+
+        return {
+            violations,
+            violationMessages: Array.from(violationMessages)
+        };
+    };
+
+      const result = checkGameRules(board, puzzle);
+      setViolationMessages(result.violationMessages);
+      if (result.violationMessages.length === 0) {
+        setClearPopupVisible(true);
+        if (!clearTime) setClearTime(Date.now());
+      }
     }
   }, [board, puzzle]);
 
