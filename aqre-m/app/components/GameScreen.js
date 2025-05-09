@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, SafeAreaView } from 'react-native';
 import { styles, boardStyles } from '../styles';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function GameScreen({
   puzzle,
@@ -199,6 +199,18 @@ export default function GameScreen({
       if (parsedViolationMessages.length === 0) {
         setClearPopupVisible(true);
         if (!clearTime) setClearTime(Date.now());
+        // 클리어 데이터 저장
+        AsyncStorage.getItem('clearedPuzzles').then((json) => {
+          let arr = [];
+          if (json) {
+            arr = JSON.parse(json);
+          }
+          if (!arr.includes(puzzle.id)) {
+            const updated = [...arr, puzzle.id];
+            AsyncStorage.setItem('clearedPuzzles', JSON.stringify(updated));
+            console.log('[GameScreen] 퍼즐 클리어됨, clearedPuzzles:', updated);
+          }
+        });
       }
     }
   }, [board, puzzle]);

@@ -43,33 +43,44 @@ export default function OptionsScreen({
   // setter 래핑
 
 
-  const clearAllData = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('게임 클리어 데이터를 정말로 지우시겠습니까?')) {
-        setClearedPuzzles([]);
+  const clearAllData = async () => {
+  if (Platform.OS === 'web') {
+    if (window.confirm('게임 클리어 데이터를 정말로 지우시겠습니까?')) {
+      try {
+        await AsyncStorage.removeItem('clearedPuzzles');
+        console.log('clearedPuzzles 데이터 성공적으로 삭제됨');
         window.alert('게임 데이터를 성공적으로 초기화하였습니다.');
+        if (onClose) onClose();
+      } catch (e) {
+        console.error('clearedPuzzles 삭제 실패:', e);
+        window.alert('초기화 실패: ' + e.message);
       }
-    } else {
-      Alert.alert(
-        '데이터 초기화', 
-        '게임 클리어 데이터를 정말로 지우시겠습니까?', 
-        [
-          {
-            text: '취소', 
-            style: 'cancel'
-          },
-          {
-            text: '초기화', 
-            style: 'destructive', 
-            onPress: () => {
-              setClearedPuzzles([]);
+    }
+  } else {
+    Alert.alert(
+      '데이터 초기화',
+      '게임 클리어 데이터를 정말로 지우시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '초기화',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('clearedPuzzles');
+              console.log('clearedPuzzles 데이터 성공적으로 삭제됨');
               Alert.alert('초기화 완료', '게임 데이터를 성공적으로 초기화하였습니다.');
+              if (onClose) onClose();
+            } catch (e) {
+              console.error('clearedPuzzles 삭제 실패:', e);
+              Alert.alert('초기화 실패', e.message);
             }
           }
-        ]
-      );
-    }
-  };
+        }
+      ]
+    );
+  }
+};
 
   return (
     <SafeAreaView style={styles.levelScreen}>

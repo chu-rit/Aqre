@@ -26,8 +26,15 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
       if (puzzlesJson) {
         const parsedPuzzles = JSON.parse(puzzlesJson);
         setClearedPuzzles(parsedPuzzles);
+        console.log('[LevelScreen] clearedPuzzles:', parsedPuzzles);
+      } else {
+        setClearedPuzzles([]);
+        console.log('[LevelScreen] clearedPuzzles: [] (스토리지 없음)');
       }
-    } catch (e) {}
+    } catch (e) {
+      setClearedPuzzles([]);
+      console.log('[LevelScreen] clearedPuzzles: [] (에러)', e);
+    }
   };
 
   React.useEffect(() => {
