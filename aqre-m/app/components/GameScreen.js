@@ -21,6 +21,7 @@ export default function GameScreen({
   const [violationMessages, setViolationMessages] = React.useState([]);
   const [highlightedViolationCells, setHighlightedViolationCells] = React.useState([]);
   const [clearPopupVisible, setClearPopupVisible] = React.useState(false);
+  const [selectedViolation, setSelectedViolation] = React.useState(null);
 
   // 게임 상태 초기화 함수
   const resetGameState = () => {
@@ -206,6 +207,17 @@ export default function GameScreen({
     });
   });
 
+  // 셀 색상 토글 함수
+  const toggleCellColor = (row, col) => {
+      setBoard(prev => {
+          if (prev[row][col] === 2) return prev;
+          const newBoard = [...prev];
+          newBoard[row] = [...newBoard[row]];
+          newBoard[row][col] = newBoard[row][col] === 0 ? 1 : 0;
+          return newBoard;
+      });
+  };
+
   return (
     <SafeAreaView style={styles.levelScreen}>
       <View style={styles.levelHeader}>
@@ -311,7 +323,7 @@ export default function GameScreen({
 
                 const dotSize = violationDotAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [6, 10]
+                  outputRange: [6, 15]
                 });
                 const dotOpacity = violationDotAnim.interpolate({
                   inputRange: [0, 1],
@@ -430,26 +442,16 @@ export default function GameScreen({
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 marginBottom: 2,
-                padding: 5,
+                padding: selectedViolation?.type === msg.type ? 8 : 5,
                 borderRadius: 8,
-                backgroundColor: highlightedViolationCells.length > 0 && highlightedViolationCells.some(cell => cell.type === msg.type) ? '#ffeeee' : 'transparent'
+                backgroundColor: selectedViolation?.type === msg.type ? '#f0fff0' : highlightedViolationCells.some(cell => cell.type === msg.type) ? '#ffeeee' : 'transparent',
+                borderWidth: selectedViolation?.type === msg.type ? 2 : 0,
+                borderColor: '#2ecc71'
               }}
               onPress={() => {
-                console.log('Violation Message Clicked:', msg);
-                console.log('Current Highlighted Cells:', highlightedViolationCells);
-                
-                // 이미 하이라이트된 위반 유형이면 하이라이트 해제, 아니면 해당 위반 유형의 셀 하이라이트
-                setHighlightedViolationCells(prev => {
-                  const isAlreadyHighlighted = prev.length > 0 && prev[0].type === msg.type;
-                  console.log('Is Already Highlighted:', isAlreadyHighlighted);
-                  
-                  const newHighlightedCells = isAlreadyHighlighted 
-                    ? [] 
-                    : msg.cells.map(cell => ({...cell, type: msg.type}));
-                  
-                  console.log('New Highlighted Cells:', newHighlightedCells);
-                  return newHighlightedCells;
-                });
+                const isSameViolation = selectedViolation?.type === msg.type;
+                setSelectedViolation(isSameViolation ? null : msg);
+                setHighlightedViolationCells(prev => isSameViolation ? [] : msg.cells.map(cell => ({...cell, type: msg.type})));
               }}
             >
               <Text style={{ fontSize: 19, marginRight: 6 }}>⚠️</Text>
