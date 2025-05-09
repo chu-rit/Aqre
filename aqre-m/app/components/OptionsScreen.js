@@ -11,9 +11,9 @@ export default function OptionsScreen({
   onClose
 }) {
   const [soundEnabledState, setSoundEnabledState] = useState(soundEnabled);
-  const [bgmEnabledState, setBgmEnabledState] = useState(bgmEnabled);
+  const [bgmEnabledState, setBgmEnabledState] = useState(true);
   const [vibrationEnabledState, setVibrationEnabledState] = useState(vibrationEnabled);
-
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // 옵션 저장
   const saveOptions = async (options) => {
@@ -29,19 +29,64 @@ export default function OptionsScreen({
       if (options) {
         const parsed = JSON.parse(options);
         setSoundEnabledState(parsed.soundEnabled ?? true);
-        setBgmEnabledState(parsed.bgmEnabled ?? true);
         setVibrationEnabledState(parsed.vibrationEnabled ?? true);
       }
     } catch (e) {}
   };
 
+  // 설정값 로드 함수
+  const loadSettings = async () => {
+    try {
+      const sound = await AsyncStorage.getItem('soundEnabled');
+      const haptics = await AsyncStorage.getItem('hapticsEnabled');
+      
+      setSoundEnabledState(sound !== null ? JSON.parse(sound) : true);
+      setVibrationEnabledState(haptics !== null ? JSON.parse(haptics) : true);
+    } catch (e) {
+      console.error('설정 불러오기 실패:', e);
+    }
+  };
+
+  // 설정값 저장 함수
+  const saveSetting = async (key, value) => {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error('설정 저장 실패:', e);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const options = await AsyncStorage.getItem('options');
+        if (options) {
+          const parsed = JSON.parse(options);
+          setBgmEnabledState(parsed.bgmEnabled ?? true);
+        }
+      } catch (e) {
+        console.error('옵션 초기화 실패:', e);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     loadOptions();
+    loadSettings();
   }, []);
 
-  // setter 래핑
-
+  useEffect(() => {
+    if (isLoaded) {
+      saveOptions({
+        soundEnabled: soundEnabledState,
+        bgmEnabled: bgmEnabledState,
+        vibrationEnabled: vibrationEnabledState
+      });
+    }
+  }, [bgmEnabledState, isLoaded, soundEnabledState, vibrationEnabledState]);
 
   const clearAllData = async () => {
   if (Platform.OS === 'web') {
@@ -105,7 +150,10 @@ export default function OptionsScreen({
         <Text style={styles.toggleText}>효과음</Text>
         <Switch
           value={soundEnabledState}
-          onValueChange={setSoundEnabledState}
+          onValueChange={(value) => {
+            setSoundEnabledState(value);
+            saveSetting('soundEnabled', value);
+          }}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
           thumbColor={soundEnabledState ? '#fff' : '#eee'}
         />
@@ -114,7 +162,9 @@ export default function OptionsScreen({
         <Text style={styles.toggleText}>배경음</Text>
         <Switch
           value={bgmEnabledState}
-          onValueChange={setBgmEnabledState}
+          onValueChange={(value) => {
+            setBgmEnabledState(value);
+          }}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
           thumbColor={bgmEnabledState ? '#fff' : '#eee'}
         />
@@ -123,9 +173,12 @@ export default function OptionsScreen({
         <Text style={styles.toggleText}>진동</Text>
         <Switch
           value={vibrationEnabledState}
-          onValueChange={setVibrationEnabledState}
+          onValueChange={(value) => {
+            setVibrationEnabledState(value);
+            saveSetting('hapticsEnabled', value);
+          }}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
-          thumbColor={vibrationEnabled ? '#fff' : '#eee'}
+          thumbColor={vibrationEnabledState ? '#fff' : '#eee'}
         />
       </View>
     </SafeAreaView>
