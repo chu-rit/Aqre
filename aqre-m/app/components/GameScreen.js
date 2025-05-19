@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function GameScreen({
   puzzle,
-  setScreen,
+  setCurrentScreen,
   soundEnabled,
   vibrationEnabled,
   tapSound,
@@ -547,7 +547,10 @@ export default function GameScreen({
               }}
               onPress={() => {
                 setClearPopupVisible(false);
-                setScreen('level');
+                const handleBack = () => {
+                  setCurrentScreen('level');
+                };
+                handleBack();
               }}
             >
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1 }}>리스트로</Text>

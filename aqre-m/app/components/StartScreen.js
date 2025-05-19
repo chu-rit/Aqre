@@ -3,14 +3,14 @@ import { View, Text, TouchableOpacity, Image, SafeAreaView } from 'react-native'
 import { styles } from '../styles';
 
 export default function StartScreen({ 
-  setScreen, 
+  setCurrentScreen, 
   tapSound 
 }) {
   const handleStart = () => {
     if (tapSound && tapSound.current) {
       tapSound.current.replayAsync();
     }
-    setScreen('level');
+    setCurrentScreen('level');
   };
 
   return (

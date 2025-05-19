@@ -94,8 +94,32 @@ export const styles = StyleSheet.create({
   levelContainer: {
     paddingHorizontal: 10,
     paddingBottom: 20,
-    marginTop: 40,
+    marginTop: 20,
     alignItems: 'center',
+  },
+  levelRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  levelButton: {
+    width: 60,
+    height: 60,
+    margin: 5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  levelButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
   },
   levelGrid: {
     width: '100%',
