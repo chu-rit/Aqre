@@ -17,13 +17,13 @@ export const tutorialSteps = {
       showNextButton: true
     },
     {
-      text: 'AQRE 시스템을 사용해 어떻게 고객들의 기억을 복원할 수 있는지 설명해드리고자 합니다.',
+      text: 'AQRE 시스템을 사용해 어떻게 고객들의 기억을 복원할 수 있는지 말씀드리겠습니다.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      text: '먼저 레벨1부터 차례대로 듀토리얼을 시작해 볼까요?',
+      text: '먼저 레벨1부터 차례대로 시작해보실까요?',
       highlight: {
         selectors: ["[data-level='1']"]
       },

@@ -217,7 +217,7 @@ export default function GameScreen({
 
   if (!puzzle || !puzzle.size || !puzzle.areas) {
     // 유효하지 않은 퍼즐일 경우 레벨 선택 화면으로 돌아감
-    setScreen('level');
+    setCurrentScreen('level');
     return null;
   }
 
@@ -233,11 +233,11 @@ export default function GameScreen({
   return (
     <SafeAreaView style={styles.levelScreen}>
       <View style={styles.levelHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => setScreen('level')}>
+        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('level')}>
           <Text style={styles.backButtonText}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.levelTitle}>Level {puzzle.id}</Text>
-        <TouchableOpacity style={styles.optionsButton} onPress={() => setScreen('options')}>
+        <TouchableOpacity style={styles.optionsButton} onPress={() => setCurrentScreen('options')}>
           <Text style={styles.optionsButtonText}>☰</Text>
         </TouchableOpacity>
       </View>
