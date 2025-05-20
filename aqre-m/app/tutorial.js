@@ -43,12 +43,15 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
   return <Text style={style}>{displayText}</Text>;
 };
 
-const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
+const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showNextButton, setShowNextButton] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const currentStepData = steps[currentStep] || {};
+  
+  // levelId에 해당하는 튜토리얼 단계 가져오기
+  const currentLevelSteps = steps[levelId] || [];
+  const currentStepData = currentLevelSteps[currentStep] || {};
 
   useEffect(() => {
     if (isVisible) {
@@ -81,7 +84,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
   }, [isVisible, fadeAnim, slideAnim]);
 
   const nextStep = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < currentLevelSteps.length - 1) {
       setShowNextButton(false);
       setCurrentStep(currentStep + 1);
       
@@ -164,7 +167,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
                 />
                 <View style={tutorialStyles.bottomContainer}>
                   <View style={tutorialStyles.progress}>
-                    {steps.map((_, index) => (
+                    {currentLevelSteps.map((_, index) => (
                       <View 
                         key={index} 
                         style={[
@@ -181,7 +184,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
                       activeOpacity={0.8}
                     >
                       <Text style={tutorialStyles.buttonText}>
-                        {currentStep < steps.length - 1 ? '다음' : '시작하기'}
+                        {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
                       </Text>
                     </TouchableOpacity>
                   )}

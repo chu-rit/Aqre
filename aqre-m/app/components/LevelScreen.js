@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../../src/logic/puzzles';
+import { tutorialSteps } from '../../src/logic/tutorialSteps';
 import TutorialScreen from '../tutorial';
 import { styles } from '../styles';
 
@@ -183,11 +184,8 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
           isVisible={showTutorial}
           onClose={handleTutorialComplete}
           onSkip={handleSkipTutorial}
-          steps={[
-            { text: '안녕하세요! AQRE 게임에 오신 것을 환영합니다!' },
-            { text: '이 게임은 퍼즐을 풀면서 재미있게 즐길 수 있는 게임이에요.' },
-            { text: '지금부터 게임 방법을 알려드릴게요!' }
-          ]}
+          levelId="level0"
+          steps={tutorialSteps}
         />
       )}
     </SafeAreaView>
