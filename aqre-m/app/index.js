@@ -34,16 +34,13 @@ export default function Page() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        console.log('초기 데이터 로드 중...');
-        
         // 클리어한 레벨 로드
         const savedLevels = await AsyncStorage.getItem('clearedLevels');
         if (savedLevels) {
           const parsedLevels = JSON.parse(savedLevels);
           setClearedLevels(new Set(parsedLevels));
-          console.log('로드된 클리어 레벨:', parsedLevels);
-        } else {
-          console.log('클리어한 레벨 없음');
+          // 디버깅 시에만 사용
+          // console.log('로드된 클리어 레벨:', parsedLevels);
         }
       } catch (error) {
         console.error('초기 데이터 로드 실패:', error);

@@ -124,18 +124,18 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
 
   return (
     <Modal
-      visible={isVisible}
-      animationType="fade"
+      animationType="slide"
       transparent={true}
-      onRequestClose={skipTutorial}
+      visible={isVisible}
+      onRequestClose={onClose}
     >
-      <View style={tutorialStyles.overlay}>
+      <SafeAreaView style={tutorialStyles.overlay}>
         <Animated.View 
           style={[
             tutorialStyles.container,
-            {
+            { 
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
+              transform: [{ translateY: slideAnim }] 
             }
           ]}
         >
@@ -146,45 +146,51 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, steps = [] }) => {
             <Text style={tutorialStyles.skipButtonText}>SKIP</Text>
           </TouchableOpacity>
           
-          <Image 
-            source={require('../assets/images/nurse.png')} 
-            style={tutorialStyles.avatar}
-            resizeMode="contain"
-          />
-          
-          <View style={tutorialStyles.content}>
-            <TypeWriterText 
-              text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
-              style={tutorialStyles.text}
-              onTypingDone={() => setShowNextButton(true)}
-            />
-          </View>
-          
-          {showNextButton && (
-            <TouchableOpacity 
-              style={tutorialStyles.button}
-              onPress={nextStep}
-              activeOpacity={0.8}
-            >
-              <Text style={tutorialStyles.buttonText}>
-                {currentStep < steps.length - 1 ? '다음' : '시작하기'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          <View style={tutorialStyles.progress}>
-            {steps.map((_, index) => (
-              <View 
-                key={index} 
-                style={[
-                  tutorialStyles.progressDot,
-                  index === currentStep && tutorialStyles.progressDotActive
-                ]} 
-              />
-            ))}
+          <View style={tutorialStyles.contentContainer}>
+            <View style={tutorialStyles.rowContainer}>
+              <View style={tutorialStyles.imageContainer}>
+                <Image 
+                  source={require('../assets/images/nurse.png')} 
+                  style={tutorialStyles.avatar}
+                  resizeMode="contain"
+                />
+              </View>
+              
+              <View style={tutorialStyles.textContainer}>
+                <TypeWriterText 
+                  text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
+                  style={tutorialStyles.text}
+                  onTypingDone={() => setShowNextButton(true)}
+                />
+                <View style={tutorialStyles.bottomContainer}>
+                  <View style={tutorialStyles.progress}>
+                    {steps.map((_, index) => (
+                      <View 
+                        key={index} 
+                        style={[
+                          tutorialStyles.progressDot, 
+                          index === currentStep && tutorialStyles.progressDotActive
+                        ]} 
+                      />
+                    ))}
+                  </View>
+                  {showNextButton && (
+                    <TouchableOpacity 
+                      style={tutorialStyles.button}
+                      onPress={nextStep}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={tutorialStyles.buttonText}>
+                        {currentStep < steps.length - 1 ? '다음' : '시작하기'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
           </View>
         </Animated.View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };

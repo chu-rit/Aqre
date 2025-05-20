@@ -33,7 +33,7 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
       
       // 클리어한 레벨이 없으면 항상 튜토리얼 표시
       if (cleared.length === 0) {
-        console.log('클리어한 레벨이 없어 튜토리얼 표시');
+        // 클리어한 레벨이 없어 튜토리얼 표시
         setShowTutorial(true);
       } else {
         setShowTutorial(false);
@@ -49,14 +49,10 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
   useFocusEffect(
     useCallback(() => {
       const checkOnFocus = async () => {
-        console.log('화면 포커스 이벤트 발생');
         const cleared = await loadClearedPuzzles();
-        console.log('클리어한 레벨:', cleared);
         if (cleared.length === 0) {
-          console.log('클리어한 레벨이 없어 튜토리얼을 표시합니다.');
           setShowTutorial(true);
         } else {
-          console.log('클리어한 레벨이 있어 튜토리얼을 표시하지 않습니다.');
           setShowTutorial(false);
         }
       };
@@ -65,7 +61,8 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
     }, [])
   );
   
-  console.log('showTutorial 상태:', showTutorial);
+  // showTutorial 상태는 디버깅 시에만 필요하면 주석 처리
+  // console.log('showTutorial 상태:', showTutorial);
   
   // 튜토리얼 완료 처리
   const handleTutorialComplete = async () => {

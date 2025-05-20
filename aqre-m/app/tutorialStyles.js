@@ -8,7 +8,7 @@ export const tutorialStyles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   
-  // 컨테이너
+  // 메인 컨테이너
   container: {
     width: '100%',
     backgroundColor: '#fff',
@@ -19,60 +19,69 @@ export const tutorialStyles = StyleSheet.create({
     maxHeight: '90%',
   },
   
+  // 콘텐츠 컨테이너 (전체 영역)
+  contentContainer: {
+    width: '100%',
+  },
+  
+  // 이미지와 텍스트를 담는 행
+  rowContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+
+  // 이미지 컨테이너 (30%)
+  imageContainer: {
+    width: '25%',
+    alignItems: 'center',
+    paddingRight: 16,
+    paddingTop: 16, // 상단 패딩 16px 추가
+  },
+
   // 간호사 아바타
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignSelf: 'center',
-    marginBottom: 20,
+    width: 90,  // 크기 증가
+    height: 90,  // 크기 증가
+    borderRadius: 45,  // 둥근 모서리도 크기에 맞게 조정
     borderWidth: 3,
     borderColor: '#4c6ef5',
   },
   
-  // 대화 내용 영역
-  content: {
-    backgroundColor: 'white',
+  // 텍스트 컨테이너 (75%)
+  textContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
+    minHeight: 100,
   },
   
   // 대화 텍스트
   text: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#333',
-    textAlign: 'center',
+    textAlign: 'left',
+    marginBottom: 16,
   },
   
-  // 다음/시작 버튼
-  button: {
-    backgroundColor: '#4c6ef5',
-    paddingVertical: 14,
-    borderRadius: 10,
+  // 하단 컨테이너 (진행 상태와 버튼)
+  bottomContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
-    marginTop: 10,
-  },
-  
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
   },
   
   // 진행 상태 표시기
   progress: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 10,
   },
   
   progressDot: {
@@ -80,24 +89,42 @@ export const tutorialStyles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#e0e0e0',
-    marginHorizontal: 4,
+    marginHorizontal: 3,
   },
   
   progressDotActive: {
     backgroundColor: '#4c6ef5',
-    width: 24,
+    width: 20,
   },
   
-  // SKIP 버튼
+  // 다음/시작 버튼
+  button: {
+    backgroundColor: '#4c6ef5',
+    paddingVertical: 4, // 패딩 더 줄임
+    paddingHorizontal: 12, // 패딩 더 줄임
+    borderRadius: 10, // 둥근 모서리 조정
+    alignItems: 'center',
+    minWidth: 70, // 최소 너비 더 줄임
+  },
+  
+  buttonText: {
+    color: 'white',
+    fontSize: 12, // 폰트 크기 더 줄임
+    fontWeight: '600',
+    paddingHorizontal: 2, // 좌우 패딩 조정
+  },
+  
   skipButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    padding: 10,
+    top: 4, // 더 위로 조정
+    right: 24,
+    zIndex: 10,
+    alignSelf: 'flex-end',
   },
   
   skipButtonText: {
     color: '#666',
     fontSize: 14,
+    fontWeight: '500',
   },
 });
