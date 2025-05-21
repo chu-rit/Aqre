@@ -165,6 +165,7 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
                 ]}
                 onPress={() => handleLevelSelect(puzzle)}
                 activeOpacity={0.7}
+                testID={`level-${puzzle.id}`}
               >
                 <Text style={styles.levelButtonText}>{puzzle.id}</Text>
                 {clearedPuzzles.includes(puzzle.id) && (

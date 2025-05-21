@@ -54,6 +54,54 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
   const currentStepData = currentLevelSteps[currentStep] || {};
 
   useEffect(() => {
+    if (!isVisible) return;
+    
+    // 이전에 하이라이트된 요소가 있다면 스타일 제거
+    const prevHighlighted = document.querySelectorAll('.tutorial-highlight');
+    prevHighlighted.forEach(el => {
+      el.classList.remove('tutorial-highlight');
+      el.style.zIndex = '';
+    });
+    
+    // 현재 스텝에 하이라이트가 있으면 적용
+    if (currentStepData.highlight?.selectors) {
+      currentStepData.highlight.selectors.forEach(selector => {
+        // 선택자 형식이 key=value 형식이면 [key="value"]로 변환
+        let query = selector;
+        if (selector.includes('=')) {
+          const [key, value] = selector.split('=');
+          query = `[${key}="${value}"]`;
+        }
+        
+        const elements = document.querySelectorAll(query);
+        console.log(`원본 선택자: ${selector}, 쿼리: ${query}, 찾은 요소 수: ${elements.length}`);
+        
+        elements.forEach(el => {
+          console.log('하이라이트 요소:', el);
+          // 스타일 직접 적용 (React Native Web에서도 동작하도록)
+          el.style.position = 'relative';
+          el.style.zIndex = '1000';
+          el.style.boxShadow = '0 0 0 2px #4c6ef5';
+          el.style.borderRadius = '8px';
+          el.style.backgroundColor = 'rgba(76, 110, 245, 0.1)';
+          
+          // 부모 요소의 overflow 속성 확인 (웹뷰에서만 동작)
+          if (el.parentElement) {
+            let parent = el.parentElement;
+            while (parent && parent !== document.body) {
+              const style = window.getComputedStyle(parent);
+              if (style.overflow === 'hidden' || style.overflowX === 'hidden' || style.overflowY === 'hidden') {
+                console.log('overflow: hidden을 가진 부모 요소 발견:', parent);
+              }
+              parent = parent.parentElement;
+            }
+          }
+        });
+      });
+    }
+  }, [currentStep, currentStepData.highlight, isVisible]);
+
+  useEffect(() => {
     if (isVisible) {
       setCurrentStep(0);
       setShowNextButton(false);
@@ -79,7 +127,15 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
         setShowNextButton(true);
       }, 3000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        // 컴포넌트 언마운트 시 하이라이트 제거
+        const highlighted = document.querySelectorAll('.tutorial-highlight');
+        highlighted.forEach(el => {
+          el.classList.remove('tutorial-highlight');
+          el.style.zIndex = '';
+        });
+      };
     }
   }, [isVisible, fadeAnim, slideAnim]);
 

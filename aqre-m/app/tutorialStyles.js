@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const tutorialStyles = StyleSheet.create({
   // 오버레이 스타일
@@ -126,5 +126,27 @@ export const tutorialStyles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     fontWeight: '500',
+  },
+  
+  // 강조된 요소 스타일
+  highlightedElement: {
+    position: 'relative',
+    zIndex: 9999,
+    ...Platform.select({
+      ios: {
+        transform: [{ translateZ: 0 }],
+      },
+      android: {
+        elevation: 9999,
+      },
+    }),
+    borderWidth: 2,
+    borderColor: '#4c6ef5',
+    borderRadius: 8,
+    backgroundColor: 'rgba(76, 110, 245, 0.1)',
+    shadowColor: '#4c6ef5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
   },
 });

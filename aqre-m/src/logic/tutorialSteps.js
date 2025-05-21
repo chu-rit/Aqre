@@ -25,7 +25,7 @@ export const tutorialSteps = {
     {
       text: '먼저 레벨1부터 차례대로 시작해보실까요?',
       highlight: {
-        selectors: ["[data-level='1']"]
+        selectors: ["data-testid=level-1"]
       },
       condition: null,
       showNextButton: false
