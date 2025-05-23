@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -48,6 +48,56 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
   const [showNextButton, setShowNextButton] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  
+  // 모든 하이라이트와 클론 요소를 제거하는 함수
+  const cleanupAllHighlights = useCallback(() => {
+    // 모든 클론 요소 제거
+    const cloneElements = document.querySelectorAll('.tutorial-clone-element');
+    cloneElements.forEach(el => {
+      try {
+        if (el && el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      } catch (e) {
+        console.error('클론 요소 제거 중 오류:', e);
+      }
+    });
+
+    // 모든 하이라이트 요소 복원
+    const highlightElements = document.querySelectorAll('[data-highlight-id]');
+    highlightElements.forEach(el => {
+      try {
+        // 이벤트 리스너 제거
+        if (el._tutorialUpdatePosition) {
+          window.removeEventListener('scroll', el._tutorialUpdatePosition, true);
+          window.removeEventListener('resize', el._tutorialUpdatePosition);
+          delete el._tutorialUpdatePosition;
+        }
+        
+        // 원래 스타일 복원
+        if (el.dataset.originalStyles) {
+          const originalStyles = JSON.parse(el.dataset.originalStyles);
+          Object.entries(originalStyles).forEach(([property, value]) => {
+            if (property in el.style) {
+              el.style[property] = value;
+            }
+          });
+          delete el.dataset.originalStyles;
+        }
+        
+        // 하이라이트 관련 속성 제거
+        delete el.dataset.highlightId;
+        el.classList.remove('tutorial-highlight');
+      } catch (e) {
+        console.error('하이라이트 요소 복원 중 오류:', e);
+      }
+    });
+
+    // 강제로 리플로우 발생시켜 변경사항 적용
+    if (document.body) {
+      document.body.offsetHeight;
+    }
+  }, []);
   
   // levelId에 해당하는 튜토리얼 단계 가져오기
   const currentLevelSteps = steps[levelId] || [];
@@ -313,10 +363,13 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
     }
   }, [isVisible, fadeAnim, slideAnim]);
 
-  const nextStep = () => {
+  // 다음 스텝으로 이동하는 함수
+  const nextStep = useCallback(() => {
+    cleanupAllHighlights();
+    
     if (currentStep < currentLevelSteps.length - 1) {
+      setCurrentStep(prev => prev + 1);
       setShowNextButton(false);
-      setCurrentStep(currentStep + 1);
       
       // 다음 단계로 넘어갈 때 애니메이션
       fadeAnim.setValue(0);
@@ -341,17 +394,26 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
       // 튜토리얼 완료
       onClose();
     }
-  };
+  }, [currentStep, currentLevelSteps.length, cleanupAllHighlights, fadeAnim, slideAnim, onClose]);
 
-  const skipTutorial = async () => {
+  // 스킵 버튼 핸들러
+  const skipTutorial = useCallback(async () => {
     try {
+      cleanupAllHighlights();
       await AsyncStorage.setItem('tutorialSkipped', 'true');
-      onClose();
+      onSkip();
     } catch (error) {
       console.error('튜토리얼 스킵 상태 저장 실패:', error);
-      onClose();
+      onSkip();
     }
-  };
+  }, [onSkip, cleanupAllHighlights]);
+  
+  // 컴포넌트 언마운트 시 또는 isVisible이 false가 될 때 정리
+  useEffect(() => {
+    return () => {
+      cleanupAllHighlights();
+    };
+  }, [cleanupAllHighlights]);
 
   if (!isVisible) return null;
 
