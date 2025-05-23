@@ -60,6 +60,27 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
     const highlightElements = document.querySelectorAll('.tutorial-highlight-element');
     highlightElements.forEach(el => el.remove());
     
+    // 모든 하이라이트 요소 제거
+    const removeAllHighlights = () => {
+      // 모든 클론된 요소 제거
+      document.querySelectorAll('.tutorial-clone-element').forEach(el => {
+        // 이벤트 리스너 정리
+        const targetId = el.dataset.targetId;
+        if (targetId) {
+          const originalElement = document.querySelector(`[data-highlight-id="${targetId}"]`);
+          if (originalElement && originalElement._tutorialUpdatePosition) {
+            window.removeEventListener('scroll', originalElement._tutorialUpdatePosition, true);
+            window.removeEventListener('resize', originalElement._tutorialUpdatePosition);
+            delete originalElement._tutorialUpdatePosition;
+            delete originalElement.dataset.highlightId;
+          }
+        }
+        el.remove();
+      });
+    };
+    
+    removeAllHighlights();
+    
     // 원본 요소 복원
     const highlightedElements = document.querySelectorAll('.tutorial-highlight');
     highlightedElements.forEach(el => {
@@ -81,6 +102,9 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
     
     // 현재 스텝에 하이라이트가 있으면 적용
     if (currentStepData.highlight?.selectors) {
+      // 기존의 모든 클론 요소 제거
+      document.querySelectorAll('.tutorial-clone-element').forEach(el => el.remove());
+      
       currentStepData.highlight.selectors.forEach(selector => {
         // 선택자 형식이 key=value 형식이면 [key="value"]로 변환
         let query = selector;
@@ -102,52 +126,141 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
           const originalBorderRadius = el.style.borderRadius || '';
           const originalBackgroundColor = el.style.backgroundColor || '';
           
-          // 원본 요소의 위치와 크기 가져오기
-          const rect = el.getBoundingClientRect();
-          const originalPos = window.getComputedStyle(el).position;
-          const originalZIdx = window.getComputedStyle(el).zIndex;
+          // 원본 요소의 스타일과 위치 정보 가져오기
+          const originalStyle = window.getComputedStyle(el);
+          const rects = el.getClientRects();
+          const rect = rects.length > 0 ? rects[0] : el.getBoundingClientRect();
           
-          // 원본 요소의 스타일 보존
-          el.dataset.originalStyles = JSON.stringify({
-            position: originalPos,
-            zIndex: originalZIdx,
-          });
+          // 뷰포트 기준 위치 계산
+          const scrollX = window.scrollX || window.pageXOffset;
+          const scrollY = window.scrollY || window.pageYOffset;
           
-          // 원본 요소의 z-index 조정 (하이라이트보다 낮게)
-          el.style.position = originalPos === 'static' ? 'relative' : originalPos;
-          el.style.zIndex = '999';
+          // 요소의 실제 위치 계산 (스크롤 및 부모 요소의 위치 고려)
+          let offsetX = 0;
+          let offsetY = 0;
+          let current = el;
           
-          // 별도의 하이라이트 요소 생성
-          const highlightElement = document.createElement('div');
-          highlightElement.className = 'tutorial-highlight-element';
+          while (current && !current.isSameNode(document)) {
+            offsetX += current.offsetLeft - current.scrollLeft + current.clientLeft;
+            offsetY += current.offsetTop - current.scrollTop + current.clientTop;
+            current = current.offsetParent;
+          }
           
-          // 원본 요소의 스타일을 가져오기
-          const compStyle = window.getComputedStyle(el);
-          highlightElement.style.cssText = `
-            position: absolute;
-            top: ${rect.top}px;
-            left: ${rect.left}px;
+          // 기존 하이라이트 요소가 있으면 제거
+          const existingHighlight = document.querySelector(`[data-highlight-id="${el.dataset.highlightId}"]`);
+          if (existingHighlight) {
+            existingHighlight.remove();
+          }
+          
+          // 원본 요소를 클론하여 오버레이 위에 표시
+          const clone = el.cloneNode(true);
+          clone.className = 'tutorial-clone-element';
+          
+          // 원본 요소에 하이라이트 ID가 없으면 생성
+          if (!el.dataset.highlightId) {
+            el.dataset.highlightId = `highlight-${Date.now()}`;
+          }
+          
+          // 원본 요소의 transform 값 가져오기
+          const transform = originalStyle.transform !== 'none' ? originalStyle.transform : '';
+          
+          // 최종 위치 계산 (offset 값을 사용하여 정확한 위치 계산)
+          const finalTop = offsetY + scrollY;
+          const finalLeft = offsetX + scrollX;
+          
+          // CSS 애니메이션 키프레임 추가
+          const styleId = 'tutorial-highlight-styles';
+          if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+              @keyframes tutorialPulse {
+                0% { 
+                  box-shadow: 0 0 0 0 rgba(76, 110, 245, 0.8),
+                              0 0 0 10px rgba(76, 110, 245, 0.5),
+                              0 0 0 20px rgba(76, 110, 245, 0.2);
+                }
+                100% { 
+                  box-shadow: 0 0 0 15px rgba(76, 110, 245, 0),
+                              0 0 0 30px rgba(76, 110, 245, 0),
+                              0 0 0 45px rgba(76, 110, 245, 0);
+                }
+              }
+              @keyframes tutorialBorderPulse {
+                0%, 100% { 
+                  border-width: 3px;
+                  border-color: #4c6ef5;
+                }
+                50% { 
+                  border-width: 4px;
+                  border-color: #00f7ff;
+                }
+              }
+              /* 배경 펄스 애니메이션 제거 */
+            `;
+            document.head.appendChild(style);
+          }
+          
+          // 클론 요소 스타일 설정
+          clone.style.cssText = `
+            position: fixed;
+            top: ${finalTop}px;
+            left: ${finalLeft}px;
             width: ${rect.width}px;
             height: ${rect.height}px;
-            border: 2px solid #4c6ef5;
-            border-radius: 12px;
-            background-color: rgba(76, 110, 245, 0.1);
             z-index: 1000;
             pointer-events: none;
+            background-color: ${originalStyle.backgroundColor || 'transparent'};
+            border: 3px solid #4c6ef5;
+            border-radius: ${originalStyle.borderRadius || '6px'};
+            padding: ${originalStyle.padding};
             margin: 0;
-            padding: 0;
-            transform: translate(-4px, -4px);
+            display: ${originalStyle.display};
+            flex-direction: ${originalStyle.flexDirection};
+            justify-content: ${originalStyle.justifyContent};
+            align-items: ${originalStyle.alignItems};
+            font-size: ${originalStyle.fontSize};
+            color: ${originalStyle.color};
+            box-sizing: border-box;
+            transform: ${transform};
+            transform-origin: ${originalStyle.transformOrigin};
+            opacity: 1;
+            animation: 
+              tutorialPulse 1.5s infinite ease-out,
+              tutorialBorderPulse 1s infinite ease-in-out;
+            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.5);
+            transition: all 0.3s ease;
           `;
           
-          // body에 하이라이트 요소 추가
-          document.body.appendChild(highlightElement);
+          // 내부 요소 스타일 초기화
+          const resetStyles = (element) => {
+            if (!element) return;
+            element.style.pointerEvents = 'none';
+            Array.from(element.children).forEach(resetStyles);
+          };
+          
+          resetStyles(clone);
+          
+          // body에 클론 요소 추가
+          document.body.appendChild(clone);
           
           // 원본 요소 참조 저장
           el.dataset.highlightId = `highlight-${Date.now()}`;
-          highlightElement.dataset.targetId = el.dataset.highlightId;
+          clone.dataset.targetId = el.dataset.highlightId;
           
-          // 하이라이트 클래스 추가
-          el.classList.add('tutorial-highlight');
+          // 스크롤 이벤트 핸들러
+          const updatePosition = () => {
+            const newRect = el.getBoundingClientRect();
+            clone.style.top = `${window.scrollY + newRect.top}px`;
+            clone.style.left = `${window.scrollX + newRect.left}px`;
+          };
+          
+          // 스크롤 및 리사이즈 이벤트 추가
+          window.addEventListener('scroll', updatePosition, true);
+          window.addEventListener('resize', updatePosition);
+          
+          // 이벤트 리스너 정리를 위한 참조 저장
+          el._tutorialUpdatePosition = updatePosition;
           
           // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
           el.dataset.originalStyles = JSON.stringify({
