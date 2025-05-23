@@ -5,9 +5,9 @@ import {
   TouchableOpacity, 
   Image, 
   Animated, 
-  Modal,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,11 +56,27 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
   useEffect(() => {
     if (!isVisible) return;
     
-    // 이전에 하이라이트된 요소가 있다면 스타일 제거
-    const prevHighlighted = document.querySelectorAll('.tutorial-highlight');
-    prevHighlighted.forEach(el => {
+    // 이전에 생성된 하이라이트 요소 제거
+    const highlightElements = document.querySelectorAll('.tutorial-highlight-element');
+    highlightElements.forEach(el => el.remove());
+    
+    // 원본 요소 복원
+    const highlightedElements = document.querySelectorAll('.tutorial-highlight');
+    highlightedElements.forEach(el => {
+      // 원래 스타일 복원
+      if (el.dataset.originalStyles) {
+        const originalStyles = JSON.parse(el.dataset.originalStyles);
+        Object.entries(originalStyles).forEach(([property, value]) => {
+          if (property in el.style) {
+            el.style[property] = value;
+          }
+        });
+        delete el.dataset.originalStyles;
+      }
+      
+      // 하이라이트 클래스 제거
       el.classList.remove('tutorial-highlight');
-      el.style.zIndex = '';
+      delete el.dataset.highlightId;
     });
     
     // 현재 스텝에 하이라이트가 있으면 적용
@@ -78,24 +94,69 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
         
         elements.forEach(el => {
           console.log('하이라이트 요소:', el);
-          // 스타일 직접 적용 (React Native Web에서도 동작하도록)
-          el.style.position = 'relative';
-          el.style.zIndex = '1000';
-          el.style.boxShadow = '0 0 0 2px #4c6ef5';
-          el.style.borderRadius = '8px';
-          el.style.backgroundColor = 'rgba(76, 110, 245, 0.1)';
           
-          // 부모 요소의 overflow 속성 확인 (웹뷰에서만 동작)
-          if (el.parentElement) {
-            let parent = el.parentElement;
-            while (parent && parent !== document.body) {
-              const style = window.getComputedStyle(parent);
-              if (style.overflow === 'hidden' || style.overflowX === 'hidden' || style.overflowY === 'hidden') {
-                console.log('overflow: hidden을 가진 부모 요소 발견:', parent);
-              }
-              parent = parent.parentElement;
-            }
-          }
+          // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
+          const originalPosition = el.style.position || '';
+          const originalZIndex = el.style.zIndex || '';
+          const originalBoxShadow = el.style.boxShadow || '';
+          const originalBorderRadius = el.style.borderRadius || '';
+          const originalBackgroundColor = el.style.backgroundColor || '';
+          
+          // 원본 요소의 위치와 크기 가져오기
+          const rect = el.getBoundingClientRect();
+          const originalPos = window.getComputedStyle(el).position;
+          const originalZIdx = window.getComputedStyle(el).zIndex;
+          
+          // 원본 요소의 스타일 보존
+          el.dataset.originalStyles = JSON.stringify({
+            position: originalPos,
+            zIndex: originalZIdx,
+          });
+          
+          // 원본 요소의 z-index 조정 (하이라이트보다 낮게)
+          el.style.position = originalPos === 'static' ? 'relative' : originalPos;
+          el.style.zIndex = '999';
+          
+          // 별도의 하이라이트 요소 생성
+          const highlightElement = document.createElement('div');
+          highlightElement.className = 'tutorial-highlight-element';
+          
+          // 원본 요소의 스타일을 가져오기
+          const compStyle = window.getComputedStyle(el);
+          highlightElement.style.cssText = `
+            position: absolute;
+            top: ${rect.top}px;
+            left: ${rect.left}px;
+            width: ${rect.width}px;
+            height: ${rect.height}px;
+            border: 2px solid #4c6ef5;
+            border-radius: 12px;
+            background-color: rgba(76, 110, 245, 0.1);
+            z-index: 1000;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
+            transform: translate(-4px, -4px);
+          `;
+          
+          // body에 하이라이트 요소 추가
+          document.body.appendChild(highlightElement);
+          
+          // 원본 요소 참조 저장
+          el.dataset.highlightId = `highlight-${Date.now()}`;
+          highlightElement.dataset.targetId = el.dataset.highlightId;
+          
+          // 하이라이트 클래스 추가
+          el.classList.add('tutorial-highlight');
+          
+          // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
+          el.dataset.originalStyles = JSON.stringify({
+            position: originalPosition,
+            zIndex: originalZIndex,
+            boxShadow: originalBoxShadow,
+            borderRadius: originalBorderRadius,
+            backgroundColor: originalBackgroundColor
+          });
         });
       });
     }
@@ -182,75 +243,69 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
   if (!isVisible) return null;
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={tutorialStyles.overlay}>
-        <Animated.View 
-          style={[
-            tutorialStyles.container,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }] 
-            }
-          ]}
+    <View style={tutorialStyles.modalOverlay}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={tutorialStyles.overlayTouchable} />
+      </TouchableWithoutFeedback>
+      <Animated.View 
+        style={[
+          tutorialStyles.modalContainer,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+        ]}
+      >
+        <TouchableOpacity 
+          style={tutorialStyles.skipButton}
+          onPress={onSkip || skipTutorial}
         >
-          <TouchableOpacity 
-            style={tutorialStyles.skipButton}
-            onPress={onSkip || skipTutorial}
-          >
-            <Text style={tutorialStyles.skipButtonText}>SKIP</Text>
-          </TouchableOpacity>
-          
-          <View style={tutorialStyles.contentContainer}>
-            <View style={tutorialStyles.rowContainer}>
-              <View style={tutorialStyles.imageContainer}>
-                <Image 
-                  source={require('../assets/images/nurse.png')} 
-                  style={tutorialStyles.avatar}
-                  resizeMode="contain"
-                />
-              </View>
-              
-              <View style={tutorialStyles.textContainer}>
-                <TypeWriterText 
-                  text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
-                  style={tutorialStyles.text}
-                  onTypingDone={() => setShowNextButton(true)}
-                />
-                <View style={tutorialStyles.bottomContainer}>
-                  <View style={tutorialStyles.progress}>
-                    {currentLevelSteps.map((_, index) => (
-                      <View 
-                        key={index} 
-                        style={[
-                          tutorialStyles.progressDot, 
-                          index === currentStep && tutorialStyles.progressDotActive
-                        ]} 
-                      />
-                    ))}
-                  </View>
-                  {showNextButton && (
-                    <TouchableOpacity 
-                      style={tutorialStyles.button}
-                      onPress={nextStep}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={tutorialStyles.buttonText}>
-                        {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+          <Text style={tutorialStyles.skipButtonText}>SKIP</Text>
+        </TouchableOpacity>
+        
+        <View style={[tutorialStyles.contentContainer, { flex: 1 }]}>
+          {/* 기존 컨텐츠 */}
+          <View style={tutorialStyles.rowContainer}>
+            <View style={tutorialStyles.imageContainer}>
+              <Image 
+                source={require('../assets/images/nurse.png')} 
+                style={tutorialStyles.avatar}
+                resizeMode="contain"
+              />
+            </View>
+            
+            <View style={tutorialStyles.textContainer}>
+              <TypeWriterText 
+                text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
+                style={tutorialStyles.text}
+                onTypingDone={() => setShowNextButton(true)}
+              />
+              <View style={tutorialStyles.bottomContainer}>
+                <View style={tutorialStyles.progress}>
+                  {currentLevelSteps.map((_, index) => (
+                    <View 
+                      key={index} 
+                      style={[
+                        tutorialStyles.progressDot, 
+                        index === currentStep && tutorialStyles.progressDotActive
+                      ]} 
+                    />
+                  ))}
                 </View>
+                {showNextButton && (
+                  <TouchableOpacity 
+                    style={tutorialStyles.button}
+                    onPress={nextStep}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={tutorialStyles.buttonText}>
+                      {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
-        </Animated.View>
-      </SafeAreaView>
-    </Modal>
+        </View>
+      </Animated.View>
+    </View>
   );
 };
 

@@ -1,14 +1,40 @@
 import { StyleSheet, Platform } from 'react-native';
 
 export const tutorialStyles = StyleSheet.create({
-  // 오버레이 스타일
-  overlay: {
-    flex: 1,
+  // 모달 오버레이
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
+    zIndex: 100,  // 오버레이는 낮은 z-index
+    elevation: 100,  // 안드로이드
   },
   
-  // 메인 컨테이너
+  // 터치 가능한 오버레이 영역
+  overlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  
+  // 모달 컨테이너
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 32,
+    maxHeight: '90%',
+    width: '100%',
+  },
+  
+  // 메인 컨테이너 (기존과의 호환성을 위해 유지)
   container: {
     width: '100%',
     backgroundColor: '#fff',
