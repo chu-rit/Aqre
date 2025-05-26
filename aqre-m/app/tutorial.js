@@ -59,7 +59,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
           el.parentNode.removeChild(el);
         }
       } catch (e) {
-        console.error('클론 요소 제거 중 오류:', e);
+        // 클론 요소 제거 중 오류 무시
       }
     });
 
@@ -76,12 +76,16 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
         
         // 원래 스타일 복원
         if (el.dataset.originalStyles) {
-          const originalStyles = JSON.parse(el.dataset.originalStyles);
-          Object.entries(originalStyles).forEach(([property, value]) => {
-            if (property in el.style) {
-              el.style[property] = value;
-            }
-          });
+          try {
+            const originalStyles = JSON.parse(el.dataset.originalStyles);
+            Object.entries(originalStyles).forEach(([property, value]) => {
+              if (property in el.style) {
+                el.style[property] = value;
+              }
+            });
+          } catch (e) {
+            // JSON 파싱 오류 무시
+          }
           delete el.dataset.originalStyles;
         }
         
@@ -89,7 +93,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
         delete el.dataset.highlightId;
         el.classList.remove('tutorial-highlight');
       } catch (e) {
-        console.error('하이라이트 요소 복원 중 오류:', e);
+        // 하이라이트 요소 복원 중 오류 무시
       }
     });
 
@@ -164,10 +168,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
         }
         
         const elements = document.querySelectorAll(query);
-        console.log(`원본 선택자: ${selector}, 쿼리: ${query}, 찾은 요소 수: ${elements.length}`);
-        
         elements.forEach(el => {
-          console.log('하이라이트 요소:', el);
           
           // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
           const originalPosition = el.style.position || '';
@@ -259,7 +260,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
             width: ${rect.width}px;
             height: ${rect.height}px;
             z-index: 1000;
-            pointer-events: none;
+            pointer-events: auto;
             background-color: ${originalStyle.backgroundColor || 'transparent'};
             border: 3px solid #4c6ef5;
             border-radius: ${originalStyle.borderRadius || '6px'};
@@ -285,11 +286,34 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
           // 내부 요소 스타일 초기화
           const resetStyles = (element) => {
             if (!element) return;
-            element.style.pointerEvents = 'none';
+            element.style.pointerEvents = 'auto';
             Array.from(element.children).forEach(resetStyles);
           };
           
           resetStyles(clone);
+          
+          // 클론 클릭 시 원본 요소 클릭 이벤트 발생
+          clone.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 원본 요소 클릭 이벤트 발생
+            if (el && typeof el.click === 'function') {
+              el.click();
+            } else if (el) {
+              const clickEvent = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true
+              });
+              el.dispatchEvent(clickEvent);
+            }
+            
+            // 다음 단계로 자동 이동
+            if (currentStepData.autoNextOnClick) {
+              handleNext();
+            }
+          });
           
           // body에 클론 요소 추가
           document.body.appendChild(clone);
@@ -403,7 +427,6 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
       await AsyncStorage.setItem('tutorialSkipped', 'true');
       onSkip();
     } catch (error) {
-      console.error('튜토리얼 스킵 상태 저장 실패:', error);
       onSkip();
     }
   }, [onSkip, cleanupAllHighlights]);
@@ -417,11 +440,20 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
 
   if (!isVisible) return null;
 
+  // 현재 스텝에 하이라이트가 있는지 확인
+  const hasHighlight = currentStepData.highlight?.selectors?.length > 0;
+
   return (
     <View style={tutorialStyles.modalOverlay}>
-      <TouchableWithoutFeedback onPress={onClose}>
+      {hasHighlight ? (
+        // 하이라이트가 있는 경우, 오버레이 클릭 무시
         <View style={tutorialStyles.overlayTouchable} />
-      </TouchableWithoutFeedback>
+      ) : (
+        // 하이라이트가 없는 경우에만 오버레이 클릭으로 다음 단계로 이동
+        <TouchableWithoutFeedback onPress={nextStep}>
+          <View style={tutorialStyles.overlayTouchable} />
+        </TouchableWithoutFeedback>
+      )}
       <Animated.View 
         style={[
           tutorialStyles.modalContainer,
@@ -464,7 +496,7 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
                     />
                   ))}
                 </View>
-                {showNextButton && (
+                {showNextButton && currentStepData.showNextButton !== false && (
                   <TouchableOpacity 
                     style={tutorialStyles.button}
                     onPress={nextStep}

@@ -196,7 +196,7 @@ export const tutorialSteps = {
       text: '마지막으로 활성화된 뉴런은 하나의 영역을 이루고 있어야 됩니다.',
       highlight: null,
       condition: null,
-      showNextButton: true
+      ㅣ제: true
     },
     {
       id: 1,
