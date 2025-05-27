@@ -6,8 +6,11 @@ import {
   Image, 
   Animated, 
   Dimensions,
-  SafeAreaView,
-  TouchableWithoutFeedback
+  StyleSheet,
+  Platform,
+  Modal,
+  findNodeHandle,
+  UIManager
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,7 +46,14 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
   return <Text style={style}>{displayText}</Text>;
 };
 
-const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => {
+const TutorialScreen = ({ 
+  isVisible, 
+  onClose, 
+  onSkip, 
+  levelId, 
+  steps = {},
+  children 
+}) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showNextButton, setShowNextButton] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -438,82 +448,320 @@ const TutorialScreen = ({ isVisible, onClose, onSkip, levelId, steps = {} }) => 
     };
   }, [cleanupAllHighlights]);
 
-  if (!isVisible) return null;
+  if (!isVisible) return children || null;
 
   // 현재 스텝에 하이라이트가 있는지 확인
   const hasHighlight = currentStepData.highlight?.selectors?.length > 0;
+  const cloneContainerRef = useRef(null);
+  const highlightRef = useRef(null);
+  const [isReady, setIsReady] = useState(false);
+  
+  // 요소 클론 생성 및 클릭 핸들링
+  const cloneElement = useCallback((element) => {
+    if (!element || !cloneContainerRef.current) return null;
+    
+    // 기존 클론 제거
+    cloneContainerRef.current.innerHTML = '';
+    
+    // 요소 클론 생성
+    const clone = element.cloneNode(true);
+    
+    // 스타일 복사
+    const style = window.getComputedStyle(element);
+    for (let i = 0; i < style.length; i++) {
+      const prop = style[i];
+      try {
+        clone.style[prop] = style[prop];
+      } catch (e) {
+        // 일부 읽기 전용 속성은 무시
+      }
+    }
+    
+    // 클릭 이벤트 핸들러
+    const clickHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      element.click();
+    };
+    
+    clone.style.pointerEvents = 'auto';
+    clone.style.position = 'absolute';
+    clone.style.zIndex = '1001';
+    
+    clone.addEventListener('click', clickHandler);
+    cloneContainerRef.current.appendChild(clone);
+    
+    return () => {
+      clone.removeEventListener('click', clickHandler);
+    };
+  }, []);
+
+  // 요소 위치 업데이트 함수
+  const updateHighlightPosition = useCallback(() => {
+    if (!currentStepData.highlight?.selectors) return;
+    
+    let selector = currentStepData.highlight.selectors[0];
+    // data-testid 속성 선택자로 변환
+    if (selector.startsWith('data-testid=')) {
+      const testId = selector.replace('data-testid=', '');
+      selector = `[data-testid="${testId}"]`;
+    }
+    
+    const element = document.querySelector(selector);
+    if (!element) return;
+    
+    // 요소의 위치 계산
+    const rect = element.getBoundingClientRect();
+    const modal = document.querySelector('[role="dialog"]');
+    const modalRect = modal ? modal.getBoundingClientRect() : { left: 0, top: 0 };
+    
+    // 모달 내부에서의 상대 위치 계산
+    const left = rect.left - modalRect.left;
+    const top = rect.top - modalRect.top;
+    
+    // 클론된 요소 위치 조정
+    if (cloneContainerRef.current) {
+      cloneContainerRef.current.style.left = `${left - 5}px`;
+      cloneContainerRef.current.style.top = `${top}px`;
+      cloneContainerRef.current.style.width = `${rect.width}px`;
+      cloneContainerRef.current.style.height = `${rect.height}px`;
+    }
+    
+    // 하이라이트 효과 크기 조정
+    if (highlightRef.current) {
+      const highlightPadding = 4; // 하이라이트 패딩
+      highlightRef.current.style.width = `${rect.width + (highlightPadding * 2)}px`;
+      highlightRef.current.style.height = `${rect.height + (highlightPadding * 2)}px`;
+      highlightRef.current.style.left = `${left - highlightPadding}px`;
+      highlightRef.current.style.top = `${top - highlightPadding}px`;
+      highlightRef.current.style.opacity = '1';
+    }
+    
+    // 요소 클론 생성
+    cloneElement(element);
+    setIsReady(true);
+  }, [currentStepData.highlight, cloneElement]);
+
+  // 하이라이트 위치 업데이트 이펙트
+  useEffect(() => {
+    if (!isVisible || !currentStepData.highlight) return;
+    
+    updateHighlightPosition();
+    const interval = setInterval(updateHighlightPosition, 100);
+    
+    return () => {
+      clearInterval(interval);
+      if (cloneContainerRef.current) {
+        cloneContainerRef.current.innerHTML = '';
+      }
+    };
+  }, [isVisible, currentStepData.highlight, updateHighlightPosition]);
 
   return (
-    <View style={tutorialStyles.modalOverlay}>
-      {hasHighlight ? (
-        // 하이라이트가 있는 경우, 오버레이 클릭 무시
-        <View style={tutorialStyles.overlayTouchable} />
-      ) : (
-        // 하이라이트가 없는 경우에만 오버레이 클릭으로 다음 단계로 이동
-        <TouchableWithoutFeedback onPress={nextStep}>
-          <View style={tutorialStyles.overlayTouchable} />
-        </TouchableWithoutFeedback>
-      )}
-      <Animated.View 
-        style={[
-          tutorialStyles.modalContainer,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-        ]}
+    <View style={styles.container}>
+      {/* 자식 컴포넌트 렌더링 */}
+      {children}
+      
+      {/* 튜토리얼 오버레이 */}
+      <Modal
+        visible={isVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onSkip || skipTutorial}
       >
-        <TouchableOpacity 
-          style={tutorialStyles.skipButton}
-          onPress={onSkip || skipTutorial}
-        >
-          <Text style={tutorialStyles.skipButtonText}>SKIP</Text>
-        </TouchableOpacity>
-        
-        <View style={[tutorialStyles.contentContainer, { flex: 1 }]}>
-          {/* 기존 컨텐츠 */}
-          <View style={tutorialStyles.rowContainer}>
-            <View style={tutorialStyles.imageContainer}>
-              <Image 
-                source={require('../assets/images/nurse.png')} 
-                style={tutorialStyles.avatar}
-                resizeMode="contain"
-              />
-            </View>
-            
-            <View style={tutorialStyles.textContainer}>
-              <TypeWriterText 
-                text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
-                style={tutorialStyles.text}
-                onTypingDone={() => setShowNextButton(true)}
-              />
-              <View style={tutorialStyles.bottomContainer}>
-                <View style={tutorialStyles.progress}>
-                  {currentLevelSteps.map((_, index) => (
-                    <View 
-                      key={index} 
-                      style={[
-                        tutorialStyles.progressDot, 
-                        index === currentStep && tutorialStyles.progressDotActive
-                      ]} 
-                    />
-                  ))}
+        <View style={styles.modalContainer}>
+          {/* 반투명 검은 배경 */}
+          <View style={[styles.overlay, styles.absoluteFill, { zIndex: 1000 }]} />
+          
+          {/* 클론된 요소 컨테이너 */}
+          <div 
+            ref={cloneContainerRef}
+            style={{
+              position: 'absolute',
+              zIndex: 1001,
+              pointerEvents: 'auto',
+              overflow: 'visible',
+              opacity: isReady ? 1 : 0,
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          />
+          
+          {/* 하이라이트 영역 (가장 위에 렌더링) */}
+          <View 
+            ref={highlightRef}
+            style={[
+              styles.highlightArea,
+              {
+                position: 'absolute',
+                zIndex: 1002, // 가장 위에 표시
+                pointerEvents: 'none', // 클릭 이벤트는 클론이 처리
+                opacity: isReady ? 1 : 0,
+                transition: 'opacity 0.2s ease-in-out'
+              },
+              currentStepData.highlight?.style
+            ]}
+          />
+          
+          {/* 튜토리얼 툴팁 (하단에 위치) */}
+          <Animated.View 
+            style={[
+              styles.tooltipWrapper,
+              { 
+                opacity: fadeAnim, 
+                transform: [{ translateY: slideAnim }],
+                zIndex: 1000
+              }
+            ]}
+          >
+            <View style={styles.tooltipContainer}>
+              <TouchableOpacity 
+                style={styles.skipButton}
+                onPress={onSkip || skipTutorial}
+              >
+                <Text style={styles.skipButtonText}>SKIP</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.tooltipContent}>
+                <View style={styles.avatarContainer}>
+                  <Image 
+                    source={require('../assets/images/nurse.png')} 
+                    style={styles.avatar}
+                    resizeMode="contain"
+                  />
                 </View>
-                {showNextButton && currentStepData.showNextButton !== false && (
-                  <TouchableOpacity 
-                    style={tutorialStyles.button}
-                    onPress={nextStep}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={tutorialStyles.buttonText}>
-                      {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                <View style={styles.textContainer}>
+                  <TypeWriterText
+                    text={currentStepData.text || "안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다."}
+                    style={styles.tooltipText}
+                    onTypingDone={() => setShowNextButton(true)}
+                  />
+                </View>
               </View>
+              
+              {/* 다음 버튼 */}
+              {showNextButton && (
+                <TouchableOpacity
+                  style={styles.nextButton}
+                  onPress={nextStep}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.nextButtonText}>
+                    {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
-          </View>
+          </Animated.View>
         </View>
-      </Animated.View>
+      </Modal>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
+  absoluteFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  tooltipWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    zIndex: 1000,
+  },
+  hidden: {
+    display: 'none',
+  },
+  tooltipContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  tooltipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    marginRight: 15,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  tooltipText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+  },
+  nextButton: {
+    backgroundColor: '#4c6ef5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  nextButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  highlightArea: {
+    borderWidth: 3,
+    borderColor: '#4c6ef5',
+    borderRadius: 8,
+    backgroundColor: 'rgba(76, 110, 245, 0.15)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4c6ef5',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 8,
+    zIndex: 1002,
+  },
+  skipButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
 
 export default TutorialScreen;
