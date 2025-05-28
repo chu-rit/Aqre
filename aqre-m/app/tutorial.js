@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { tutorialStyles } from './tutorialStyles';
+import styles from './tutorialStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,7 +43,15 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
     setCurrentIndex(0);
   }, [text]);
 
-  return <Text style={style}>{displayText}</Text>;
+  // 기본 스타일과 전달된 스타일을 병합
+  const mergedStyle = [
+    {
+      fontSize: 16,
+    },
+    style
+  ];
+
+  return <Text style={mergedStyle}>{displayText}</Text>;
 };
 
 const TutorialScreen = ({ 
@@ -362,7 +370,9 @@ const TutorialScreen = ({
   useEffect(() => {
     if (isVisible) {
       setCurrentStep(0);
-      setShowNextButton(false);
+      // 첫 단계의 showNextButton 값에 따라 버튼 표시 여부 결정
+      const firstStepData = currentLevelSteps[0];
+      setShowNextButton(firstStepData?.showNextButton || false);
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
       
@@ -403,7 +413,7 @@ const TutorialScreen = ({
     
     if (currentStep < currentLevelSteps.length - 1) {
       setCurrentStep(prev => prev + 1);
-      setShowNextButton(false);
+      setShowNextButton(currentLevelSteps[currentStep + 1]?.showNextButton || false);
       
       // 다음 단계로 넘어갈 때 애니메이션
       fadeAnim.setValue(0);
@@ -420,10 +430,7 @@ const TutorialScreen = ({
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        // 애니메이션이 끝난 후 버튼 표시
-        setShowNextButton(true);
-      });
+      ]).start();
     } else {
       // 튜토리얼 완료
       onClose();
@@ -630,26 +637,50 @@ const TutorialScreen = ({
                   />
                 </View>
                 <View style={styles.textContainer}>
-                  <TypeWriterText
-                    text={currentStepData.text || "안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다."}
-                    style={styles.tooltipText}
-                    onTypingDone={() => setShowNextButton(true)}
-                  />
+                  <View style={styles.speechBubble}>
+                    <View style={styles.speechBubbleTriangle} />
+                    <TypeWriterText
+                      text={currentStepData.text || "안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다."}
+                      style={styles.tooltipText}
+                      onTypingDone={() => {
+                        // currentStepData.showNextButton 값에 따라 버튼 표시 여부 설정
+                        setShowNextButton(!!currentStepData.showNextButton);
+                      }}
+                    />
+                  </View>
                 </View>
               </View>
               
-              {/* 다음 버튼 */}
-              {showNextButton && (
-                <TouchableOpacity
-                  style={styles.nextButton}
-                  onPress={nextStep}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.nextButtonText}>
-                    {currentStep < currentLevelSteps.length - 1 ? '다음' : '시작하기'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              {/* 하단 컨트롤 (진행 상태 표시기 + 다음 버튼) */}
+              <View style={styles.bottomContainer}>
+                {/* 진행 상태 표시기 */}
+                {currentLevelSteps.length > 1 && (
+                  <View style={styles.progressContainer}>
+                    {currentLevelSteps.map((_, index) => (
+                      <View 
+                        key={index} 
+                        style={[
+                          styles.progressDot,
+                          index === currentStep && styles.progressDotActive
+                        ]} 
+                      />
+                    ))}
+                  </View>
+                )}
+                
+                {/* 다음 버튼 */}
+                {showNextButton && (
+                  <TouchableOpacity
+                    style={styles.nextButton}
+                    onPress={nextStep}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.nextButtonText}>
+                       다음
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -658,110 +689,6 @@ const TutorialScreen = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: 'relative',
-  },
-  absoluteFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  tooltipWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    zIndex: 1000,
-  },
-  hidden: {
-    display: 'none',
-  },
-  tooltipContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-    maxWidth: 500,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  tooltipContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  avatarContainer: {
-    marginRight: 15,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  tooltipText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-  },
-  nextButton: {
-    backgroundColor: '#4c6ef5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  highlightArea: {
-    borderWidth: 3,
-    borderColor: '#4c6ef5',
-    borderRadius: 8,
-    backgroundColor: 'rgba(76, 110, 245, 0.15)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#4c6ef5',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  },
-  skipButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: 8,
-    zIndex: 1002,
-  },
-  skipButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-});
+// 스타일은 tutorialStyles.js에서 가져와 사용
 
 export default TutorialScreen;

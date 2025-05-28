@@ -1,178 +1,214 @@
 import { StyleSheet, Platform } from 'react-native';
 
-export const tutorialStyles = StyleSheet.create({
-  // 모달 오버레이
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-    zIndex: 100,  // 오버레이는 낮은 z-index
-    elevation: 100,  // 안드로이드
-  },
-  
-  // 터치 가능한 오버레이 영역
-  overlayTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  
-  // 모달 컨테이너
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 32,
-    maxHeight: '90%',
-    width: '100%',
-  },
-  
-  // 메인 컨테이너 (기존과의 호환성을 위해 유지)
+const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    position: 'relative',
+  },
+  absoluteFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  tooltipWrapper: {
+    position: 'relative',
     width: '100%',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 60, // 상단 여백
+    paddingBottom: 40, // 하단 여백 줄임
+    zIndex: 1000,
+  },
+  tooltipContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    shadowColor: '#4c6ef5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+    transform: [{ translateY: 0 }],
+    overflow: 'hidden',
     padding: 24,
-    paddingBottom: 32,
-    maxHeight: '90%',
+    paddingBottom: 0,
+    marginTop: 40, // 상단 여백 크게 추가
   },
-  
-  // 콘텐츠 컨테이너 (전체 영역)
-  contentContainer: {
-    width: '100%',
-  },
-  
-  // 이미지와 텍스트를 담는 행
-  rowContainer: {
+  tooltipContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    width: '100%',
+    alignItems: 'flex-end', // 하단 정렬로 변경
   },
-
-  // 이미지 컨테이너 (30%)
-  imageContainer: {
-    width: '25%',
-    alignItems: 'center',
-    paddingRight: 16,
-    paddingTop: 16, // 상단 패딩 16px 추가
+  avatarContainer: {
+    marginRight: 0, // 오른쪽 여백 제거
+    marginBottom: 4, // 하단 여백 추가
+    marginTop: 0, // 상단 여백 제거
   },
-
-  // 간호사 아바타
   avatar: {
-    width: 90,  // 크기 증가
-    height: 90,  // 크기 증가
-    borderRadius: 45,  // 둥근 모서리도 크기에 맞게 조정
-    borderWidth: 3,
-    borderColor: '#4c6ef5',
+    width: 96, // 크기 증가
+    height: 96, // 크기 증가
+    borderRadius: 16,
   },
-  
-  // 텍스트 컨테이너 (75%)
   textContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    minHeight: 100,
+    marginTop: 16,
+    marginBottom: 16,
+    marginLeft: 8,
+    width: '100%', // 가로 길이 증가
   },
-  
-  // 대화 텍스트
-  text: {
-    fontSize: 14,
-    lineHeight: 20,
+  speechBubble: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 20,
+    padding: 15, // 패딩 15로 조정
+    position: 'relative',
+    marginLeft: 10,
+    minWidth: '90%', // 가로 길이 증가
+    minHeight: 80, // 최소 높이 유지
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  speechBubbleTriangle: {
+    position: 'absolute',
+    left: -20,
+    bottom: 20, // 상단에서 하단으로 변경
+    width: 0,
+    height: 0,
+    borderStyle: 'solid',
+    borderTopWidth: 10,
+    borderRightWidth: 20,
+    borderBottomWidth: 10,
+    borderLeftWidth: 0,
+    borderTopColor: 'transparent',
+    borderRightColor: '#f0f8ff',
+    borderBottomColor: 'transparent',
+    borderLeftColor: 'transparent',
+  },
+  tooltipText: {
+    fontSize: 15, // 글자 크기 감소
+    lineHeight: 22, // 줄간격 조정
     color: '#333',
     textAlign: 'left',
-    marginBottom: 16,
+    marginBottom: 12, // 하단 여백 감소
+    fontWeight: '500',
   },
-  
-  // 하단 컨테이너 (진행 상태와 버튼)
   bottomContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8, // 상하 패딩 줄임
+    borderTopWidth: 0, // 상단 테두리 제거
+    marginTop: 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 10,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
+      },
+    }),
   },
-  
-  // 진행 상태 표시기
-  progress: {
+  // 진행 상태 표시기 컨테이너
+  progressContainer: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  
+  // 진행 상태 점
   progressDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e0e8ff',
     marginHorizontal: 3,
   },
-  
+  // 현재 진행 중인 단계의 점
   progressDotActive: {
     backgroundColor: '#4c6ef5',
-    width: 20,
+    width: 24,
+    height: 8,
+    borderRadius: 4,
   },
-  
-  // 다음/시작 버튼
-  button: {
+  // 다음 버튼
+  nextButton: {
     backgroundColor: '#4c6ef5',
-    paddingVertical: 4, // 패딩 더 줄임
-    paddingHorizontal: 12, // 패딩 더 줄임
-    borderRadius: 10, // 둥근 모서리 조정
-    alignItems: 'center',
-    minWidth: 70, // 최소 너비 더 줄임
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginLeft: 'auto',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4c6ef5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
-  
-  buttonText: {
+  nextButtonText: {
     color: 'white',
-    fontSize: 12, // 폰트 크기 더 줄임
     fontWeight: '600',
-    paddingHorizontal: 2, // 좌우 패딩 조정
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
-  
   skipButton: {
     position: 'absolute',
-    top: 4, // 더 위로 조정
-    right: 24,
-    zIndex: 10,
-    alignSelf: 'flex-end',
+    top: 8, // 상단 여백 줄임
+    right: 12, // 오른쪽 여백 줄임
+    padding: 8,
+    zIndex: 1002,
   },
-  
   skipButtonText: {
-    color: '#666',
+    color: '#8e8e93',
     fontSize: 14,
     fontWeight: '500',
   },
-  
-  // 강조된 요소 스타일
-  highlightedElement: {
-    position: 'relative',
-    zIndex: 9999,
-    ...Platform.select({
-      ios: {
-        transform: [{ translateZ: 0 }],
-      },
-      android: {
-        elevation: 9999,
-      },
-    }),
+  highlightArea: {
     borderWidth: 2,
     borderColor: '#4c6ef5',
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: 'rgba(76, 110, 245, 0.1)',
-    shadowColor: '#4c6ef5',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4c6ef5',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
 });
+
+export default styles;
