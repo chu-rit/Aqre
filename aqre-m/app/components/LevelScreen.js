@@ -161,7 +161,7 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
                 key={puzzle.id}
                 style={[
                   styles.levelButton,
-                  clearedPuzzles.includes(puzzle.id) && styles.clearedLevelButton
+                  clearedPuzzles.includes(puzzle.id) && localStyles.clearedLevelButton
                 ]}
                 onPress={() => handleLevelSelect(puzzle)}
                 activeOpacity={0.7}
@@ -169,8 +169,8 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
               >
                 <Text style={styles.levelButtonText}>{puzzle.id}</Text>
                 {clearedPuzzles.includes(puzzle.id) && (
-                  <View style={styles.clearedCheckmark}>
-                    <Ionicons name="checkmark" size={24} color="rgba(0, 200, 0, 0.8)" />
+                  <View style={localStyles.clearedCheckmark}>
+                    <Ionicons name="checkmark" size={12} color="white" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -243,12 +243,41 @@ const localStyles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   clearedLevelButton: {
-    borderWidth: 2,
-    borderColor: 'rgba(76, 175, 80, 0.8)'
+    borderWidth: 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#3b5bdb',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   clearedCheckmark: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    top: -8,
+    right: -8,
+    backgroundColor: '#ff9800',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
 });
