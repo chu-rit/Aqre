@@ -137,19 +137,19 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
 
   return (
     <SafeAreaView style={styles.levelScreen}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.side} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={24} color="black" />
+      <View style={localStyles.header}>
+        <TouchableOpacity style={localStyles.side} onPress={handleBack}>
+          <Ionicons name="chevron-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
-        <View style={styles.center}>
-          <Text style={styles.title}>레벨 선택</Text>
+        <View style={localStyles.center}>
+          <Text style={localStyles.title}>Level Select</Text>
         </View>
         <TouchableOpacity 
           onPress={handleOptionsPress}
-          style={styles.optionButton}
+          style={localStyles.optionButton}
           activeOpacity={0.7}
         >
-          <Ionicons name="options" size={28} color="#4c6ef5" />
+          <Ionicons name="options" size={24} color="#2c3e50" />
         </TouchableOpacity>
       </View>
 
@@ -194,13 +194,61 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
 }
 
 const localStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  side: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2c3e50',
+    letterSpacing: 0.5,
+  },
+  optionButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
   clearedLevelButton: {
     borderWidth: 2,
     borderColor: 'rgba(76, 175, 80, 0.8)'
   },
   clearedCheckmark: {
     position: 'absolute',
-    right: 5,
-    bottom: 5
-  }
+    bottom: 2,
+    right: 2,
+  },
 });

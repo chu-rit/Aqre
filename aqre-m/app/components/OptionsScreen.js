@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform, StatusBar } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform, StatusBar, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -129,14 +129,11 @@ export default function OptionsScreen({
 
   return (
     <SafeAreaView style={styles.levelScreen}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.side} onPress={onClose}>
-          <Ionicons name="chevron-back" size={24} color="black" />
+      <View style={localStyles.header}>
+        <TouchableOpacity style={localStyles.side} onPress={onClose}>
+          <Ionicons name="chevron-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
-        <View style={styles.center}>
-          <Text style={styles.title}>Options</Text>
-        </View>
-        <View style={styles.side} />
+        <Text style={[localStyles.title, { flex: 1, textAlign: 'center' }]}>Options</Text>
       </View>
       <View style={{ width: '100%', paddingHorizontal: 20, marginTop: 20 }}>
         <TouchableOpacity 
@@ -184,3 +181,46 @@ export default function OptionsScreen({
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  side: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2c3e50',
+    letterSpacing: 0.5,
+  },
+});

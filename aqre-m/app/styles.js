@@ -92,9 +92,9 @@ export const styles = StyleSheet.create({
     color: '#333',
   },
   levelContainer: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     paddingBottom: 20,
-    marginTop: 20,
+    marginTop: 16,
     alignItems: 'center',
   },
   levelRow: {
