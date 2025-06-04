@@ -13,6 +13,7 @@ import {
   UIManager
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './tutorialStyles';
 
@@ -54,6 +55,67 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
   return <Text style={mergedStyle}>{displayText}</Text>;
 };
 
+// 튜토리얼 건너뛰기 핸들러
+const handleSkipTutorial = async (levelId, onSkip, onClose) => {
+  console.log('handleSkipTutorial called with levelId:', levelId, 'type:', typeof levelId);
+  
+  try {
+    let levelKey;
+    
+    // levelId가 객체인 경우를 처리
+    if (levelId && typeof levelId === 'object') {
+      console.log('levelId is an object, trying to extract id:', levelId);
+      // 객체에서 id 속성을 추출
+      levelKey = `level${levelId.id || levelId.number || 1}`;
+    } 
+    // levelId가 문자열이고 'level'로 시작하는 경우
+    else if (typeof levelId === 'string' && levelId.startsWith('level')) {
+      levelKey = levelId;
+    }
+    // levelId가 숫자인 경우
+    else if (typeof levelId === 'number') {
+      levelKey = `level${levelId}`;
+    }
+    // 그 외의 경우 기본값 사용
+    else {
+      console.warn('Unexpected levelId format, using default level1');
+      levelKey = 'level1';
+    }
+    
+    console.log('Saving tutorial completion for:', levelKey);
+    
+    const completedTutorials = await AsyncStorage.getItem('completedTutorials') || '{}';
+    const completed = JSON.parse(completedTutorials);
+    
+    completed[levelKey] = true;
+    await AsyncStorage.setItem('completedTutorials', JSON.stringify(completed));
+    
+    console.log(`튜토리얼이 건너뛰어졌습니다. (${levelKey})`);
+    
+    // 콜백 호출
+    if (onSkip) {
+      console.log('Calling onSkip callback');
+      onSkip();
+    } else if (onClose) {
+      console.log('Calling onClose callback');
+      onClose();
+    } else {
+      console.warn('No callback provided for skip/close');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('튜토리얼 건너뛰기 중 오류 발생:', error);
+    // 오류가 발생해도 콜백은 호출
+    if (onSkip) {
+      onSkip();
+    } else if (onClose) {
+      onClose();
+    }
+    return false;
+  }
+};
+
 const TutorialScreen = ({ 
   isVisible, 
   onClose, 
@@ -63,7 +125,7 @@ const TutorialScreen = ({
   children 
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [showNextButton, setShowNextButton] = useState(false);
+  const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   
@@ -122,12 +184,31 @@ const TutorialScreen = ({
   }, []);
   
   // levelId에 해당하는 튜토리얼 단계 가져오기
-  const currentLevelSteps = steps[levelId] || [];
+  // getTutorialStepsByLevel 함수를 사용하여 단계 가져오기
+  const currentLevelSteps = getTutorialStepsByLevel(levelId) || [];
   const currentStepData = currentLevelSteps[currentStep] || {};
+  
+  // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
+  const skipTutorial = useCallback(async () => {
+    console.log('스킵 버튼 클릭됨 - TutorialScreen');
+    cleanupAllHighlights();
+    
+    // onSkip이 있으면 호출 (LevelScreen의 handleSkipTutorial이 호출됨)
+    if (onSkip) {
+      console.log('Calling onSkip callback');
+      onSkip();
+    } 
+    // onSkip이 없고 onClose가 있으면 onClose 호출
+    else if (onClose) {
+      console.log('Calling onClose callback');
+      onClose();
+    } else {
+      console.warn('No skip or close callback provided');
+    }
+  }, [onSkip, onClose, cleanupAllHighlights]);
 
   useEffect(() => {
-    if (!isVisible) return;
-    
+    // 항상 표시되도록 수정
     // 이전에 생성된 하이라이트 요소 제거
     const highlightElements = document.querySelectorAll('.tutorial-highlight-element');
     highlightElements.forEach(el => el.remove());
@@ -433,21 +514,16 @@ const TutorialScreen = ({
       ]).start();
     } else {
       // 튜토리얼 완료
-      onClose();
+      if (onClose) {
+        onClose();
+      } else if (onSkip) {
+        onSkip();
+      }
     }
-  }, [currentStep, currentLevelSteps.length, cleanupAllHighlights, fadeAnim, slideAnim, onClose]);
+  }, [currentStep, currentLevelSteps, fadeAnim, slideAnim, onClose, onSkip, cleanupAllHighlights]);
 
-  // 스킵 버튼 핸들러
-  const skipTutorial = useCallback(async () => {
-    try {
-      cleanupAllHighlights();
-      await AsyncStorage.setItem('tutorialSkipped', 'true');
-      onSkip();
-    } catch (error) {
-      onSkip();
-    }
-  }, [onSkip, cleanupAllHighlights]);
-  
+
+
   // 컴포넌트 언마운트 시 또는 isVisible이 false가 될 때 정리
   useEffect(() => {
     return () => {
@@ -644,7 +720,7 @@ const TutorialScreen = ({
                       style={styles.tooltipText}
                       onTypingDone={() => {
                         // currentStepData.showNextButton 값에 따라 버튼 표시 여부 설정
-                        setShowNextButton(!!currentStepData.showNextButton);
+                        setShowNextButton(currentStepData.showNextButton === true);
                       }}
                     />
                   </View>
@@ -691,4 +767,5 @@ const TutorialScreen = ({
 
 // 스타일은 tutorialStyles.js에서 가져와 사용
 
+export { handleSkipTutorial };
 export default TutorialScreen;

@@ -210,21 +210,25 @@ export const tutorialSteps = {
 
 /**
  * 특정 레벨의 튜토리얼 단계를 조회하는 헬퍼 함수
- * @param {number} levelId - 조회할 레벨 ID
+ * @param {number|string} levelId - 조회할 레벨 ID (숫자 또는 'level0' 형식)
  * @returns {Array<Object>} 해당 레벨의 모든 튜토리얼 단계 배열
  */
 export function getTutorialStepsByLevel(levelId) {
-  return tutorialSteps[levelId] || [];
+  // levelId가 숫자면 'level' 접두사 추가, 이미 문자열이면 그대로 사용
+  const key = typeof levelId === 'number' ? `level${levelId}` : levelId;
+  return tutorialSteps[key] || [];
 }
 
 /**
  * 특정 레벨의 특정 ID를 가진 튜토리얼 단계를 조회하는 헬퍼 함수
- * @param {number} levelId - 조회할 레벨 ID
+ * @param {number|string} levelId - 조회할 레벨 ID (숫자 또는 'level0' 형식)
  * @param {number} stepId - 조회할 단계 ID (해당 레벨 내에서의 ID)
  * @returns {Object | undefined} 해당하는 튜토리얼 단계 객체
  */
 export function getTutorialStep(levelId, stepId) {
-  const levelSteps = tutorialSteps[levelId];
+  // levelId가 숫자면 'level' 접두사 추가, 이미 문자열이면 그대로 사용
+  const key = typeof levelId === 'number' ? `level${levelId}` : levelId;
+  const levelSteps = tutorialSteps[key];
   if (!levelSteps) return undefined;
   return levelSteps.find(step => step.id === stepId);
 }

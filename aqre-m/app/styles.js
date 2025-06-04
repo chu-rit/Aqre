@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   levelScreen: {
     flex: 1,
     backgroundColor: '#a4c8e0',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: 0,
   },
   gameInfoContainer: {
     alignItems: 'center',
@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingTop: 16,
+    paddingTop: 0,
     paddingBottom: 8,
   },
   backButton: {

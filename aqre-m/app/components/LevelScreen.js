@@ -70,12 +70,17 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
     await AsyncStorage.setItem('tutorialCompleted', 'true');
     setShowTutorial(false);
   };
-  
-  // 튜토리얼 스킵 처리
-  const handleSkipTutorial = async () => {
-    await AsyncStorage.setItem('tutorialSkipped', 'true');
-    setShowTutorial(false);
-  };
+
+  // 튜토리얼 스킵 처리 - tutorial.js에서 가져온 함수 사용
+  const handleSkipTutorialWrapper = useCallback(async () => {
+    try {
+      console.log('스킵 버튼 클릭됨 - LevelScreen');
+      await handleSkipTutorial(0, () => setShowTutorial(false));
+    } catch (error) {
+      console.error('튜토리얼 건너뛰기 중 오류 발생:', error);
+      setShowTutorial(false);
+    }
+  }, []);
 
   // 레벨 선택 처리
   const handleLevelSelect = async (puzzle) => {
@@ -184,8 +189,8 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
         <TutorialScreen
           isVisible={showTutorial}
           onClose={handleTutorialComplete}
-          onSkip={handleSkipTutorial}
-          levelId="level0"
+          onSkip={handleSkipTutorialWrapper}
+          levelId={0} // 숫자로 전달
           steps={tutorialSteps}
         />
       )}
