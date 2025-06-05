@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { styles, boardStyles } from '../styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -304,14 +305,22 @@ export default function GameScreen({
           />
         </View>
       )}
-    <View style={[styles.levelScreen, {flex: 1}]}>
-      <View style={styles.levelHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('level')}>
-          <Text style={styles.backButtonText}>{'<'}</Text>
+    <SafeAreaView style={[styles.levelScreen, {flex: 1}]}>
+      <View style={localStyles.header}>
+        <TouchableOpacity 
+          style={localStyles.side}
+          onPress={() => setCurrentScreen('level')}
+        >
+          <Ionicons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
-        <Text style={styles.levelTitle}>Level {puzzle.id}</Text>
-        <TouchableOpacity style={styles.optionsButton} onPress={() => setCurrentScreen('options')}>
-          <Text style={styles.optionsButtonText}>☰</Text>
+        <View style={localStyles.center}>
+          <Text style={localStyles.title}>Level {puzzle.id + 1}</Text>
+        </View>
+        <TouchableOpacity 
+          style={localStyles.optionButton}
+          onPress={() => setCurrentScreen('options')}
+        >
+          <Ionicons name="options-outline" size={24} color="#2c3e50" />
         </TouchableOpacity>
       </View>
       <View style={styles.gameInfoContainer} />
@@ -631,7 +640,58 @@ export default function GameScreen({
           </View>
         </View>
       )}
-    </View>
+    </SafeAreaView>
     </>
   );
 }
+
+const localStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  side: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2c3e50',
+    letterSpacing: 0.5,
+  },
+  optionButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+});
