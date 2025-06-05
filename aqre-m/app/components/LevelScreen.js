@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../../src/logic/puzzles';
 import { tutorialSteps } from '../../src/logic/tutorialSteps';
+import { handleSkipTutorial } from '../tutorial';
 import TutorialScreen from '../tutorial';
 import { styles } from '../styles';
 
@@ -71,16 +72,10 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
     setShowTutorial(false);
   };
 
-  // 튜토리얼 스킵 처리 - tutorial.js에서 가져온 함수 사용
-  const handleSkipTutorialWrapper = useCallback(async () => {
-    try {
-      console.log('스킵 버튼 클릭됨 - LevelScreen');
-      await handleSkipTutorial(0, () => setShowTutorial(false));
-    } catch (error) {
-      console.error('튜토리얼 건너뛰기 중 오류 발생:', error);
-      setShowTutorial(false);
-    }
-  }, []);
+  // 튜토리얼 스킵 처리
+  const handleTutorialSkip = () => {
+    handleSkipTutorial(0, () => setShowTutorial(false));
+  };
 
   // 레벨 선택 처리
   const handleLevelSelect = async (puzzle) => {
@@ -189,7 +184,7 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
         <TutorialScreen
           isVisible={showTutorial}
           onClose={handleTutorialComplete}
-          onSkip={handleSkipTutorialWrapper}
+          onSkip={handleTutorialSkip}
           levelId={0} // 숫자로 전달
           steps={tutorialSteps}
         />

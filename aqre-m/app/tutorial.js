@@ -56,57 +56,31 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
 };
 
 // 튜토리얼 건너뛰기 핸들러
-const handleSkipTutorial = async (levelId, onSkip, onClose) => {
-  console.log('handleSkipTutorial called with levelId:', levelId, 'type:', typeof levelId);
-  
+const handleSkipTutorial = async (levelId, onSkip, onClose) => {  
   try {
     let levelKey;
-    
     // levelId가 객체인 경우를 처리
     if (levelId && typeof levelId === 'object') {
-      console.log('levelId is an object, trying to extract id:', levelId);
-      // 객체에서 id 속성을 추출
       levelKey = `level${levelId.id || levelId.number || 1}`;
-    } 
-    // levelId가 문자열이고 'level'로 시작하는 경우
-    else if (typeof levelId === 'string' && levelId.startsWith('level')) {
+    } else if (typeof levelId === 'string' && levelId.startsWith('level')) {
       levelKey = levelId;
-    }
-    // levelId가 숫자인 경우
-    else if (typeof levelId === 'number') {
+    } else if (typeof levelId === 'number') {
       levelKey = `level${levelId}`;
-    }
-    // 그 외의 경우 기본값 사용
-    else {
-      console.warn('Unexpected levelId format, using default level1');
+    } else {
       levelKey = 'level1';
     }
-    
-    console.log('Saving tutorial completion for:', levelKey);
-    
     const completedTutorials = await AsyncStorage.getItem('completedTutorials') || '{}';
     const completed = JSON.parse(completedTutorials);
-    
     completed[levelKey] = true;
     await AsyncStorage.setItem('completedTutorials', JSON.stringify(completed));
-    
-    console.log(`튜토리얼이 건너뛰어졌습니다. (${levelKey})`);
-    
-    // 콜백 호출
     if (onSkip) {
-      console.log('Calling onSkip callback');
       onSkip();
     } else if (onClose) {
-      console.log('Calling onClose callback');
       onClose();
-    } else {
-      console.warn('No callback provided for skip/close');
     }
-    
     return true;
   } catch (error) {
-    console.error('튜토리얼 건너뛰기 중 오류 발생:', error);
-    // 오류가 발생해도 콜백은 호출
+    console.error('Error skipping tutorial:', error);
     if (onSkip) {
       onSkip();
     } else if (onClose) {
@@ -190,20 +164,11 @@ const TutorialScreen = ({
   
   // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
   const skipTutorial = useCallback(async () => {
-    console.log('스킵 버튼 클릭됨 - TutorialScreen');
     cleanupAllHighlights();
-    
-    // onSkip이 있으면 호출 (LevelScreen의 handleSkipTutorial이 호출됨)
     if (onSkip) {
-      console.log('Calling onSkip callback');
       onSkip();
-    } 
-    // onSkip이 없고 onClose가 있으면 onClose 호출
-    else if (onClose) {
-      console.log('Calling onClose callback');
+    } else if (onClose) {
       onClose();
-    } else {
-      console.warn('No skip or close callback provided');
     }
   }, [onSkip, onClose, cleanupAllHighlights]);
 

@@ -30,49 +30,20 @@ export default function GameScreen({
 
   // 현재 레벨에 해당하는 튜토리얼 스텝 가져오기
   const getCurrentTutorialSteps = useCallback(() => {
-    console.log('puzzle object:', JSON.stringify(puzzle, null, 2));
-    console.log('puzzle.id:', puzzle.id);
-    
     // puzzle.id가 0부터 시작하므로 1을 더해서 level1부터 시작하도록 수정
     const levelNumber = puzzle.id + 1;
     const levelId = `level${levelNumber}`;
-    console.log('Tutorial levelId:', levelId, 'Available keys:', Object.keys(tutorialSteps));
-    
     return tutorialSteps[levelId] || [];
   }, [puzzle.id]);
 
   // 튜토리얼 표시 여부 확인 및 설정
   const checkAndShowTutorial = useCallback(async () => {
     try {
-      console.log('[TEST] Forcing tutorial to show for puzzle.id:', puzzle.id);
       setShowTutorial(true);
-      
-      // 원본 로직 (참고용으로 남겨둠)
-      /*
-      const completedTutorials = await AsyncStorage.getItem('completedTutorials') || '{}';
-      console.log('completedTutorials from storage:', completedTutorials);
-      const completed = JSON.parse(completedTutorials);
-      
-      // puzzle.id를 그대로 사용 (예: 'level1', 'level2' 등)
-      const levelId = `level${puzzle.id}`;
-      console.log('Tutorial levelId:', levelId);
-      console.log('Available tutorial keys:', Object.keys(tutorialSteps));
-      console.log('Is tutorial available?', !!tutorialSteps[levelId]);
-      console.log('Is tutorial completed?', !!completed[levelId]);
-      
-      if (tutorialSteps[levelId] && !completed[levelId]) {
-        console.log('Showing tutorial for level:', levelId);
-        setShowTutorial(true);
-      } else {
-        console.log('Tutorial not shown. Reasons:');
-        if (!tutorialSteps[levelId]) console.log('- No tutorial steps found for level:', levelId);
-        if (completed[levelId]) console.log('- Tutorial already completed for level:', levelId);
-      }
-      */
     } catch (error) {
-      console.error('튜토리얼 상태 확인 중 오류 발생:', error);
+      // 오류 무시
     }
-  }, [puzzle.id]);
+  }, []);
 
   // 튜토리얼 완료 처리
   const handleTutorialComplete = useCallback(async () => {
@@ -90,23 +61,21 @@ export default function GameScreen({
       setTutorialCompleted(true);
       setShowTutorial(false);
     } catch (error) {
-      console.error('튜토리얼 완료 처리 중 오류 발생:', error);
+      // 오류 무시
     }
   }, [puzzle.id]);
 
-  // 튜토리얼 건너뛰기 핸들러 - LevelScreen과 동일하게 구현
-  const handleSkipTutorial = useCallback(async () => {
+  // 튜토리얼 건너뛰기 핸들러
+  const handleTutorialSkip = useCallback(() => {
     try {
-      console.log('스킵 버튼 클릭됨');
-      await AsyncStorage.setItem('tutorialSkipped', 'true');
-      setTutorialCompleted(true);
-      setShowTutorial(false);
-      console.log('튜토리얼이 건너뛰어졌습니다.');
+      handleSkipTutorial(puzzle.id, () => {
+        setTutorialCompleted(true);
+        setShowTutorial(false);
+      });
     } catch (error) {
-      console.error('튜토리얼 건너뛰기 중 오류 발생:', error);
       setShowTutorial(false);
     }
-  }, []);
+  }, [puzzle.id]);
 
   // 화면 포커스 시 튜토리얼 체크
   useFocusEffect(
@@ -329,7 +298,7 @@ export default function GameScreen({
           <TutorialScreen
             isVisible={showTutorial}
             onClose={handleTutorialComplete}
-            onSkip={handleSkipTutorial}
+            onSkip={handleTutorialSkip}
             levelId={Number(puzzle.id)} // 명시적으로 숫자로 변환하여 전달
             steps={getCurrentTutorialSteps()}
           />
