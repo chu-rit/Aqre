@@ -14,7 +14,7 @@ export default function Page() {
 
   const [currentScreen, setCurrentScreen] = useState('start');
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
-  const [setClearedLevels] = useState(new Set());
+  const [clearedLevels, setClearedLevels] = useState(new Set());
   const [initialLoad, setInitialLoad] = useState(true);
 
   const [soundEnabled] = useState(true);
