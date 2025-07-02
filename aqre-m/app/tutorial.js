@@ -301,16 +301,6 @@ const TutorialScreen = ({
                               0 0 0 45px rgba(76, 110, 245, 0);
                 }
               }
-              @keyframes tutorialBorderPulse {
-                0%, 100% { 
-                  border-width: 3px;
-                  border-color: #4c6ef5;
-                }
-                50% { 
-                  border-width: 4px;
-                  border-color: #00f7ff;
-                }
-              }
               /* 배경 펄스 애니메이션 제거 */
             `;
             document.head.appendChild(style);
@@ -340,9 +330,7 @@ const TutorialScreen = ({
             transform: ${transform};
             transform-origin: ${originalStyle.transformOrigin};
             opacity: 1;
-            animation: 
-              tutorialPulse 1.5s infinite ease-out,
-              tutorialBorderPulse 1s infinite ease-in-out;
+            animation: tutorialPulse 1.5s infinite ease-out;
             box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.5);
             transition: all 0.3s ease;
           `;

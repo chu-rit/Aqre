@@ -29,6 +29,8 @@ export default function LevelScreen({ soundEnabled, tapSound, vibrationEnabled, 
     }
   };
 
+
+  
   useEffect(() => {
     const checkTutorial = async () => {
       const cleared = await loadClearedPuzzles();
