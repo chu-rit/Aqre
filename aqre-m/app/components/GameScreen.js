@@ -37,14 +37,15 @@ export default function GameScreen({
     return tutorialSteps[levelId] || [];
   }, [puzzle.id]);
 
-  // 튜토리얼 표시 여부 확인 및 설정
+  // 튜토리얼 표시 여부 확인 및 설정: 해당 레벨 스텝이 있을 때만 표시
   const checkAndShowTutorial = useCallback(async () => {
     try {
-      setShowTutorial(true);
+      const stepsForLevel = getCurrentTutorialSteps();
+      setShowTutorial(Array.isArray(stepsForLevel) && stepsForLevel.length > 0);
     } catch (error) {
-      // 오류 무시
+      setShowTutorial(false);
     }
-  }, []);
+  }, [getCurrentTutorialSteps]);
 
   // 튜토리얼 완료 처리
   const handleTutorialComplete = useCallback(async () => {

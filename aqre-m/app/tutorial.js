@@ -226,13 +226,25 @@ const TutorialScreen = ({
       document.querySelectorAll('.tutorial-clone-element').forEach(el => el.remove());
       
       currentStepData.highlight.selectors.forEach(selector => {
-        // 선택자 형식이 key=value 형식이면 [key="value"]로 변환
+        // 선택자 형식이 key=value(순수)인 경우만 [key="value"]로 변환
+        // 이미 완전한 CSS 선택자(예: .cell[data-row="1"][data-col="2"]) 는 그대로 사용
         let query = selector;
-        if (selector.includes('=')) {
-          const [key, value] = selector.split('=');
+        const isPlainKeyValue =
+          typeof selector === 'string' &&
+          selector.includes('=') &&
+          !selector.includes('[') &&
+          !selector.includes(']') &&
+          !selector.includes(' ') &&
+          !selector.includes('.') &&
+          !selector.includes('#');
+
+        if (isPlainKeyValue) {
+          const eqIdx = selector.indexOf('=');
+          const key = selector.slice(0, eqIdx).trim();
+          const value = selector.slice(eqIdx + 1).trim().replace(/^"|"$/g, '');
           query = `[${key}="${value}"]`;
         }
-        
+
         const elements = document.querySelectorAll(query);
         elements.forEach(el => {
           
