@@ -31,8 +31,8 @@ export default function GameScreen({
 
   // 현재 레벨에 해당하는 튜토리얼 스텝 가져오기
   const getCurrentTutorialSteps = useCallback(() => {
-    // puzzle.id가 0부터 시작하므로 1을 더해서 level1부터 시작하도록 수정
-    const levelNumber = puzzle.id + 1;
+    // puzzle.id는 1부터 시작하므로 그대로 사용
+    const levelNumber = puzzle.id;
     const levelId = `level${levelNumber}`;
     return tutorialSteps[levelId] || [];
   }, [puzzle.id]);
@@ -49,8 +49,8 @@ export default function GameScreen({
   // 튜토리얼 완료 처리
   const handleTutorialComplete = useCallback(async () => {
     try {
-      // puzzle.id가 0부터 시작하므로 1을 더해서 level1부터 시작하도록 수정
-      const levelNumber = puzzle.id + 1;
+      // puzzle.id는 1부터 시작하므로 그대로 사용
+      const levelNumber = puzzle.id;
       const levelId = `level${levelNumber}`;
       
       const completedTutorials = await AsyncStorage.getItem('completedTutorials') || '{}';
@@ -84,6 +84,34 @@ export default function GameScreen({
       checkAndShowTutorial();
     }, [checkAndShowTutorial])
   );
+
+  // 보드 셀 측정을 위한 ref 매트릭스
+  const cellRefs = useRef(null);
+  if (!cellRefs.current || cellRefs.current.length !== board.length || cellRefs.current[0]?.length !== (board[0]?.length || 0)) {
+    cellRefs.current = Array.from({ length: board.length }, () => Array.from({ length: board[0]?.length || 0 }, () => React.createRef()));
+  }
+
+  // 특정 셀의 스크린 좌표/크기 측정 (TutorialScreen에 전달)
+  const getCellRect = useCallback((row, col) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const ref = cellRefs.current?.[row]?.[col];
+        if (!ref || !ref.current) {
+          reject(new Error('cell ref not ready'));
+          return;
+        }
+        ref.current.measure((x, y, width, height, pageX, pageY) => {
+          if (typeof pageX === 'number' && typeof pageY === 'number') {
+            resolve({ left: pageX, top: pageY, width, height });
+          } else {
+            reject(new Error('measure failed'));
+          }
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }, [cellRefs]);
 
   // 셀 색상 토글 함수
   const toggleCellColor = (row, col) => {
@@ -294,35 +322,24 @@ export default function GameScreen({
 
   return (
     <>
-      {showTutorial && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-          <TutorialScreen
-            isVisible={showTutorial}
-            onClose={handleTutorialComplete}
-            onSkip={handleTutorialSkip}
-            levelId={Number(puzzle.id)} // 명시적으로 숫자로 변환하여 전달
-            steps={getCurrentTutorialSteps()}
-          />
+      <SafeAreaView style={[styles.levelScreen, {flex: 1}]}> 
+        <View style={localStyles.header}>
+          <TouchableOpacity 
+            style={localStyles.side}
+            onPress={() => setCurrentScreen('level')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+          </TouchableOpacity>
+          <View style={localStyles.center}>
+            <Text style={localStyles.title}>Level {puzzle.id}</Text>
+          </View>
+          <TouchableOpacity 
+            style={localStyles.optionButton}
+            onPress={() => setCurrentScreen('options')}
+          >
+            <Ionicons name="options-outline" size={24} color="#2c3e50" />
+          </TouchableOpacity>
         </View>
-      )}
-    <SafeAreaView style={[styles.levelScreen, {flex: 1}]}>
-      <View style={localStyles.header}>
-        <TouchableOpacity 
-          style={localStyles.side}
-          onPress={() => setCurrentScreen('level')}
-        >
-          <Ionicons name="arrow-back" size={24} color="#2c3e50" />
-        </TouchableOpacity>
-        <View style={localStyles.center}>
-          <Text style={localStyles.title}>Level {puzzle.id + 1}</Text>
-        </View>
-        <TouchableOpacity 
-          style={localStyles.optionButton}
-          onPress={() => setCurrentScreen('options')}
-        >
-          <Ionicons name="options-outline" size={24} color="#2c3e50" />
-        </TouchableOpacity>
-      </View>
       <View style={styles.gameInfoContainer} />
       <View
         style={[
@@ -473,6 +490,7 @@ export default function GameScreen({
                 <TouchableOpacity
                   key={`cell-${rowIdx}-${colIdx}`}
                   style={cellStyle}
+                  ref={cellRefs.current[rowIdx][colIdx]}
                   onPress={() => {
                     toggleCellColor(rowIdx, colIdx);
                     setMoveCount(cnt => cnt + 1);
@@ -641,6 +659,19 @@ export default function GameScreen({
         </View>
       )}
     </SafeAreaView>
+      {showTutorial && (
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+          <TutorialScreen
+            isVisible={showTutorial}
+            onClose={handleTutorialComplete}
+            onSkip={handleTutorialSkip}
+            levelId={Number(puzzle.id)} // 명시적으로 숫자로 변환하여 전달
+            steps={getCurrentTutorialSteps()}
+            board={board}
+            getCellRect={getCellRect}
+          />
+        </View>
+      )}
     </>
   );
 }

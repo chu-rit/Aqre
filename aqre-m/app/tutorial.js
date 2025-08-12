@@ -6,12 +6,9 @@ import {
   Image, 
   Animated, 
   Dimensions,
-  StyleSheet,
   Platform,
-  Modal,
-  findNodeHandle,
-  UIManager
 } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -96,13 +93,17 @@ const TutorialScreen = ({
   onSkip, 
   levelId, 
   steps = {},
-  children 
+  children,
+  getCellRect,
+  board,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  
+  const [highlightRect, setHighlightRect] = useState(null);
+  const autoAdvancedRef = useRef(false);
+
   // 모든 하이라이트와 클론 요소를 제거하는 함수
   const cleanupAllHighlights = useCallback(() => {
     // 모든 클론 요소 제거
@@ -156,12 +157,13 @@ const TutorialScreen = ({
       document.body.offsetHeight;
     }
   }, []);
-  
-  // levelId에 해당하는 튜토리얼 단계 가져오기
-  // getTutorialStepsByLevel 함수를 사용하여 단계 가져오기
-  const currentLevelSteps = getTutorialStepsByLevel(levelId) || [];
+
+  // 단계 소스: 전달된 steps prop 우선, 없으면 levelId로 조회
+  const currentLevelSteps = (Array.isArray(steps) && steps.length > 0)
+    ? steps
+    : (getTutorialStepsByLevel(levelId) || []);
   const currentStepData = currentLevelSteps[currentStep] || {};
-  
+
   // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
   const skipTutorial = useCallback(async () => {
     cleanupAllHighlights();
@@ -475,245 +477,146 @@ const TutorialScreen = ({
     }
   }, [currentStep, currentLevelSteps, fadeAnim, slideAnim, onClose, onSkip, cleanupAllHighlights]);
 
-
-
-  // 컴포넌트 언마운트 시 또는 isVisible이 false가 될 때 정리
+  // 스텝이 바뀔 때 자동 진행 플래그 리셋
   useEffect(() => {
-    return () => {
-      cleanupAllHighlights();
+    autoAdvancedRef.current = false;
+  }, [currentStep]);
+
+  // 보드 상태에 따른 조건 충족 시 자동으로 다음 단계로 이동
+  useEffect(() => {
+    if (!isVisible) return;
+    const cond = currentStepData?.condition;
+    if (!cond) return; // 조건이 없는 스텝은 수동 진행(버튼)
+
+    const evalCell = (b, c) => {
+      if (!b || !Array.isArray(b) || b[c.row] == null || b[c.row][c.col] == null) return false;
+      return b[c.row][c.col] === c.expectedState;
     };
-  }, [cleanupAllHighlights]);
+
+    let satisfied = false;
+    if (Array.isArray(cond?.conditions)) {
+      satisfied = cond.conditions.every(c => evalCell(board, c));
+    } else if (typeof cond === 'object') {
+      satisfied = evalCell(board, cond);
+    }
+
+    if (satisfied && !autoAdvancedRef.current) {
+      autoAdvancedRef.current = true;
+      // 조건 스텝은 자동으로 다음 단계로 이동
+      nextStep();
+    }
+  }, [isVisible, currentStepData, board, nextStep]);
+
+  // RN: 셀 좌표 기반 하이라이트 박스 계산
+  const updateHighlightPosition = useCallback(async () => {
+    try {
+      const cells = currentStepData.highlight?.cells;
+      if (!isVisible || !cells || cells.length === 0 || !getCellRect) {
+        setHighlightRect(null);
+        return;
+      }
+      const rects = await Promise.all(cells.map(({ row, col }) => getCellRect(row, col)));
+      const minLeft = Math.min(...rects.map(r => r.left));
+      const minTop = Math.min(...rects.map(r => r.top));
+      const maxRight = Math.max(...rects.map(r => r.left + r.width));
+      const maxBottom = Math.max(...rects.map(r => r.top + r.height));
+      const padding = Number(currentStepData.highlight?.padding ?? 4);
+      setHighlightRect({
+        left: minLeft - padding,
+        top: minTop - padding,
+        width: (maxRight - minLeft) + padding * 2,
+        height: (maxBottom - minTop) + padding * 2,
+      });
+    } catch (e) {
+      setHighlightRect(null);
+    }
+  }, [isVisible, currentStepData.highlight, getCellRect]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    updateHighlightPosition();
+  }, [isVisible, currentStep, updateHighlightPosition]);
 
   if (!isVisible) return children || null;
 
-  // 현재 스텝에 하이라이트가 있는지 확인
-  const hasHighlight = currentStepData.highlight?.selectors?.length > 0;
-  const cloneContainerRef = useRef(null);
-  const highlightRef = useRef(null);
-  const [isReady, setIsReady] = useState(false);
-  
-  // 요소 클론 생성 및 클릭 핸들링
-  const cloneElement = useCallback((element) => {
-    if (!element || !cloneContainerRef.current) return null;
-    
-    // 기존 클론 제거
-    cloneContainerRef.current.innerHTML = '';
-    
-    // 요소 클론 생성
-    const clone = element.cloneNode(true);
-    
-    // 스타일 복사
-    const style = window.getComputedStyle(element);
-    for (let i = 0; i < style.length; i++) {
-      const prop = style[i];
-      try {
-        clone.style[prop] = style[prop];
-      } catch (e) {
-        // 일부 읽기 전용 속성은 무시
-      }
-    }
-    
-    // 클릭 이벤트 핸들러
-    const clickHandler = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      element.click();
-    };
-    
-    clone.style.pointerEvents = 'auto';
-    clone.style.position = 'absolute';
-    clone.style.zIndex = '1001';
-    
-    clone.addEventListener('click', clickHandler);
-    cloneContainerRef.current.appendChild(clone);
-    
-    return () => {
-      clone.removeEventListener('click', clickHandler);
-    };
-  }, []);
-
-  // 요소 위치 업데이트 함수
-  const updateHighlightPosition = useCallback(() => {
-    if (!currentStepData.highlight?.selectors) return;
-    
-    let selector = currentStepData.highlight.selectors[0];
-    // data-testid 속성 선택자로 변환
-    if (selector.startsWith('data-testid=')) {
-      const testId = selector.replace('data-testid=', '');
-      selector = `[data-testid="${testId}"]`;
-    }
-    
-    const element = document.querySelector(selector);
-    if (!element) return;
-    
-    // 요소의 위치 계산
-    const rect = element.getBoundingClientRect();
-    const modal = document.querySelector('[role="dialog"]');
-    const modalRect = modal ? modal.getBoundingClientRect() : { left: 0, top: 0 };
-    
-    // 모달 내부에서의 상대 위치 계산
-    const left = rect.left - modalRect.left;
-    const top = rect.top - modalRect.top;
-    
-    // 클론된 요소 위치 조정
-    if (cloneContainerRef.current) {
-      cloneContainerRef.current.style.left = `${left - 5}px`;
-      cloneContainerRef.current.style.top = `${top}px`;
-      cloneContainerRef.current.style.width = `${rect.width}px`;
-      cloneContainerRef.current.style.height = `${rect.height}px`;
-    }
-    
-    // 하이라이트 효과 크기 조정
-    if (highlightRef.current) {
-      const highlightPadding = 4; // 하이라이트 패딩
-      highlightRef.current.style.width = `${rect.width + (highlightPadding * 2)}px`;
-      highlightRef.current.style.height = `${rect.height + (highlightPadding * 2)}px`;
-      highlightRef.current.style.left = `${left - highlightPadding}px`;
-      highlightRef.current.style.top = `${top - highlightPadding}px`;
-      highlightRef.current.style.opacity = '1';
-    }
-    
-    // 요소 클론 생성
-    cloneElement(element);
-    setIsReady(true);
-  }, [currentStepData.highlight, cloneElement]);
-
-  // 하이라이트 위치 업데이트 이펙트
-  useEffect(() => {
-    if (!isVisible || !currentStepData.highlight) return;
-    
-    updateHighlightPosition();
-    const interval = setInterval(updateHighlightPosition, 100);
-    
-    return () => {
-      clearInterval(interval);
-      if (cloneContainerRef.current) {
-        cloneContainerRef.current.innerHTML = '';
-      }
-    };
-  }, [isVisible, currentStepData.highlight, updateHighlightPosition]);
+  // 현재 스텝에 하이라이트가 있는지 확인 (RN cells 기준)
+  const hasHighlight = !!(currentStepData.highlight?.cells?.length > 0);
 
   return (
-    <View style={styles.container}>
-      {/* 자식 컴포넌트 렌더링 */}
+    <View style={styles.container} pointerEvents="box-none">
       {children}
-      
-      {/* 튜토리얼 오버레이 */}
-      <Modal
-        visible={isVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={onSkip || skipTutorial}
-      >
-        <View style={styles.modalContainer}>
-          {/* 반투명 검은 배경 */}
-          <View style={[styles.overlay, styles.absoluteFill, { zIndex: 1000 }]} />
-          
-          {/* 클론된 요소 컨테이너 */}
-          <div 
-            ref={cloneContainerRef}
-            style={{
-              position: 'absolute',
-              zIndex: 1001,
-              pointerEvents: 'auto',
-              overflow: 'visible',
-              opacity: isReady ? 1 : 0,
-              transition: 'opacity 0.2s ease-in-out'
-            }}
-          />
-          
-          {/* 하이라이트 영역 (가장 위에 렌더링) */}
-          <View 
-            ref={highlightRef}
-            style={[
-              styles.highlightArea,
-              {
-                position: 'absolute',
-                zIndex: 1002, // 가장 위에 표시
-                pointerEvents: 'none', // 클릭 이벤트는 클론이 처리
-                opacity: isReady ? 1 : 0,
-                transition: 'opacity 0.2s ease-in-out'
-              },
-              currentStepData.highlight?.style
-            ]}
-          />
-          
-          {/* 튜토리얼 툴팁 (하단에 위치) */}
-          <Animated.View 
+      {isVisible && (
+        <>
+          {/* 1) 비인터랙티브 오버레이 레이어 (전역 패스스루) */}
+          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            {/* 딤드 배경 */}
+            <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+            {/* RN 하이라이트 박스 */}
+            {hasHighlight && highlightRect && (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: highlightRect.left,
+                  top: highlightRect.top,
+                  width: highlightRect.width,
+                  height: highlightRect.height,
+                  zIndex: 1001,
+                  borderWidth: 3,
+                  borderColor: '#4c6ef5',
+                  borderRadius: 8,
+                  backgroundColor: 'transparent',
+                  ...Platform.select({ ios: { shadowColor: '#4c6ef5', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 6 } })
+                }}
+              />
+            )}
+          </View>
+
+          {/* 2) 인터랙티브 툴팁 레이어 (하단 고정) */}
+          <Animated.View
+            pointerEvents="none"
             style={[
               styles.tooltipWrapper,
-              { 
-                opacity: fadeAnim, 
-                transform: [{ translateY: slideAnim }],
-                zIndex: 1000
-              }
+              { zIndex: 2000, position: 'absolute', left: 0, right: 0, bottom: 0 }
             ]}
           >
-            <View style={styles.tooltipContainer}>
-              <TouchableOpacity 
-                style={styles.skipButton}
-                onPress={onSkip || skipTutorial}
-              >
+            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]} pointerEvents="auto">
+              <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
                 <Text style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>
-              
               <View style={styles.tooltipContent}>
                 <View style={styles.avatarContainer}>
-                  <Image 
-                    source={require('../assets/images/nurse.png')} 
-                    style={styles.avatar}
-                    resizeMode="contain"
-                  />
+                  <Image source={require('../assets/images/nurse.png')} style={styles.avatar} resizeMode="contain" />
                 </View>
                 <View style={styles.textContainer}>
                   <View style={styles.speechBubble}>
                     <View style={styles.speechBubbleTriangle} />
                     <TypeWriterText
-                      text={currentStepData.text || "안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다."}
+                      text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
                       style={styles.tooltipText}
-                      onTypingDone={() => {
-                        // currentStepData.showNextButton 값에 따라 버튼 표시 여부 설정
-                        setShowNextButton(currentStepData.showNextButton === true);
-                      }}
+                      onTypingDone={() => setShowNextButton(currentStepData.showNextButton === true)}
                     />
                   </View>
                 </View>
               </View>
-              
-              {/* 하단 컨트롤 (진행 상태 표시기 + 다음 버튼) */}
               <View style={styles.bottomContainer}>
-                {/* 진행 상태 표시기 */}
                 {currentLevelSteps.length > 1 && (
                   <View style={styles.progressContainer}>
                     {currentLevelSteps.map((_, index) => (
-                      <View 
-                        key={index} 
-                        style={[
-                          styles.progressDot,
-                          index === currentStep && styles.progressDotActive
-                        ]} 
-                      />
+                      <View key={index} style={[styles.progressDot, index === currentStep && styles.progressDotActive]} />
                     ))}
                   </View>
                 )}
-                
-                {/* 다음 버튼 */}
                 {showNextButton && (
-                  <TouchableOpacity
-                    style={styles.nextButton}
-                    onPress={nextStep}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.nextButtonText}>
-                       다음
-                    </Text>
+                  <TouchableOpacity style={styles.nextButton} onPress={nextStep} activeOpacity={0.8}>
+                    <Text style={styles.nextButtonText}>다음</Text>
                   </TouchableOpacity>
                 )}
               </View>
-            </View>
+            </Animated.View>
           </Animated.View>
-        </View>
-      </Modal>
+        </>
+      )}
     </View>
   );
 };

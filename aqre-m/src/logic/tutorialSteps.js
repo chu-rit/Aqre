@@ -131,7 +131,7 @@ export const tutorialSteps = {
   ],
   
   // 레벨 3 튜토리얼
-  3: [
+  'level3': [
     {
       id: 0,
       text: '뇌의 각 영역은 지정된 수의 활성 뉴런만 있어야 합니다.',
@@ -190,13 +190,13 @@ export const tutorialSteps = {
   ],
   
   // 레벨 4 튜토리얼
-  4: [
+  'level4': [
     {
       id: 0,
       text: '마지막으로 활성화된 뉴런은 하나의 영역을 이루고 있어야 됩니다.',
       highlight: null,
       condition: null,
-      ㅣ제: true
+      showNextButton: true
     },
     {
       id: 1,
