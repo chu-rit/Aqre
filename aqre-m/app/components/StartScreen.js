@@ -4,10 +4,11 @@ import { styles } from '../styles';
 
 export default function StartScreen({ 
   setCurrentScreen, 
+  soundEnabled,
   tapSound 
 }) {
   const handleStart = () => {
-    if (tapSound && tapSound.current) {
+    if (soundEnabled && tapSound && tapSound.current) {
       tapSound.current.replayAsync();
     }
     setCurrentScreen('level');

@@ -553,16 +553,53 @@ const TutorialScreen = ({
 
   // 현재 스텝에 하이라이트가 있는지 확인 (RN cells 기준)
   const hasHighlight = !!(currentStepData.highlight?.cells?.length > 0);
+  const allowOnlyHighlight = !showNextButton && hasHighlight && !!highlightRect;
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View
+      style={[
+        styles.container,
+        isVisible ? styles.absoluteFill : null,
+        { zIndex: 3000, position: isVisible ? 'absolute' : 'relative' }
+      ]}
+      pointerEvents="box-none"
+    >
       {children}
       {isVisible && (
         <>
-          {/* 1) 비인터랙티브 오버레이 레이어 (전역 패스스루) */}
-          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            {/* 딤드 배경 */}
+          {/* 1) 오버레이 레이어: showNextButton=true 이면 전체 차단, false 이고 하이라이트가 있으면 하이라이트만 통과 */}
+          <View
+            pointerEvents={showNextButton ? 'auto' : (allowOnlyHighlight ? 'box-none' : 'none')}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            {/* 딤드 배경 (항상 시각적 오버레이, 터치는 차단하지 않음) */}
             <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+
+            {/* showNextButton=false && 하이라이트가 있을 때, 하이라이트 영역 외부만 터치 차단하는 블로커 4개 */}
+            {allowOnlyHighlight && (
+              <>
+                {/* 상단 블로커 */}
+                <View
+                  pointerEvents="auto"
+                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: highlightRect.top, zIndex: 1002 }}
+                />
+                {/* 하단 블로커 */}
+                <View
+                  pointerEvents="auto"
+                  style={{ position: 'absolute', left: 0, right: 0, top: highlightRect.top + highlightRect.height, bottom: 0, zIndex: 1002 }}
+                />
+                {/* 좌측 블로커 */}
+                <View
+                  pointerEvents="auto"
+                  style={{ position: 'absolute', left: 0, top: highlightRect.top, width: highlightRect.left, height: highlightRect.height, zIndex: 1002 }}
+                />
+                {/* 우측 블로커 */}
+                <View
+                  pointerEvents="auto"
+                  style={{ position: 'absolute', left: highlightRect.left + highlightRect.width, right: 0, top: highlightRect.top, height: highlightRect.height, zIndex: 1002 }}
+                />
+              </>
+            )}
             {/* RN 하이라이트 박스 */}
             {hasHighlight && highlightRect && (
               <View

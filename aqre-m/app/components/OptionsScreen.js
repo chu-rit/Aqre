@@ -8,10 +8,12 @@ export default function OptionsScreen({
   soundEnabled, 
   bgmEnabled, 
   vibrationEnabled, 
+  onChangeSoundEnabled,
+  onChangeBgmEnabled,
   onClose
 }) {
   const [soundEnabledState, setSoundEnabledState] = useState(soundEnabled);
-  const [bgmEnabledState, setBgmEnabledState] = useState(true);
+  const [bgmEnabledState, setBgmEnabledState] = useState(bgmEnabled ?? true);
   const [vibrationEnabledState, setVibrationEnabledState] = useState(vibrationEnabled);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -56,22 +58,35 @@ export default function OptionsScreen({
     }
   };
 
+  // 최초 로드시 props와 저장값을 조합하여 초기화
   useEffect(() => {
     const init = async () => {
       try {
         const options = await AsyncStorage.getItem('options');
         if (options) {
           const parsed = JSON.parse(options);
-          setBgmEnabledState(parsed.bgmEnabled ?? true);
+          setBgmEnabledState(
+            typeof parsed.bgmEnabled === 'boolean' ? parsed.bgmEnabled : (bgmEnabled ?? true)
+          );
+        } else {
+          setBgmEnabledState(bgmEnabled ?? true);
         }
       } catch (e) {
         console.error('옵션 초기화 실패:', e);
+        setBgmEnabledState(bgmEnabled ?? true);
       } finally {
         setIsLoaded(true);
       }
     };
     init();
   }, []);
+
+  // 부모에서 bgmEnabled가 바뀌면 토글도 동기화
+  useEffect(() => {
+    if (typeof bgmEnabled === 'boolean') {
+      setBgmEnabledState(bgmEnabled);
+    }
+  }, [bgmEnabled]);
 
   useEffect(() => {
     loadOptions();
@@ -150,6 +165,9 @@ export default function OptionsScreen({
           onValueChange={(value) => {
             setSoundEnabledState(value);
             saveSetting('soundEnabled', value);
+            if (typeof onChangeSoundEnabled === 'function') {
+              onChangeSoundEnabled(value);
+            }
           }}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
           thumbColor={soundEnabledState ? '#fff' : '#eee'}
@@ -161,6 +179,10 @@ export default function OptionsScreen({
           value={bgmEnabledState}
           onValueChange={(value) => {
             setBgmEnabledState(value);
+            // 즉시 부모에 반영하여 재생/정지를 수행
+            if (typeof onChangeBgmEnabled === 'function') {
+              onChangeBgmEnabled(value);
+            }
           }}
           trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
           thumbColor={bgmEnabledState ? '#fff' : '#eee'}

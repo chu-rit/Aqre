@@ -17,8 +17,8 @@ export default function Page() {
   const [clearedLevels, setClearedLevels] = useState(new Set());
   const [initialLoad, setInitialLoad] = useState(true);
 
-  const [soundEnabled] = useState(true);
-  const [bgmEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [bgmEnabled, setBgmEnabled] = useState(true);
   const [vibrationEnabled] = useState(true);
 
   const handleLevelSelect = (puzzle) => {
@@ -45,14 +45,40 @@ export default function Page() {
     loadInitialData();
   }, []);
 
+  // 최초 로드 시 저장된 옵션에서 BGM 설정 불러오기
   useEffect(() => {
-    if (bgmReady && bgmSound.current) {
-      if (bgmEnabled) {
-        bgmPlay();
-      } else {
-        bgmSound.current.stopAsync();
+    (async () => {
+      try {
+        const options = await AsyncStorage.getItem('options');
+        if (options) {
+          const parsed = JSON.parse(options);
+          if (typeof parsed.soundEnabled === 'boolean') {
+            setSoundEnabled(parsed.soundEnabled);
+          }
+          if (typeof parsed.bgmEnabled === 'boolean') {
+            setBgmEnabled(parsed.bgmEnabled);
+          }
+        }
+      } catch (e) {
+        // noop
       }
-    }
+    })();
+  }, []);
+
+  // BGM 설정 변경 시 즉시 반영
+  useEffect(() => {
+    (async () => {
+      if (!bgmReady || !bgmSound.current) return;
+      try {
+        if (bgmEnabled) {
+          await bgmPlay();
+        } else {
+          await bgmSound.current.stopAsync();
+        }
+      } catch (e) {
+        // noop
+      }
+    })();
   }, [bgmEnabled, bgmReady, bgmPlay]);
 
   if (initialLoad) {
@@ -71,6 +97,7 @@ export default function Page() {
       currentScreenComponent = (
         <StartScreen
           setCurrentScreen={handleNavigateToLevel}
+          soundEnabled={soundEnabled}
           tapSound={tapSound}
         />
       );
@@ -81,7 +108,9 @@ export default function Page() {
         <LevelScreen
           setCurrentScreen={setCurrentScreen}
           onSelectPuzzle={handleLevelSelect}
+          soundEnabled={soundEnabled}
           tapSound={tapSound}
+          bgmEnabled={bgmEnabled}
           bgmPlay={bgmPlay}
         />
       );
@@ -107,6 +136,11 @@ export default function Page() {
     case 'options':
       currentScreenComponent = (
         <OptionsScreen
+          bgmEnabled={bgmEnabled}
+          soundEnabled={soundEnabled}
+          vibrationEnabled={vibrationEnabled}
+          onChangeBgmEnabled={(v) => setBgmEnabled(v)}
+          onChangeSoundEnabled={(v) => setSoundEnabled(v)}
           onClose={() => setCurrentScreen('start')}
         />
       );
