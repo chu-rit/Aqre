@@ -22,10 +22,16 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const typingSpeed = 30; // ms
 
+  // '<br>' 태그를 줄바꿈으로 변환
+  const processedText = React.useMemo(() => {
+    if (typeof text !== 'string') return '';
+    return text.replace(/<br\s*\/?>(\r\n|\n|\r)?/gi, '\n');
+  }, [text]);
+
   useEffect(() => {
-    if (currentIndex < text.length) {
+    if (currentIndex < processedText.length) {
       const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + text[currentIndex]);
+        setDisplayText(prev => prev + processedText[currentIndex]);
         setCurrentIndex(prev => prev + 1);
       }, typingSpeed);
 
@@ -33,13 +39,13 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
     } else if (onTypingDone) {
       onTypingDone();
     }
-  }, [currentIndex, text, onTypingDone]);
+  }, [currentIndex, processedText, onTypingDone]);
 
   useEffect(() => {
     // 텍스트가 바뀌면 리셋
     setDisplayText('');
     setCurrentIndex(0);
-  }, [text]);
+  }, [processedText]);
 
   // 기본 스타일과 전달된 스타일을 병합
   const mergedStyle = [
@@ -164,6 +170,11 @@ const TutorialScreen = ({
     : (getTutorialStepsByLevel(levelId) || []);
   const currentStepData = currentLevelSteps[currentStep] || {};
 
+  // 스텝 변경/표시 상태 변경 시 Next 버튼을 기본적으로 감춤
+  useEffect(() => {
+    setShowNextButton(false);
+  }, [currentStep, isVisible]);
+
   // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
   const skipTutorial = useCallback(async () => {
     cleanupAllHighlights();
@@ -220,207 +231,67 @@ const TutorialScreen = ({
       delete el.dataset.highlightId;
     });
     
-    // 현재 스텝에 하이라이트가 있으면 적용
-    if (currentStepData.highlight?.selectors) {
-      // 기존의 모든 클론 요소 제거
-      document.querySelectorAll('.tutorial-clone-element').forEach(el => el.remove());
-      
-      currentStepData.highlight.selectors.forEach(selector => {
-        // 선택자 형식이 key=value(순수)인 경우만 [key="value"]로 변환
-        // 이미 완전한 CSS 선택자(예: .cell[data-row="1"][data-col="2"]) 는 그대로 사용
-        let query = selector;
-        const isPlainKeyValue =
-          typeof selector === 'string' &&
-          selector.includes('=') &&
-          !selector.includes('[') &&
-          !selector.includes(']') &&
-          !selector.includes(' ') &&
-          !selector.includes('.') &&
-          !selector.includes('#');
+    // 현재 스텝에 하이라이트가 있으면 적용 (selectors 기반)
+    if (currentStepData.highlight?.selectors && typeof document !== 'undefined') {
+      try {
+        const boxes = [];
+        currentStepData.highlight.selectors.forEach((selector) => {
+          let query = selector;
+          const isPlainKeyValue =
+            typeof selector === 'string' &&
+            selector.includes('=') &&
+            !selector.includes('[') &&
+            !selector.includes(']') &&
+            !selector.includes(' ') &&
+            !selector.includes('.') &&
+            !selector.includes('#');
 
-        if (isPlainKeyValue) {
-          const eqIdx = selector.indexOf('=');
-          const key = selector.slice(0, eqIdx).trim();
-          const value = selector.slice(eqIdx + 1).trim().replace(/^"|"$/g, '');
-          query = `[${key}="${value}"]`;
-        }
+          if (isPlainKeyValue) {
+            const eqIdx = selector.indexOf('=');
+            const key = selector.slice(0, eqIdx).trim();
+            const value = selector.slice(eqIdx + 1).trim().replace(/^"|"$/g, '');
+            query = `[${key}="${value}"]`;
+          }
 
-        const elements = document.querySelectorAll(query);
-        elements.forEach(el => {
-          
-          // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
-          const originalPosition = el.style.position || '';
-          const originalZIndex = el.style.zIndex || '';
-          const originalBoxShadow = el.style.boxShadow || '';
-          const originalBorderRadius = el.style.borderRadius || '';
-          const originalBackgroundColor = el.style.backgroundColor || '';
-          
-          // 원본 요소의 스타일과 위치 정보 가져오기
-          const originalStyle = window.getComputedStyle(el);
-          const rects = el.getClientRects();
-          const rect = rects.length > 0 ? rects[0] : el.getBoundingClientRect();
-          
-          // 뷰포트 기준 위치 계산
-          const scrollX = window.scrollX || window.pageXOffset;
-          const scrollY = window.scrollY || window.pageYOffset;
-          
-          // 요소의 실제 위치 계산 (스크롤 및 부모 요소의 위치 고려)
-          let offsetX = 0;
-          let offsetY = 0;
-          let current = el;
-          
-          while (current && !current.isSameNode(document)) {
-            offsetX += current.offsetLeft - current.scrollLeft + current.clientLeft;
-            offsetY += current.offsetTop - current.scrollTop + current.clientTop;
-            current = current.offsetParent;
-          }
-          
-          // 기존 하이라이트 요소가 있으면 제거
-          const existingHighlight = document.querySelector(`[data-highlight-id="${el.dataset.highlightId}"]`);
-          if (existingHighlight) {
-            existingHighlight.remove();
-          }
-          
-          // 원본 요소를 클론하여 오버레이 위에 표시
-          const clone = el.cloneNode(true);
-          clone.className = 'tutorial-clone-element';
-          
-          // 원본 요소에 하이라이트 ID가 없으면 생성
-          if (!el.dataset.highlightId) {
-            el.dataset.highlightId = `highlight-${Date.now()}`;
-          }
-          
-          // 원본 요소의 transform 값 가져오기
-          const transform = originalStyle.transform !== 'none' ? originalStyle.transform : '';
-          
-          // 최종 위치 계산 (offset 값을 사용하여 정확한 위치 계산)
-          const finalTop = offsetY + scrollY;
-          const finalLeft = offsetX + scrollX;
-          
-          // CSS 애니메이션 키프레임 추가
-          const styleId = 'tutorial-highlight-styles';
-          if (!document.getElementById(styleId)) {
-            const style = document.createElement('style');
-            style.id = styleId;
-            style.textContent = `
-              @keyframes tutorialPulse {
-                0% { 
-                  box-shadow: 0 0 0 0 rgba(76, 110, 245, 0.8),
-                              0 0 0 10px rgba(76, 110, 245, 0.5),
-                              0 0 0 20px rgba(76, 110, 245, 0.2);
-                }
-                100% { 
-                  box-shadow: 0 0 0 15px rgba(76, 110, 245, 0),
-                              0 0 0 30px rgba(76, 110, 245, 0),
-                              0 0 0 45px rgba(76, 110, 245, 0);
-                }
-              }
-              /* 배경 펄스 애니메이션 제거 */
-            `;
-            document.head.appendChild(style);
-          }
-          
-          // 클론 요소 스타일 설정
-          clone.style.cssText = `
-            position: fixed;
-            top: ${finalTop}px;
-            left: ${finalLeft}px;
-            width: ${rect.width}px;
-            height: ${rect.height}px;
-            z-index: 1000;
-            pointer-events: auto;
-            background-color: ${originalStyle.backgroundColor || 'transparent'};
-            border: 3px solid #4c6ef5;
-            border-radius: ${originalStyle.borderRadius || '6px'};
-            padding: ${originalStyle.padding};
-            margin: 0;
-            display: ${originalStyle.display};
-            flex-direction: ${originalStyle.flexDirection};
-            justify-content: ${originalStyle.justifyContent};
-            align-items: ${originalStyle.alignItems};
-            font-size: ${originalStyle.fontSize};
-            color: ${originalStyle.color};
-            box-sizing: border-box;
-            transform: ${transform};
-            transform-origin: ${originalStyle.transformOrigin};
-            opacity: 1;
-            animation: tutorialPulse 1.5s infinite ease-out;
-            box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.5);
-            transition: all 0.3s ease;
-          `;
-          
-          // 내부 요소 스타일 초기화
-          const resetStyles = (element) => {
-            if (!element) return;
-            element.style.pointerEvents = 'auto';
-            Array.from(element.children).forEach(resetStyles);
-          };
-          
-          resetStyles(clone);
-          
-          // 클론 클릭 시 원본 요소 클릭 이벤트 발생
-          clone.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // 원본 요소 클릭 이벤트 발생
-            if (el && typeof el.click === 'function') {
-              el.click();
-            } else if (el) {
-              const clickEvent = new MouseEvent('click', {
-                view: window,
-                bubbles: true,
-                cancelable: true
+          const nodeList = document.querySelectorAll(query);
+          nodeList.forEach((el) => {
+            const r = el.getBoundingClientRect();
+            // 무효 rect 제외
+            if (r && r.width > 0 && r.height > 0) {
+              boxes.push({
+                left: r.left + (window.scrollX || window.pageXOffset),
+                top: r.top + (window.scrollY || window.pageYOffset),
+                right: r.left + r.width + (window.scrollX || window.pageXOffset),
+                bottom: r.top + r.height + (window.scrollY || window.pageYOffset),
               });
-              el.dispatchEvent(clickEvent);
             }
-            
-            // 다음 단계로 자동 이동
-            if (currentStepData.autoNextOnClick) {
-              handleNext();
-            }
-          });
-          
-          // body에 클론 요소 추가
-          document.body.appendChild(clone);
-          
-          // 원본 요소 참조 저장
-          el.dataset.highlightId = `highlight-${Date.now()}`;
-          clone.dataset.targetId = el.dataset.highlightId;
-          
-          // 스크롤 이벤트 핸들러
-          const updatePosition = () => {
-            const newRect = el.getBoundingClientRect();
-            clone.style.top = `${window.scrollY + newRect.top}px`;
-            clone.style.left = `${window.scrollX + newRect.left}px`;
-          };
-          
-          // 스크롤 및 리사이즈 이벤트 추가
-          window.addEventListener('scroll', updatePosition, true);
-          window.addEventListener('resize', updatePosition);
-          
-          // 이벤트 리스너 정리를 위한 참조 저장
-          el._tutorialUpdatePosition = updatePosition;
-          
-          // 요소의 원본 스타일 저장 (나중에 복원하기 위해)
-          el.dataset.originalStyles = JSON.stringify({
-            position: originalPosition,
-            zIndex: originalZIndex,
-            boxShadow: originalBoxShadow,
-            borderRadius: originalBorderRadius,
-            backgroundColor: originalBackgroundColor
           });
         });
-      });
+
+        if (boxes.length > 0) {
+          const minLeft = Math.min(...boxes.map(b => b.left));
+          const minTop = Math.min(...boxes.map(b => b.top));
+          const maxRight = Math.max(...boxes.map(b => b.right));
+          const maxBottom = Math.max(...boxes.map(b => b.bottom));
+          const padding = Number(currentStepData.highlight?.padding ?? 4);
+          setHighlightRect({
+            left: minLeft - padding,
+            top: minTop - padding,
+            width: (maxRight - minLeft) + padding * 2,
+            height: (maxBottom - minTop) + padding * 2,
+          });
+        } else {
+          setHighlightRect(null);
+        }
+      } catch (e) {
+        setHighlightRect(null);
+      }
     }
   }, [currentStep, currentStepData.highlight, isVisible]);
 
   useEffect(() => {
     if (isVisible) {
       setCurrentStep(0);
-      // 첫 단계의 showNextButton 값에 따라 버튼 표시 여부 결정
-      const firstStepData = currentLevelSteps[0];
-      setShowNextButton(firstStepData?.showNextButton || false);
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
       
@@ -438,13 +309,7 @@ const TutorialScreen = ({
         }),
       ]).start();
       
-      // 자동으로 다음 단계로 넘어가기
-      const timer = setTimeout(() => {
-        setShowNextButton(true);
-      }, 3000);
-      
       return () => {
-        clearTimeout(timer);
         // 컴포넌트 언마운트 시 하이라이트 제거
         const highlighted = document.querySelectorAll('.tutorial-highlight');
         highlighted.forEach(el => {
@@ -551,9 +416,9 @@ const TutorialScreen = ({
 
   if (!isVisible) return children || null;
 
-  // 현재 스텝에 하이라이트가 있는지 확인 (RN cells 기준)
-  const hasHighlight = !!(currentStepData.highlight?.cells?.length > 0);
-  const allowOnlyHighlight = !showNextButton && hasHighlight && !!highlightRect;
+  // 현재 스텝 하이라이트: cells/selector 기반 모두 highlightRect 존재 여부로 판단
+  const hasHighlight = !!highlightRect;
+  const allowOnlyHighlight = !showNextButton && hasHighlight;
 
   return (
     <View
@@ -643,7 +508,7 @@ const TutorialScreen = ({
                     <TypeWriterText
                       text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
                       style={styles.tooltipText}
-                      onTypingDone={() => setShowNextButton(currentStepData.showNextButton === true)}
+                      onTypingDone={() => setShowNextButton(!!currentStepData.showNextButton)}
                     />
                   </View>
                 </View>
