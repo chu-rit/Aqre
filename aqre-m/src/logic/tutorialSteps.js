@@ -118,7 +118,7 @@ export const tutorialSteps = {
     },
     {
       step: 4,
-      text: '이번에는 표시된 흰색 뉴런을 활성화하여 연결을 끊어주세요.',
+      text: '이번에는 표시된 흰색 뉴런을 활성화하여 4개의 뉴런이 연속되지 않도록 해주세요.',
       highlight: {
         cells: [{row: 0, col: 1}]
       },
@@ -135,14 +135,14 @@ export const tutorialSteps = {
   'level3': [
     {
       step: 0,
-      text: '뇌의 각 영역은 지정된 수의 활성 뉴런만 있어야 합니다.',
+      text: '각 영역은 지정된 수의 활성 뉴런만 있어야 합니다.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
       step: 1,
-      text: '그 영역은 이 파란색 경계선을 통해 알 수 있습니다.',
+      text: '그 영역은 이 경계선을 통해 알 수 있습니다.',
       highlight: {
         cells: [
           {row: 1, col: 2},
@@ -157,7 +157,9 @@ export const tutorialSteps = {
       step: 2,
       text: '또 영역에 표시된 숫자는 그 영역에서 활성화되어야 할 정확한 뉴런의 수입니다.',
       highlight: {
-        selectors: ['.cell[data-row="1"][data-col="2"] .area-overlay']
+        // RN Web: testID => data-testid
+        selectors: ['[data-testid="area-1-2"]'],
+        padding: 10
       },
       condition: null,
       showNextButton: true
@@ -202,7 +204,47 @@ export const tutorialSteps = {
     {
       step: 1,
       text: '현재 화면을 보시면, 활성화된 뉴런(회색)이 세 군데로 분리되어 있습니다.',
-      highlight: null,
+      highlight: {
+        cells: [
+            {row: 0, col: 0},
+            {row: 1, col: 0},
+            {row: 2, col: 0}
+            ,
+
+            {row: 2, col: 2},/*
+            {row: 2, col: 3},
+
+            {row: 4, col: 0},
+            {row: 4, col: 1}*/
+          ]
+        },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      step: 2,
+      text: '이 뉴런을 활성화하여 분리된 뉴런를 연결하세요.',
+      highlight: {
+        cells: [
+            {row: 2, col: 1}
+          ]
+        },      
+      condition: {
+        conditions: [
+          { row: 2, col: 1, expectedState: 1 }
+        ]
+      },      
+      showNextButton: false
+    },
+    {
+      step: 4,
+      text: '좋아요! 아직 우측에 고립된 뉴런도 영역의 숫자에 유의해서 연결해주세요.',
+      highlight: {
+        cells: [
+            {row: 5, col: 0},
+            {row: 5, col: 1}
+          ]
+        },
       condition: null,
       showNextButton: true
     }

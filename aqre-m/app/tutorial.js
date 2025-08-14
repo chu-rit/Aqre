@@ -108,7 +108,9 @@ const TutorialScreen = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [highlightRect, setHighlightRect] = useState(null);
+  const [boardRect, setBoardRect] = useState(null);
   const autoAdvancedRef = useRef(false);
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   // 모든 하이라이트와 클론 요소를 제거하는 함수
   const cleanupAllHighlights = useCallback(() => {
@@ -258,12 +260,83 @@ const TutorialScreen = ({
             const r = el.getBoundingClientRect();
             // 무효 rect 제외
             if (r && r.width > 0 && r.height > 0) {
+              // RN Web의 오버레이 컨테이너는 뷰포트 기준 절대 위치이므로
+              // getBoundingClientRect()의 뷰포트 좌표를 그대로 사용한다.
               boxes.push({
-                left: r.left + (window.scrollX || window.pageXOffset),
-                top: r.top + (window.scrollY || window.pageYOffset),
-                right: r.left + r.width + (window.scrollX || window.pageXOffset),
-                bottom: r.top + r.height + (window.scrollY || window.pageYOffset),
+                left: r.left,
+                top: r.top,
+                right: r.left + r.width,
+                bottom: r.top + r.height,
               });
+
+              // --- 버튼(타겟 요소) 클론 생성 및 배치 ---
+              try {
+                // 원본 요소 식별자 부여
+                if (!el.dataset.highlightId) {
+                  el.dataset.highlightId = `tut-${Math.random().toString(36).slice(2)}`;
+                }
+                const targetId = el.dataset.highlightId;
+
+                // 기존 동일 타겟의 클론이 있으면 재사용, 없으면 생성
+                let clone = document.querySelector(`.tutorial-clone-element[data-target-id="${targetId}"]`);
+                if (!clone) {
+                  clone = el.cloneNode(true);
+                  // id 충돌 방지
+                  if (clone.id) clone.id = `${clone.id}__tutorial_clone`;
+                  clone.classList.add('tutorial-clone-element');
+                  clone.setAttribute('data-target-id', targetId);
+                  // 클릭을 원본으로 위임
+                  clone.addEventListener('click', (e) => {
+                    try {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (typeof el.click === 'function') el.click();
+                    } catch {}
+                  });
+                  document.body.appendChild(clone);
+                }
+
+                // 스타일 적용: 뷰포트 기준 고정 배치
+                const style = clone.style;
+                style.position = 'fixed';
+                style.left = '0px';
+                style.top = '0px';
+                const rw = Math.round(r.width);
+                const rh = Math.round(r.height);
+                const rx = Math.round(r.left);
+                const ry = Math.round(r.top);
+                style.width = `${rw}px`;
+                style.height = `${rh}px`;
+                style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
+                style.transformOrigin = 'top left';
+                style.willChange = 'transform';
+                style.zIndex = '2003'; // 하이라이트 박스(2002)보다 위
+                style.pointerEvents = 'auto';
+                style.overflow = 'visible';
+                style.boxSizing = 'border-box';
+                style.margin = '0';
+
+                // 스크롤/리사이즈 시 위치 업데이트 핸들러
+                if (!el._tutorialUpdatePosition) {
+                  el._tutorialUpdatePosition = () => {
+                    try {
+                      const rr = el.getBoundingClientRect();
+                      const c = document.querySelector(`.tutorial-clone-element[data-target-id="${targetId}"]`);
+                      if (!c) return;
+                      const cs = c.style;
+                      const rw2 = Math.round(rr.width);
+                      const rh2 = Math.round(rr.height);
+                      const rx2 = Math.round(rr.left);
+                      const ry2 = Math.round(rr.top);
+                      cs.width = `${rw2}px`;
+                      cs.height = `${rh2}px`;
+                      cs.transform = `translate3d(${rx2}px, ${ry2}px, 0)`;
+                    } catch {}
+                  };
+                  window.addEventListener('scroll', el._tutorialUpdatePosition, true);
+                  window.addEventListener('resize', el._tutorialUpdatePosition);
+                }
+              } catch {}
             }
           });
         });
@@ -319,6 +392,47 @@ const TutorialScreen = ({
       };
     }
   }, [isVisible, fadeAnim, slideAnim]);
+
+  // 하이라이트 펄스 애니메이션 (살짝 커졌다 작아졌다)
+  useEffect(() => {
+    if (!isVisible || !highlightRect) {
+      return;
+    }
+    pulseAnim.setValue(0);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+    };
+  }, [isVisible, highlightRect, pulseAnim]);
+
+  // 보드 영역(rect) 계산: 하이라이트가 있을 때만 보드 딤을 비우기 위해 사용
+  useEffect(() => {
+    if (!isVisible) {
+      setBoardRect(null);
+      return;
+    }
+    const node = typeof document !== 'undefined' ? document.querySelector('[data-testid="game-board"]') : null;
+    if (!node) {
+      setBoardRect(null);
+      return;
+    }
+    try {
+      const r = node.getBoundingClientRect();
+      if (r && r.width > 0 && r.height > 0) {
+        setBoardRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
+      } else {
+        setBoardRect(null);
+      }
+    } catch {
+      setBoardRect(null);
+    }
+  }, [isVisible, currentStep, highlightRect]);
 
   // 다음 스텝으로 이동하는 함수
   const nextStep = useCallback(() => {
@@ -388,8 +502,8 @@ const TutorialScreen = ({
   const updateHighlightPosition = useCallback(async () => {
     try {
       const cells = currentStepData.highlight?.cells;
+      // 셀 기반 하이라이트가 없는 스텝(셀렉터 기반)은 좌표를 건드리지 않음
       if (!isVisible || !cells || cells.length === 0 || !getCellRect) {
-        setHighlightRect(null);
         return;
       }
       const rects = await Promise.all(cells.map(({ row, col }) => getCellRect(row, col)));
@@ -411,8 +525,11 @@ const TutorialScreen = ({
 
   useEffect(() => {
     if (!isVisible) return;
-    updateHighlightPosition();
-  }, [isVisible, currentStep, updateHighlightPosition]);
+    // 셀 기반 하이라이트가 있을 때만 위치 업데이트
+    if (currentStepData?.highlight?.cells?.length) {
+      updateHighlightPosition();
+    }
+  }, [isVisible, currentStep, updateHighlightPosition, currentStepData]);
 
   if (!isVisible) return children || null;
 
@@ -437,8 +554,21 @@ const TutorialScreen = ({
             pointerEvents={showNextButton ? 'auto' : (allowOnlyHighlight ? 'box-none' : 'none')}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           >
-            {/* 딤드 배경 (항상 시각적 오버레이, 터치는 차단하지 않음) */}
-            <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+            {/* 딤드 배경: 하이라이트가 있을 경우 보드 영역은 비워서 어둡지 않도록 처리 */}
+            {hasHighlight && boardRect ? (
+              <>
+                {/* 상단 딤 */}
+                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: 0, height: boardRect.top, zIndex: 1000 }]} />
+                {/* 하단 딤 */}
+                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: boardRect.bottom, bottom: 0, zIndex: 1000 }]} />
+                {/* 좌측 딤 */}
+                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, top: boardRect.top, width: boardRect.left, height: boardRect.height, zIndex: 1000 }]} />
+                {/* 우측 딤 */}
+                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: boardRect.right, right: 0, top: boardRect.top, height: boardRect.height, zIndex: 1000 }]} />
+              </>
+            ) : (
+              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+            )}
 
             {/* showNextButton=false && 하이라이트가 있을 때, 하이라이트 영역 외부만 터치 차단하는 블로커 4개 */}
             {allowOnlyHighlight && (
@@ -446,28 +576,28 @@ const TutorialScreen = ({
                 {/* 상단 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: highlightRect.top, zIndex: 1002 }}
+                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: highlightRect.top, zIndex: 2001 }}
                 />
                 {/* 하단 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: highlightRect.top + highlightRect.height, bottom: 0, zIndex: 1002 }}
+                  style={{ position: 'absolute', left: 0, right: 0, top: highlightRect.top + highlightRect.height, bottom: 0, zIndex: 2001 }}
                 />
                 {/* 좌측 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, top: highlightRect.top, width: highlightRect.left, height: highlightRect.height, zIndex: 1002 }}
+                  style={{ position: 'absolute', left: 0, top: highlightRect.top, width: highlightRect.left, height: highlightRect.height, zIndex: 2001 }}
                 />
                 {/* 우측 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: highlightRect.left + highlightRect.width, right: 0, top: highlightRect.top, height: highlightRect.height, zIndex: 1002 }}
+                  style={{ position: 'absolute', left: highlightRect.left + highlightRect.width, right: 0, top: highlightRect.top, height: highlightRect.height, zIndex: 2001 }}
                 />
               </>
             )}
             {/* RN 하이라이트 박스 */}
             {hasHighlight && highlightRect && (
-              <View
+              <Animated.View
                 pointerEvents="none"
                 style={{
                   position: 'absolute',
@@ -475,12 +605,19 @@ const TutorialScreen = ({
                   top: highlightRect.top,
                   width: highlightRect.width,
                   height: highlightRect.height,
-                  zIndex: 1001,
-                  borderWidth: 3,
-                  borderColor: '#4c6ef5',
+                  zIndex: 2002,
+                  borderWidth: 5,
+                  borderColor: '#FFD400',
                   borderRadius: 8,
                   backgroundColor: 'transparent',
-                  ...Platform.select({ ios: { shadowColor: '#4c6ef5', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 6 } })
+                  transform: [
+                    { scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.08] }) },
+                  ],
+                  // 그림자 완전 제거
+                  elevation: 0,
+                  shadowOpacity: 0,
+                  shadowRadius: 0,
+                  shadowColor: 'transparent',
                 }}
               />
             )}

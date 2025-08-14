@@ -343,6 +343,7 @@ export default function GameScreen({
         </View>
       <View style={styles.gameInfoContainer} />
       <View
+        testID="game-board"
         style={[
           boardStyles.boardWrapper,
           {
@@ -492,6 +493,8 @@ export default function GameScreen({
                   key={`cell-${rowIdx}-${colIdx}`}
                   style={cellStyle}
                   ref={cellRefs.current[rowIdx][colIdx]}
+                  className="cell"
+                  dataSet={{ row: rowIdx, col: colIdx }}
                   onPress={() => {
                     toggleCellColor(rowIdx, colIdx);
                     setMoveCount(cnt => cnt + 1);
@@ -509,7 +512,7 @@ export default function GameScreen({
                       const area = puzzle.areas[areaIdx];
                       if (area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx && area.required !== 'J') {
                         return (
-                          <Text style={{
+                          <Text className="area-overlay" testID={`area-${rowIdx}-${colIdx}`} dataSet={{ row: rowIdx, col: colIdx }} style={{
                             position: 'absolute',
                             left: 2,
                             top: 2,
