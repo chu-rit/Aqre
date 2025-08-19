@@ -248,6 +248,40 @@ export const tutorialSteps = {
       condition: null,
       showNextButton: true
     }
+  ],
+
+  // 레벨 5 튜토리얼
+  'level5': [
+    {
+      step: 0,
+      text: '훌륭합니다, 기억 복원사님! 이제 아크레 기술의 모든 핵심 규칙을 이해하셨습니다.',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      step: 1,
+      text: '기억 복원 작업 중에 문제가 생기면, 우측 상단의 초기화 버튼을 사용하여 신경망 패턴을 처음 상태로 되돌릴 수 있습니다.',
+      highlight: {
+        selectors: ['.refreshLevel']
+      },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      step: 2,
+      text: '또한, 규칙 위반이 발생한 부분을 확인하려면 아래의 규칙 위반 항목을 선택하세요. 문제가 있는 뉴런을 시각적으로 표시해 드립니다. <br>(단, 회색연결성 규칙은 예외)',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      step: 3,
+      text: '이제 열심히 고객들의 기억을 복원해 보실까요?',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    }
   ]
 };
 

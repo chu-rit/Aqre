@@ -334,12 +334,22 @@ export default function GameScreen({
           <View style={localStyles.center}>
             <Text style={localStyles.title}>Level {puzzle.id}</Text>
           </View>
-          <TouchableOpacity 
-            style={localStyles.optionButton}
-            onPress={() => setCurrentScreen('options')}
-          >
-            <Ionicons name="options-outline" size={24} color="#2c3e50" />
-          </TouchableOpacity>
+          <View style={localStyles.rightActions}>
+            <TouchableOpacity
+              style={localStyles.optionButton}
+              onPress={resetGameState}
+              accessibilityLabel="reset-level"
+            >
+              <Ionicons name="refresh" size={22} color="#2c3e50" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[localStyles.optionButton, localStyles.optionButtonRight]}
+              onPress={() => setCurrentScreen('options')}
+              accessibilityLabel="open-options"
+            >
+              <Ionicons name="options-outline" size={24} color="#2c3e50" />
+            </TouchableOpacity>
+          </View>
         </View>
       <View style={styles.gameInfoContainer} />
       <View
@@ -728,5 +738,12 @@ const localStyles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionButtonRight: {
+    marginLeft: 8,
   },
 });
