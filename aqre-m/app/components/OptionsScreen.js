@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Switch, TouchableOpacity, SafeAreaView, Alert, Platform, StatusBar, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../styles';
+import Toast, { showToast } from './Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function OptionsScreen({ 
@@ -109,11 +110,11 @@ export default function OptionsScreen({
       try {
         await AsyncStorage.removeItem('clearedPuzzles');
         console.log('clearedPuzzles 데이터 성공적으로 삭제됨');
-        window.alert('게임 데이터를 성공적으로 초기화하였습니다.');
-        if (onClose) onClose();
+        showToast('성공적으로 지웠습니다');
+        if (onClose) setTimeout(onClose, 1200);
       } catch (e) {
         console.error('clearedPuzzles 삭제 실패:', e);
-        window.alert('초기화 실패: ' + e.message);
+        showToast('초기화 실패: ' + (e?.message || '오류')); 
       }
     }
   } else {
@@ -129,11 +130,11 @@ export default function OptionsScreen({
             try {
               await AsyncStorage.removeItem('clearedPuzzles');
               console.log('clearedPuzzles 데이터 성공적으로 삭제됨');
-              Alert.alert('초기화 완료', '게임 데이터를 성공적으로 초기화하였습니다.');
-              if (onClose) onClose();
+              showToast('성공적으로 지웠습니다');
+              if (onClose) setTimeout(onClose, 1200);
             } catch (e) {
               console.error('clearedPuzzles 삭제 실패:', e);
-              Alert.alert('초기화 실패', e.message);
+              showToast('초기화 실패: ' + (e?.message || '오류'));
             }
           }
         }
@@ -200,6 +201,8 @@ export default function OptionsScreen({
           thumbColor={vibrationEnabledState ? '#fff' : '#eee'}
         />
       </View>
+      {/* Toast overlay for Options screen */}
+      <Toast />
     </SafeAreaView>
   );
 }

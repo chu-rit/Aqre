@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Toast, { showToast } from './Toast';
 import { styles, boardStyles } from '../styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -306,6 +307,15 @@ export default function GameScreen({
     }
   }, [board, puzzle]);
 
+  // 보드가 변경되면(사용자 조작 등) 규칙 위반 시각화를 자동 해제
+  React.useEffect(() => {
+    if (selectedViolation || (Array.isArray(highlightedViolationCells) && highlightedViolationCells.length > 0)) {
+      setSelectedViolation(null);
+      setHighlightedViolationCells([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board]);
+
   if (!puzzle || !puzzle.size || !puzzle.areas) {
     // 유효하지 않은 퍼즐일 경우 레벨 선택 화면으로 돌아감
     setCurrentScreen('level');
@@ -338,6 +348,7 @@ export default function GameScreen({
             <TouchableOpacity
               style={localStyles.optionButton}
               onPress={resetGameState}
+              testID="reset-level"
               accessibilityLabel="reset-level"
             >
               <Ionicons name="refresh" size={22} color="#2c3e50" />
@@ -566,6 +577,8 @@ export default function GameScreen({
           {violationMessages.map((msg, idx) => (
             <TouchableOpacity 
               key={idx} 
+              testID={`violation-item-${idx}`}
+              accessibilityLabel={`violation-item-${idx}`}
               style={{ 
                 flexDirection: 'row', 
                 alignItems: 'center', 
@@ -578,6 +591,10 @@ export default function GameScreen({
                 borderColor: '#2ecc71'
               }}
               onPress={() => {
+                if (msg?.type === '회색 칸 연결성 위반') {
+                  showToast('해당 규칙은 뉴런을 표시할 수 없습니다');
+                  return;
+                }
                 const isSameViolation = selectedViolation?.type === msg.type;
                 setSelectedViolation(isSameViolation ? null : msg);
                 setHighlightedViolationCells(prev => isSameViolation ? [] : msg.cells.map(cell => ({...cell, type: msg.type})));
@@ -686,6 +703,8 @@ export default function GameScreen({
           />
         </View>
       )}
+      {/* Global toast overlay for this screen */}
+      <Toast />
     </>
   );
 }
