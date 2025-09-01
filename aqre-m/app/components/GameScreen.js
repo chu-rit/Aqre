@@ -331,6 +331,146 @@ export default function GameScreen({
     });
   });
 
+  // 셀 컴포넌트 추출: 루프 내부 훅 사용을 방지하고 웹 호환성 확보
+  const BoardCell = React.memo(function BoardCell({
+    rowIdx,
+    colIdx,
+    cell,
+    size,
+    areaMap,
+    isViolationCell,
+    onPress,
+    cellRef,
+    puzzle,
+  }) {
+    // 위반 점 애니메이션
+    const violationDotAnim = useRef(new Animated.Value(0)).current;
+    useEffect(() => {
+      const animationLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(violationDotAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+          Animated.timing(violationDotAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+      animationLoop.start();
+      return () => animationLoop.stop();
+    }, [violationDotAnim]);
+
+    // 영역 경계선 계산
+    let borders = {
+      borderTopColor: 'transparent', borderTopWidth: 5,
+      borderBottomColor: 'transparent', borderBottomWidth: 5,
+      borderLeftColor: 'transparent', borderLeftWidth: 5,
+      borderRightColor: 'transparent', borderRightWidth: 5,
+    };
+    if (areaMap[rowIdx][colIdx] !== -1) {
+      if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) {
+        borders.borderTopColor = 'deepskyblue';
+      }
+      if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) {
+        borders.borderBottomColor = 'deepskyblue';
+      }
+      if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) {
+        borders.borderLeftColor = 'deepskyblue';
+      }
+      if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) {
+        borders.borderRightColor = 'deepskyblue';
+      }
+    }
+
+    const dotSize = violationDotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
+    const dotOpacity = violationDotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
+
+    let cellStyle = [
+      boardStyles.cellBase,
+      {
+        flex: 1,
+        aspectRatio: 1,
+        marginRight: colIdx === size - 1 ? 0 : GAP,
+        marginBottom: rowIdx === size - 1 ? 0 : GAP,
+        borderRadius: 2,
+        ...borders,
+      },
+    ];
+    if (cell === 0) cellStyle.push(boardStyles.cellWhite);
+    else if (cell === 1) cellStyle.push(boardStyles.cellGray);
+    else if (cell === 2) cellStyle.push(boardStyles.cellInactive);
+
+    if (isViolationCell) {
+      cellStyle.push({ position: 'relative' });
+    }
+
+    const areaIdx = areaMap[rowIdx][colIdx];
+    const showAreaOverlay = (() => {
+      if (areaIdx === -1) return false;
+      const area = puzzle.areas[areaIdx];
+      if (area.required === 'J') return false;
+      return area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx;
+    })();
+
+    return (
+      <TouchableOpacity
+        key={`cell-${rowIdx}-${colIdx}`}
+        style={cellStyle}
+        ref={cellRef}
+        className="cell"
+        dataSet={{ row: rowIdx, col: colIdx }}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {isViolationCell && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: [
+                { translateX: dotSize.interpolate({ inputRange: [8, 14], outputRange: [-4, -7] }) },
+                { translateY: dotSize.interpolate({ inputRange: [8, 14], outputRange: [-4, -7] }) },
+              ],
+              width: dotSize,
+              height: dotSize,
+              borderRadius: 7,
+              backgroundColor: 'rgba(46, 204, 113, 1)',
+              opacity: dotOpacity,
+              ...Platform.select({
+                ios: { shadowColor: 'rgba(46, 204, 113, 0.5)', shadowOpacity: 0.5, shadowRadius: 5 },
+                android: { elevation: 3 },
+              }),
+            }}
+          />
+        )}
+        {showAreaOverlay && (
+          <Text
+            className="area-overlay"
+            testID={`area-${rowIdx}-${colIdx}`}
+            dataSet={{ row: rowIdx, col: colIdx }}
+            style={{
+              position: 'absolute',
+              left: 2,
+              top: 2,
+              color: '#333',
+              fontWeight: 'bold',
+              fontSize: 21,
+              backgroundColor: 'transparent',
+              zIndex: 10,
+            }}
+          >
+            {puzzle.areas[areaIdx]?.required}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  });
+
   return (
     <>
       <SafeAreaView style={[styles.levelScreen, {flex: 1}]}> 
@@ -386,136 +526,16 @@ export default function GameScreen({
             }}
           >
             {row.map((cell, colIdx) => {
-              let borders = {
-                borderTopColor: 'transparent', borderTopWidth: 5,
-                borderBottomColor: 'transparent', borderBottomWidth: 5,
-                borderLeftColor: 'transparent', borderLeftWidth: 5,
-                borderRightColor: 'transparent', borderRightWidth: 5,
-              };
-              if (areaMap[rowIdx][colIdx] !== -1) {
-                if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) {
-                  borders.borderTopColor = 'deepskyblue';
-                }
-                if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) {
-                  borders.borderBottomColor = 'deepskyblue';
-                }
-                if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) {
-                  borders.borderLeftColor = 'deepskyblue';
-                }
-                if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) {
-                  borders.borderRightColor = 'deepskyblue';
-                }
-              }
-              // 애니메이션 값 생성
-              const violationAnimValue = useRef(new Animated.Value(0)).current;
-              
-              // 애니메이션 설정
-              useEffect(() => {
-                Animated.loop(
-                  Animated.sequence([
-                    Animated.timing(violationAnimValue, {
-                      toValue: 1,
-                      duration: 1500,
-                      useNativeDriver: false
-                    }),
-                    Animated.timing(violationAnimValue, {
-                      toValue: 0,
-                      duration: 1500,
-                      useNativeDriver: false
-                    })
-                  ])
-                ).start();
-              }, []);
-
-              const isViolationCell = highlightedViolationCells.some(cell => cell.row === rowIdx && cell.col === colIdx);
-              
-              // 애니메이션 값 생성
-              const violationDotAnim = useRef(new Animated.Value(0)).current;
-              
-              // 애니메이션 설정
-              useEffect(() => {
-                const animationLoop = Animated.loop(
-                  Animated.sequence([
-                    Animated.timing(violationDotAnim, {
-                      toValue: 1,
-                      duration: 1500,
-                      useNativeDriver: false
-                    }),
-                    Animated.timing(violationDotAnim, {
-                      toValue: 0,
-                      duration: 1500,
-                      useNativeDriver: false
-                    })
-                  ])
-                );
-                animationLoop.start();
-                return () => animationLoop.stop();
-              }, [violationDotAnim]);
-
-              const ViolationDot = () => {
-                if (!isViolationCell) return null;
-
-                const dotSize = violationDotAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [8, 14]
-                });
-                const dotOpacity = violationDotAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.8, 0]
-                });
-
-                return (
-                  <Animated.View
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: [
-                        { translateX: dotSize.interpolate({ inputRange: [8,14], outputRange: [-4, -7] }) },
-                        { translateY: dotSize.interpolate({ inputRange: [8,14], outputRange: [-4, -7] }) }
-                      ],
-                      width: dotSize,
-                      height: dotSize,
-                      borderRadius: 7,
-                      backgroundColor: 'rgba(46, 204, 113, 1)',
-                      opacity: dotOpacity,
-                      ...Platform.select({
-                        ios: { shadowColor: 'rgba(46, 204, 113, 0.5)', shadowOpacity: 0.5, shadowRadius: 5 },
-                        android: { elevation: 3 }
-                      })
-                    }}
-                  />
-                );
-              };
-
-              let cellStyle = [
-                boardStyles.cellBase,
-                {
-                  flex: 1,
-                  aspectRatio: 1,
-                  marginRight: colIdx === size - 1 ? 0 : GAP,
-                  marginBottom: rowIdx === size - 1 ? 0 : GAP,
-                  borderRadius: 2,
-                  ...borders,
-                },
-              ];
-              if (cell === 0) cellStyle.push(boardStyles.cellWhite);
-              else if (cell === 1) cellStyle.push(boardStyles.cellGray);
-              else if (cell === 2) cellStyle.push(boardStyles.cellInactive);
-              
-              // 위반된 셀 하이라이트
-              if (isViolationCell) {
-                cellStyle.push({
-                  position: 'relative',
-                });
-              }
+              const isViolationCell = highlightedViolationCells.some(c => c.row === rowIdx && c.col === colIdx);
               return (
-                <TouchableOpacity
+                <BoardCell
                   key={`cell-${rowIdx}-${colIdx}`}
-                  style={cellStyle}
-                  ref={cellRefs.current[rowIdx][colIdx]}
-                  className="cell"
-                  dataSet={{ row: rowIdx, col: colIdx }}
+                  rowIdx={rowIdx}
+                  colIdx={colIdx}
+                  cell={cell}
+                  size={size}
+                  areaMap={areaMap}
+                  isViolationCell={isViolationCell}
                   onPress={() => {
                     toggleCellColor(rowIdx, colIdx);
                     setMoveCount(cnt => cnt + 1);
@@ -523,34 +543,9 @@ export default function GameScreen({
                       tapSound.current.replayAsync();
                     }
                   }}
-                  activeOpacity={0.7}
-                >
-                  <ViolationDot />
-                  {/* 필요시 영역 힌트 표시 */}
-                  {(() => {
-                    const areaIdx = areaMap[rowIdx][colIdx];
-                    if (areaIdx !== -1) {
-                      const area = puzzle.areas[areaIdx];
-                      if (area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx && area.required !== 'J') {
-                        return (
-                          <Text className="area-overlay" testID={`area-${rowIdx}-${colIdx}`} dataSet={{ row: rowIdx, col: colIdx }} style={{
-                            position: 'absolute',
-                            left: 2,
-                            top: 2,
-                            color: '#333',
-                            fontWeight: 'bold',
-                            fontSize: 21,
-                            backgroundColor: 'transparent',
-                            zIndex: 10,
-                          }}>
-                            {area.required}
-                          </Text>
-                        );
-                      }
-                    }
-                    return null;
-                  })()}
-                </TouchableOpacity>
+                  cellRef={cellRefs.current[rowIdx][colIdx]}
+                  puzzle={puzzle}
+                />
               );
             })}
           </View>

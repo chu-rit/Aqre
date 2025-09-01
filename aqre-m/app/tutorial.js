@@ -115,6 +115,14 @@ const TutorialScreen = ({
 
   // 모든 하이라이트와 클론 요소를 제거하는 함수
   const cleanupAllHighlights = useCallback(() => {
+    // 네이티브(iOS/Android)에서는 DOM이 없으므로 RN 상태만 초기화 후 종료
+    if (Platform.OS !== 'web') {
+      try {
+        setHighlightRect(null);
+        setHighlightRects([]);
+      } catch {}
+      return;
+    }
     // 모든 클론 요소 제거
     const cloneElements = document.querySelectorAll('.tutorial-clone-element');
     cloneElements.forEach(el => {
@@ -195,6 +203,13 @@ const TutorialScreen = ({
   }, [onSkip, onClose, cleanupAllHighlights]);
 
   useEffect(() => {
+    // 네이티브 환경에서는 DOM 로직을 실행하지 않음
+    if (Platform.OS !== 'web') {
+      setHighlightRect(null);
+      setHighlightRects([]);
+      return;
+    }
+
     // 항상 표시되도록 수정
     // 이전에 생성된 하이라이트 요소 제거
     const highlightElements = document.querySelectorAll('.tutorial-highlight-element');
@@ -458,7 +473,8 @@ const TutorialScreen = ({
       ]).start();
       
       return () => {
-        // 컴포넌트 언마운트 시 하이라이트 제거
+        // 컴포넌트 언마운트 시 하이라이트 제거 (웹 한정)
+        if (typeof document === 'undefined') return;
         const highlighted = document.querySelectorAll('.tutorial-highlight');
         highlighted.forEach(el => {
           el.classList.remove('tutorial-highlight');
