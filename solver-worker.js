@@ -45,8 +45,10 @@ self.onmessage = function(e) {
                 // 퍼즐 ID 저장
                 self.puzzleId = puzzleData.id || 0;
                 
-                // 보드 초기화 (사전 확정된 셀 적용)
-                board = puzzleData.initialBoard;
+                // 보드 초기화 - 2는 고정, 0과 1은 빈 셀(-1)로 변환
+                board = puzzleData.initialBoard.map(row => 
+                    row.map(cell => cell === 2 ? 2 : -1)
+                );
                 
                 // 블랙 셀 비트마스크 설정
                 blackCellBitmask = puzzleData.blackCellBitmask;
@@ -377,8 +379,6 @@ function canConnectToGray(board, row, col) {
         }
     }
     
-    if (!hasEmptyNearby) return false;
-
     // 기존 회색 타일 존재 여부 확인
     let hasExistingGray = false;
     outerLoop: for (let r = 0; r < size; r++) {
@@ -389,7 +389,9 @@ function canConnectToGray(board, row, col) {
             }
         }
     }
-
+    
+    // 첫 번째 회색 셀이면 주변에 빈칸/회색 없어도 OK
+    // 이미 회색이 있으면 연결 가능해야 함
     return !hasExistingGray || hasEmptyNearby;
 }
 
