@@ -23,6 +23,7 @@ if (Test-Path "docs\assets\assets") {
 Write-Host "JS 파일 경로 수정..." -ForegroundColor Yellow
 $jsFile = Get-ChildItem "docs\_expo\static\js\web" -Filter "index-*.js" | Select-Object -First 1
 if ($jsFile) {
+    (Get-Content $jsFile.FullName) -replace '/Aqre/Aqre/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
     (Get-Content $jsFile.FullName) -replace '/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/', '/Aqre/assets/' | Set-Content $jsFile.FullName
     (Get-Content $jsFile.FullName) -replace '/assets/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
     (Get-Content $jsFile.FullName) -replace '/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
