@@ -16,6 +16,8 @@ public class PuzzleSolver
     private int[] _areaGrayCount = Array.Empty<int>();
     private int[] _areaEmptyCount = Array.Empty<int>();
     private List<(int r, int c)> _emptyCellList = new();
+    private int _totalGrayCount = 0;
+    private Stack<(int, int)> _dfsStack = new();
 
     public SolveResponse Solve(SolveRequest request)
     {
@@ -32,6 +34,7 @@ public class PuzzleSolver
         _areaGrayCount = new int[_areas.Count];
         _areaEmptyCount = new int[_areas.Count];
         _areaMap = new int[_size, _size];
+        _totalGrayCount = 0;
         BuildAreaMapAndStates();
 
         _emptyCellList.Clear();
@@ -91,6 +94,7 @@ public class PuzzleSolver
                         _areaEmptyCount[areaIndex]--;
                         if (cellValue == 1) _areaGrayCount[areaIndex]++;
                     }
+                    if (cellValue == 1) _totalGrayCount++;
                 }
             }
         }
@@ -123,23 +127,46 @@ public class PuzzleSolver
             return false;
         }
 
-        var (currentRow, currentCol) = _emptyCellList[listIdx];
+        var (r, c) = _emptyCellList[listIdx];
+        int areaIdx = _areaMap[r, c];
 
-        foreach (int color in new[] { 1, 0 })
+        int req = -1, curGray = 0, unassigned = 0;
+        if (areaIdx >= 0)
         {
-            if (!IsValidColor(currentRow, currentCol, color)) continue;
-            if (!CheckAreaConstraints(currentRow, currentCol, color)) continue;
-            if (color == 1 && !CanConnectToGray(currentRow, currentCol)) continue;
-
-            _board[currentRow][currentCol] = color;
-            UpdateAreaState(currentRow, currentCol, color, 1);
-
-            if (Backtrack(listIdx + 1)) return true;
-
-            UpdateAreaState(currentRow, currentCol, color, -1);
-            _board[currentRow][currentCol] = -1;
+            req = _areas[areaIdx].Required;
+            curGray = _areaGrayCount[areaIdx];
+            unassigned = _areaEmptyCount[areaIdx];
         }
 
+        int firstColor = 1, secondColor = 0;
+        bool skipSecond = false;
+
+        if (req != -1)
+        {
+            if (curGray == req) { firstColor = 0; skipSecond = true; }
+            else if (curGray + unassigned == req) { firstColor = 1; skipSecond = true; }
+        }
+
+        if (TryColor(r, c, firstColor, listIdx)) return true;
+        if (!skipSecond && TryColor(r, c, secondColor, listIdx)) return true;
+
+        return false;
+    }
+
+    private bool TryColor(int r, int c, int color, int listIdx)
+    {
+        if (!IsValidColor(r, c, color)) return false;
+        if (!CheckAreaConstraints(r, c, color)) return false;
+        if (color == 0 && !IsStillConnectable(r, c)) return false;
+        if (color == 1 && !CanConnectToGray(r, c)) return false;
+
+        _board[r][c] = color;
+        UpdateAreaState(r, c, color, 1);
+
+        if (Backtrack(listIdx + 1)) return true;
+
+        UpdateAreaState(r, c, color, -1);
+        _board[r][c] = -1;
         return false;
     }
 
@@ -211,78 +238,95 @@ public class PuzzleSolver
         if (required == -1) return true;
 
         int grayCount = _areaGrayCount[areaIndex];
-        int emptyCount = _areaEmptyCount[areaIndex];
+        int unassignedCount = _areaEmptyCount[areaIndex];
 
         if (color == 1) grayCount++;
-        else emptyCount--;
+        unassignedCount--;
 
         if (grayCount > required) return false;
-        if (grayCount + emptyCount < required) return false;
+        if (grayCount + unassignedCount < required) return false;
 
         return true;
     }
     
     private void UpdateAreaState(int row, int col, int color, int delta)
     {
+        if (row < 0 || row >= _size || col < 0 || col >= _size) return;
         int areaIndex = _areaMap[row, col];
-        if (areaIndex == -1) return;
-        if (color == 1) _areaGrayCount[areaIndex] += delta;
-        else _areaEmptyCount[areaIndex] += delta;
+
+        if (areaIndex < 0 || areaIndex >= _areas.Count) return;
+
+        if (color == 1)
+        {
+            _areaGrayCount[areaIndex] += delta;
+            _totalGrayCount += delta;
+        }
+        _areaEmptyCount[areaIndex] -= delta;
     }
 
     private bool CanConnectToGray(int row, int col)
     {
+        if (_totalGrayCount == 0) return true;
+
         int[][] directions = new[] { new[] { -1, 0 }, new[] { 1, 0 }, new[] { 0, -1 }, new[] { 0, 1 } };
-
-        // Check adjacent gray cells
-        foreach (var dir in directions)
-        {
-            int newRow = row + dir[0];
-            int newCol = col + dir[1];
-
-            if (newRow >= 0 && newRow < _size && newCol >= 0 && newCol < _size)
-            {
-                if (_board[newRow][newCol] == 1)
-                {
-                    return true;
-                }
-            }
-        }
-
-        // Check adjacent empty cells
         bool hasEmptyNearby = false;
+
         foreach (var dir in directions)
         {
-            int newRow = row + dir[0];
-            int newCol = col + dir[1];
-
-            if (newRow >= 0 && newRow < _size && newCol >= 0 && newCol < _size)
+            int nr = row + dir[0], nc = col + dir[1];
+            if (nr >= 0 && nr < _size && nc >= 0 && nc < _size)
             {
-                if (_board[newRow][newCol] == -1)
-                {
-                    hasEmptyNearby = true;
-                    break;
-                }
+                if (_board[nr][nc] == 1) return true;
+                if (_board[nr][nc] == -1) hasEmptyNearby = true;
             }
         }
 
-        // Check if any gray cells exist
-        bool hasExistingGray = false;
+        return hasEmptyNearby;
+    }
+
+    private bool IsStillConnectable(int row, int col)
+    {
+        _board[row][col] = 0;
+
+        int firstR = -1, firstC = -1, totalGray = 0;
         for (int r = 0; r < _size; r++)
         {
             for (int c = 0; c < _size; c++)
             {
                 if (_board[r][c] == 1)
                 {
-                    hasExistingGray = true;
-                    break;
+                    if (firstR == -1) { firstR = r; firstC = c; }
+                    totalGray++;
                 }
             }
-            if (hasExistingGray) break;
+        }
+        if (totalGray <= 1) { _board[row][col] = -1; return true; }
+
+        var visited = new bool[_size, _size];
+        int reachableGray = 0;
+
+        _dfsStack.Clear();
+        _dfsStack.Push((firstR, firstC));
+        visited[firstR, firstC] = true;
+
+        while (_dfsStack.Count > 0)
+        {
+            var (currR, currC) = _dfsStack.Pop();
+            if (_board[currR][currC] == 1) reachableGray++;
+
+            foreach (var (dr, dc) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
+            {
+                int nr = currR + dr, nc = currC + dc;
+                if (nr >= 0 && nr < _size && nc >= 0 && nc < _size && !visited[nr, nc] && _board[nr][nc] != 0)
+                {
+                    visited[nr, nc] = true;
+                    _dfsStack.Push((nr, nc));
+                }
+            }
         }
 
-        // First gray cell is OK without nearby empty/gray
-        return !hasExistingGray || hasEmptyNearby;
+        _board[row][col] = -1;
+        return reachableGray == totalGray;
     }
 
     private bool CheckGrayConnectivity()
