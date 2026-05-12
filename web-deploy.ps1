@@ -23,21 +23,23 @@ if (Test-Path "docs\assets\assets") {
 Write-Host "JS 파일 경로 수정..." -ForegroundColor Yellow
 $jsFile = Get-ChildItem "docs\_expo\static\js\web" -Filter "index-*.js" | Select-Object -First 1
 if ($jsFile) {
-    (Get-Content $jsFile.FullName) -replace '/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/', '/assets/' | Set-Content $jsFile.FullName
-    (Get-Content $jsFile.FullName) -replace '/assets/assets/', '/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/', '/Aqre/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
 }
 
 # 5. metadata.json 경로 수정
 Write-Host "metadata.json 경로 수정..." -ForegroundColor Yellow
 if (Test-Path "docs\metadata.json") {
-    (Get-Content "docs\metadata.json") -replace 'assets\\node_modules\\@expo\\vector-icons\\build\\vendor\\react-native-vector-icons\\Fonts\\', 'assets\\' | Set-Content "docs\metadata.json"
+    (Get-Content "docs\metadata.json") -replace 'assets\\node_modules\\@expo\\vector-icons\\build\\vendor\\react-native-vector-icons\\Fonts\\', 'Aqre\\assets\\' | Set-Content "docs\metadata.json"
+    (Get-Content "docs\metadata.json") -replace 'assets\\', 'Aqre\\assets\\' | Set-Content "docs\metadata.json"
 }
 
 # 6. index.html 경로 수정
 Write-Host "index.html 경로 수정..." -ForegroundColor Yellow
 if (Test-Path "docs\index.html") {
-    (Get-Content "docs\index.html") -replace '/favicon.ico', './favicon.ico' | Set-Content "docs\index.html"
-    (Get-Content "docs\index.html") -replace '/_expo/', './_expo/' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/favicon.ico', '/Aqre/favicon.ico' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/_expo/', '/Aqre/_expo/' | Set-Content "docs\index.html"
 }
 
 Write-Host "웹 포팅 완료!" -ForegroundColor Green
