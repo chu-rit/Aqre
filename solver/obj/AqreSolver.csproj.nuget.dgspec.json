@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Work\\Aqre\\solver\\AqreSolver.csproj": {}
+    "c:\\Work\\Aqre\\solver\\AqreSolver.csproj": {}
   },
   "projects": {
-    "C:\\Work\\Aqre\\solver\\AqreSolver.csproj": {
+    "c:\\Work\\Aqre\\solver\\AqreSolver.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Work\\Aqre\\solver\\AqreSolver.csproj",
+        "projectUniqueName": "c:\\Work\\Aqre\\solver\\AqreSolver.csproj",
         "projectName": "AqreSolver",
-        "projectPath": "C:\\Work\\Aqre\\solver\\AqreSolver.csproj",
+        "projectPath": "c:\\Work\\Aqre\\solver\\AqreSolver.csproj",
         "packagesPath": "C:\\Users\\churi\\.nuget\\packages\\",
-        "outputPath": "C:\\Work\\Aqre\\solver\\obj\\",
+        "outputPath": "c:\\Work\\Aqre\\solver\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\churi\\AppData\\Roaming\\NuGet\\NuGet.Config"

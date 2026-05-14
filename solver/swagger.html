@@ -234,7 +234,14 @@
             const option = document.createElement('option');
             option.value = puzzle.id;
             const levelNumber = puzzle.name.replace(/[^0-9]/g, '');
-            option.textContent = `Level ${levelNumber} (${puzzle.size}x${puzzle.size})`;
+            // 2를 제외한 총 칸수 계산
+            let fillableCells = 0;
+            puzzle.initialState.forEach(row => {
+                row.forEach(cell => {
+                    if (cell !== 2) fillableCells++;
+                });
+            });
+            option.textContent = `Level ${levelNumber} (${puzzle.size}x${puzzle.size}) - ${fillableCells}칸`;
             levelSelect.appendChild(option);
         });
         
