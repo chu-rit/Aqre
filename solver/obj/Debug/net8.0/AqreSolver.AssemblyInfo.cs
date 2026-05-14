@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AqreSolver")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c9822f90194bdfab1e4be33d292caa8190e8fb36")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c8bf22418d76188d563a00dae5bc2e2917ecc474")]
 [assembly: System.Reflection.AssemblyProductAttribute("AqreSolver")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AqreSolver")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

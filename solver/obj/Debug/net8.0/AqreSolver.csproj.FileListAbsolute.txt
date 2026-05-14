@@ -30,3 +30,4 @@ C:\Work\Aqre\solver\obj\Debug\net8.0\refint\AqreSolver.dll
 C:\Work\Aqre\solver\obj\Debug\net8.0\AqreSolver.pdb
 C:\Work\Aqre\solver\obj\Debug\net8.0\AqreSolver.genruntimeconfig.cache
 C:\Work\Aqre\solver\obj\Debug\net8.0\ref\AqreSolver.dll
+C:\Work\Aqre\solver\bin\Debug\net8.0\Newtonsoft.Json.dll

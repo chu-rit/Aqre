@@ -6,7 +6,6 @@
     <meta name="theme-color" content="#000000">
     
     <link rel="stylesheet" href="../styles.css">
-    <script src="../puzzles.js"></script>
 
     <title>AQRE 솔버 (C# API)</title>
     <style>
@@ -220,8 +219,32 @@
     <script>
     const API_BASE_URL = 'http://localhost:5000/api';
     
+    // 퍼즐 데이터 저장
+    let PUZZLE_MAPS = [];
+    
     // 현재 선택된 퍼즐
     let currentPuzzle = null;
+
+    // API에서 퍼즐 로드
+    async function loadPuzzles() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/puzzles`);
+            if (!response.ok) throw new Error('Failed to load puzzles');
+            const puzzles = await response.json();
+            // required: -99를 -1로 변환 (J 값 처리)
+            PUZZLE_MAPS = puzzles.map(p => ({
+                ...p,
+                areas: p.areas.map(a => ({
+                    ...a,
+                    required: a.required === -99 ? -1 : a.required
+                }))
+            }));
+            createPuzzleList();
+        } catch (error) {
+            console.error('Error loading puzzles:', error);
+            document.getElementById('levelSelect').innerHTML = '<option value="" disabled selected>퍼즐 로드 실패</option>';
+        }
+    }
 
     // 퍼즐 선택 옵션 생성
     function createPuzzleList() {
@@ -254,8 +277,8 @@
         });
     }
 
-    // 페이지 로드 시 퍼즐 목록 생성
-    createPuzzleList();
+    // 페이지 로드 시 퍼즐 목록 로드
+    loadPuzzles();
 
     // 퍼즐 HTML 렌더링
     function renderPuzzle(solution, title = '솔루션') {
@@ -377,13 +400,14 @@
             board.push(new Array(size).fill(-1));
         }
         
-        // 블랙 셀 설정
+        // 블랙 셀만 설정 (initialState의 0과 1은 무시, 2만 적용)
         if (puzzle.initialState) {
             for (let row = 0; row < size; row++) {
                 for (let col = 0; col < size; col++) {
                     if (puzzle.initialState[row][col] === 2) {
                         board[row][col] = 2;
                     }
+                    // 0과 1은 이미 -1로 초기화되어 있으므로 무시
                 }
             }
         }
@@ -454,9 +478,9 @@
             const board = initializeBoard(currentPuzzle);
             const blackCellBitmask = createBlackCellBitmask(board, currentPuzzle.size);
             
-            // 사전 셀 확정 (처리된 areas 사용)
-            const presetCount = presetCellsByAreaRules(board, processedAreas);
-            console.log(`[${new Date().toLocaleTimeString()}] 영역 규칙에 따라 ${presetCount}개의 셀을 미리 확정했습니다.`);
+            // 사전 셀 확정하지 않음 - 솔버가 모든 셀 계산하도록
+            // const presetCount = presetCellsByAreaRules(board, processedAreas);
+            // console.log(`[${new Date().toLocaleTimeString()}] 영역 규칙에 따라 ${presetCount}개의 셀을 미리 확정했습니다.`);
             
             const requestBody = {
                 size: currentPuzzle.size,
@@ -465,6 +489,8 @@
                 blackCellBitmask: blackCellBitmask,
                 maxSolutions: 3
             };
+            
+            console.log('Request body:', JSON.stringify(requestBody, null, 2));
             
             const response = await fetch(`${API_BASE_URL}/solve`, {
                 method: 'POST',

@@ -1,5 +1,7 @@
 using AqreSolver.Models;
 using AqreSolver.Services;
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,4 +129,70 @@ app.MapPost("/api/preset", (SolveRequest request) =>
 .WithName("PresetCells")
 .WithOpenApi();
 
+// Get puzzles from RN puzzles.js
+app.MapGet("/api/puzzles", () =>
+{
+    try
+    {
+        var puzzlesJsPath = Path.Combine(builder.Environment.ContentRootPath, "..", "aqreRN", "src", "logic", "puzzles.js");
+        if (!File.Exists(puzzlesJsPath))
+        {
+            return Results.NotFound(new { error = "puzzles.js not found at " + puzzlesJsPath });
+        }
+
+        var content = File.ReadAllText(puzzlesJsPath);
+        var puzzles = ParsePuzzles(content);
+        return Results.Ok(puzzles);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.WithName("GetPuzzles")
+.WithOpenApi();
+
 app.Run();
+
+// Simple puzzle parser
+static List<PuzzleData> ParsePuzzles(string content)
+{
+    var puzzles = new List<PuzzleData>();
+    
+    // Extract PUZZLE_MAPS array
+    var arrayStart = content.IndexOf("[");
+    if (arrayStart == -1) return puzzles;
+    
+    var arrayEnd = content.LastIndexOf("]");
+    if (arrayEnd == -1 || arrayEnd <= arrayStart) return puzzles;
+    
+    var arrayContent = content.Substring(arrayStart, arrayEnd - arrayStart + 1);
+    
+    // Convert to valid JSON
+    // Remove comments
+    arrayContent = Regex.Replace(arrayContent, @"//.*?\n", "\n");
+    // Quote property names
+    arrayContent = Regex.Replace(arrayContent, @"(\w+):\s*", "\"$1\": ");
+    // Handle single quotes
+    arrayContent = arrayContent.Replace("'", "\"");
+    // Handle J value
+    arrayContent = arrayContent.Replace("\"J\"", "-99").Replace(": J", ": -99");
+    
+    puzzles = JsonConvert.DeserializeObject<List<PuzzleData>>(arrayContent) ?? puzzles;
+    return puzzles;
+}
+
+public class PuzzleData
+{
+    public int id { get; set; }
+    public string name { get; set; } = "";
+    public int size { get; set; }
+    public List<AreaData> areas { get; set; } = new();
+    public List<List<int>> initialState { get; set; } = new();
+}
+
+public class AreaData
+{
+    public List<List<int>> cells { get; set; } = new();
+    public int required { get; set; }
+}

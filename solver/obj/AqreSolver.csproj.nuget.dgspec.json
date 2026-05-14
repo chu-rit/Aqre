@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Work\\Aqre\\solver\\AqreSolver.csproj": {}
+    "C:\\Work\\Aqre\\solver\\AqreSolver.csproj": {}
   },
   "projects": {
-    "c:\\Work\\Aqre\\solver\\AqreSolver.csproj": {
+    "C:\\Work\\Aqre\\solver\\AqreSolver.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Work\\Aqre\\solver\\AqreSolver.csproj",
+        "projectUniqueName": "C:\\Work\\Aqre\\solver\\AqreSolver.csproj",
         "projectName": "AqreSolver",
-        "projectPath": "c:\\Work\\Aqre\\solver\\AqreSolver.csproj",
+        "projectPath": "C:\\Work\\Aqre\\solver\\AqreSolver.csproj",
         "packagesPath": "C:\\Users\\churi\\.nuget\\packages\\",
-        "outputPath": "c:\\Work\\Aqre\\solver\\obj\\",
+        "outputPath": "C:\\Work\\Aqre\\solver\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\churi\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -46,6 +46,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
