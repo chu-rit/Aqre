@@ -35,6 +35,38 @@
             font-size: 12px;
             width: 80px;
         }
+        .spinner-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .spinner-val {
+            min-width: 32px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #e0e0e0;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .spinner-btn {
+            padding: 0 !important;
+            width: 22px !important;
+            height: 22px !important;
+            font-size: 12px !important;
+            line-height: 1 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1) !important;
+            color: #ccc !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            border-radius: 4px !important;
+            cursor: pointer;
+        }
+        .spinner-btn:hover { background: rgba(255,255,255,0.2) !important; }
         .controls button {
             padding: 6px 12px;
             font-size: 12px;
@@ -288,39 +320,60 @@
     
     <div class="controls">
         <div class="control-group">
-            <label>크기 (Size)</label>
-            <select id="size">
-                <option value="4">4x4</option>
-                <option value="5">5x5</option>
-                <option value="6" selected>6x6</option>
-                <option value="7">7x7</option>
-                <option value="8">8x8</option>
-            </select>
+            <label>가로 (Cols)</label>
+            <div class="spinner-wrap">
+                <button class="spinner-btn" onclick="spinVal('cols',-1,4,8)">▼</button>
+                <span class="spinner-val" id="cols-display">6</span>
+                <input type="hidden" id="cols" value="6">
+                <button class="spinner-btn" onclick="spinVal('cols',1,4,8)">▲</button>
+            </div>
         </div>
         <div class="control-group">
-            <label>영역 개수 (0 = 랜덤)</label>
-            <input type="number" id="areaCount" min="0" max="20" value="0">
+            <label>세로 (Rows)</label>
+            <div class="spinner-wrap">
+                <button class="spinner-btn" onclick="spinVal('rows',-1,4,8)">▼</button>
+                <span class="spinner-val" id="rows-display">6</span>
+                <input type="hidden" id="rows" value="6">
+                <button class="spinner-btn" onclick="spinVal('rows',1,4,8)">▲</button>
+            </div>
         </div>
         <div class="control-group">
-            <label>검정 셀 개수 (비어있으면 자동)</label>
-            <input type="number" id="blackCount" min="0" max="20" value="" placeholder="자동">
+            <label>영역 개수 (0=랜덤)</label>
+            <div class="spinner-wrap">
+                <button class="spinner-btn" onclick="spinVal('areaCount',-1,0,20)">▼</button>
+                <span class="spinner-val" id="areaCount-display">0</span>
+                <input type="hidden" id="areaCount" value="0">
+                <button class="spinner-btn" onclick="spinVal('areaCount',1,0,20)">▲</button>
+            </div>
         </div>
-        <button id="generateBtn" onclick="generatePuzzle()">퍼즐 생성</button>
+        <div class="control-group">
+            <label>검정 셀 (빈칸=자동)</label>
+            <div class="spinner-wrap">
+                <button class="spinner-btn" onclick="spinVal('blackCount',-1,-1,30)">▼</button>
+                <span class="spinner-val" id="blackCount-display">자동</span>
+                <input type="hidden" id="blackCount" value="">
+                <button class="spinner-btn" onclick="spinVal('blackCount',1,-1,30)">▲</button>
+            </div>
+        </div>
+        <button id="generateBtn" onclick="generatePuzzle()">랜덤 생성</button>
         <button id="solveBtn" onclick="verifyWithSolver()" disabled>Solver 검증</button>
         <button id="exportBtn" onclick="exportPuzzle()" disabled>보내기</button>
     </div>
 
     <div class="main-content">
         <div class="panel" oncontextmenu="return false;">
-            <h3>미리보기</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;">미리보기</h3>
+                <div style="display:flex;gap:4px;">
+                    <button class="tool-btn" onclick="regenAreas()" id="regenAreasBtn" style="font-size:11px;padding:4px 10px;">♻️ 영역재설정</button>
+                    <button class="tool-btn" onclick="autoTryRequired()" id="autoTryBtn" style="font-size:11px;padding:4px 10px;">🔄 반복시도</button>
+                </div>
+            </div>
             <!-- 편집 툴바 -->
             <div class="edit-toolbar" id="editToolbar">
                 <label>영역 편집:</label>
                 <div class="area-palette" id="areaPalette"></div>
                 <button class="tool-btn new-area" onclick="addNewArea()" id="addAreaBtn">+ 새 영역</button>
-                <div class="tool-sep"></div>
-                <button class="tool-btn" style="background:#3a1a1a;color:#e94560;border-color:#5a2a2a;" onclick="deleteSelectedArea()" id="deleteAreaBtn">영역 삭제</button>
-                <span style="font-size:10px;color:#555;margin-left:4px;">우클릭=흰/검 전환</span>
             </div>
             <div id="board" class="board"></div>
             <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
@@ -351,6 +404,34 @@
 
     <script>
         const API_URL = 'http://localhost:5000/api/solve';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.spinner-wrap').forEach(wrap => {
+                wrap.addEventListener('wheel', e => {
+                    e.preventDefault();
+                    const btn = wrap.querySelector('.spinner-btn');
+                    const onclick = btn.getAttribute('onclick');
+                    const match = onclick.match(/spinVal\('(\w+)',[-\d]+,(-?\d+),(\d+)\)/);
+                    if (!match) return;
+                    const [, id, min, max] = match;
+                    spinVal(id, e.deltaY < 0 ? 1 : -1, parseInt(min), parseInt(max));
+                }, { passive: false });
+            });
+        });
+
+        function spinVal(id, delta, min, max) {
+            const input = document.getElementById(id);
+            const display = document.getElementById(id + '-display');
+            let cur = input.value === '' ? (id === 'blackCount' ? -1 : 0) : parseInt(input.value);
+            cur = Math.max(min, Math.min(max, cur + delta));
+            if (id === 'blackCount' && cur <= -1) {
+                input.value = '';
+                display.textContent = '자동';
+            } else {
+                input.value = cur;
+                display.textContent = cur;
+            }
+        }
         let currentPuzzle = null;
         let currentSolution = null;
         let allFoundSolutions = [];
@@ -396,68 +477,49 @@
             return minAreas + Math.floor(Math.random() * (maxAreas - minAreas + 1));
         }
 
-        function generatePuzzle(retryCount = 0, adjustedParams = null) {
-            const size = adjustedParams?.size || parseInt(document.getElementById('size').value);
-            let areaCount = adjustedParams?.areaCount ?? parseInt(document.getElementById('areaCount').value);
+        function generatePuzzle() {
+            const cols = parseInt(document.getElementById('cols').value);
+            const rows = parseInt(document.getElementById('rows').value);
+            const size = Math.max(rows, cols);
+            let areaCount = parseInt(document.getElementById('areaCount').value);
             const blackCountInput = document.getElementById('blackCount').value;
-            let targetBlackCount = adjustedParams?.targetBlackCount ?? (blackCountInput === '' ? null : parseInt(blackCountInput));
-            
-            // 0이면 랜덤 영역 개수 선택
-            if (areaCount === 0) {
-                areaCount = getRandomAreaCount(size);
-            }
-            
-            // 비어있을 때만 자동, 0은 0으로 작동
-            
-            const strategy = adjustedParams?.strategy || selectStrategy(retryCount, targetBlackCount);
+            let targetBlackCount = blackCountInput === '' ? null : parseInt(blackCountInput);
 
-            if (retryCount === 0) {
-                generationAttempts = 0;
-                const areaText = document.getElementById('areaCount').value === '0' ? 
-                    `${areaCount}개 (랜덤)` : `${areaCount}개`;
-                const blackText = targetBlackCount !== null ? `${targetBlackCount}개` : '자동';
-                log(`퍼즐 생성 시작... (${size}x${size}, 영역 ${areaText}, 검정 ${blackText}, 전략: ${strategy})`, 'info');
-            } else {
-                log(`재시도 ${retryCount}/${MAX_GENERATION_ATTEMPTS}... 전략: ${strategy}`, 'info');
+            if (areaCount === 0) areaCount = getRandomAreaCount(size);
+
+            const strategy = selectStrategy(0, targetBlackCount);
+            const areaText = document.getElementById('areaCount').value === '0' ? `${areaCount}개 (랜덤)` : `${areaCount}개`;
+            const blackText = targetBlackCount !== null ? `${targetBlackCount}개` : '자동';
+            log(`퍼즐 생성 시작... (${cols}x${rows}, 영역 ${areaText}, 검정 ${blackText}, 전략: ${strategy})`, 'info');
+
+            // 1. 해답 + 영역 생성 (최대 20회 시도)
+            let solution = null, areas = null;
+            const strategies = ['pattern', 'snake', 'clusters', 'random'];
+            for (let attempt = 0; attempt < 20; attempt++) {
+                const s = strategies[attempt % strategies.length];
+                let sol;
+                try { sol = generateSolutionWithStrategy(size, s, null, targetBlackCount); } catch(e) { continue; }
+                if (!sol) continue;
+                // 영역 생성 전에 패딩 영역을 2로 표시 (rows/cols 범위 밖)
+                for (let r = 0; r < size; r++)
+                    for (let c = 0; c < size; c++)
+                        if (r >= rows || c >= cols) { sol.board[r][c] = 2; }
+                // 패딩된 셀을 blackCells에도 반영
+                sol.blackCells = [];
+                sol.grayCells = [];
+                for (let r = 0; r < size; r++)
+                    for (let c = 0; c < size; c++) {
+                        if (sol.board[r][c] === 2) sol.blackCells.push([r, c]);
+                        if (sol.board[r][c] === 1) sol.grayCells.push([r, c]);
+                    }
+                const ar = generateAreasFromSolution(sol, areaCount);
+                if (ar.length >= 2) { solution = sol; areas = ar; break; }
             }
-            
-            generationAttempts++;
-            
-            // 1. 선택된 전략으로 해답 생성 (검정 셀 개수 지정)
-            let solution;
-            try {
-                solution = generateSolutionWithStrategy(size, strategy, null, targetBlackCount);
-            } catch (e) {
-                log(`전략 ${strategy} 실패: ${e.message}`, 'error');
-                solution = null;
-            }
-            
-            if (!solution) {
-                log(`해답 생성 실패 (전략: ${strategy})`, 'error');
-                if (generationAttempts < MAX_GENERATION_ATTEMPTS) {
-                    const nextStrategy = selectStrategy(retryCount + 1);
-                    setTimeout(() => generatePuzzle(retryCount + 1, { 
-                        size, areaCount, strategy: nextStrategy, targetBlackCount 
-                    }), 10);
-                } else {
-                    log('최대 시도 횟수 초과. 크기를 줄이거나 다시 시도하세요.', 'error');
-                }
+            if (!solution || !areas) {
+                log('생성 실패. 조건을 바꿔 다시 시도하세요.', 'error');
                 return;
             }
             log(`유효한 해답 생성 완료 (회색: ${solution.grayCells.length}개)`, 'success');
-
-            // 2. 해답 기반으로 영역 생성
-            const areas = generateAreasFromSolution(solution, areaCount);
-            if (areas.length < 2) {
-                log('영역 생성 실패, 영역 개수 조정 후 재시도...', 'error');
-                if (generationAttempts < MAX_GENERATION_ATTEMPTS) {
-                    const newAreaCount = Math.max(2, areaCount - 1);
-                    setTimeout(() => generatePuzzle(retryCount + 1, { 
-                        size, areaCount: newAreaCount, strategy, targetBlackCount 
-                    }), 10);
-                }
-                return;
-            }
             log(`${areas.length}개 영역 생성 완료`, 'success');
 
             // 3. 빈 퍼즐 생성 (검정 셀만 표시, 나머지는 빈칸)
@@ -465,9 +527,26 @@
             log('빈 퍼즐 생성 (검정 셀만 표시)', 'info');
 
             // 4. 퍼즐 데이터 구성 (빈 상태로)
+            const _now = new Date();
+            const _dateBase = parseInt(
+                String(_now.getFullYear()).slice(2) +
+                String(_now.getMonth() + 1).padStart(2, '0') +
+                String(_now.getDate()).padStart(2, '0')
+            );
+            // 같은 날짜 prefix로 시작하는 id 중 최대값 + 1
+            const _existing = (window._generatedIds = window._generatedIds || []);
+            const _sameDay = _existing.filter(id => Math.floor(id / 100) === _dateBase);
+            const _seq = _sameDay.length > 0 ? (Math.max(..._sameDay) % 100) + 1 : 1;
+            const _newId = _dateBase * 100 + Math.min(_seq, 99);
+            _existing.push(_newId);
+
+            const _maxDim = Math.max(rows, cols);
+            const _difficulty = _maxDim <= 5 ? 1 : _maxDim <= 7 ? 2 : 3;
+
             currentPuzzle = {
-                id: Date.now(),
-                name: `Generated ${size}x${size}`,
+                id: _newId,
+                chapter: 1,
+                difficulty: _difficulty,
                 size: size,
                 areas: areas,
                 initialState: emptyState
@@ -521,6 +600,7 @@
                     return generateRandomSolution(size, targetGrayCount, targetBlackCount);
             }
         }
+
         
         function generatePatternSolution(size, targetGrayCount = null, targetBlackCount = null) {
             // 체크무늬 기반 패턴 생성
@@ -1225,7 +1305,9 @@
             const { board, grayCells } = solution;
             const size = board.length;
             const areas = [];
-            const assigned = Array(size).fill(null).map(() => Array(size).fill(false));
+            const assigned = Array(size).fill(null).map((_, r) =>
+                Array(size).fill(false).map((_, c) => board[r][c] === 2)
+            );
             const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
             
             // 1. 회색 셀을 중심으로 클러스터 형성
@@ -1578,13 +1660,80 @@
                 }
             }
             
-            // 빈 영역 제거 및 최종 반환
-            return mergedAreas
-                .filter(area => area.cells.length > 0)
-                .map(area => ({
-                    cells: area.cells,
-                    required: area.required >= 0 ? area.required : -1
-                }));
+            // 빈 영역 제거
+            let finalAreas = mergedAreas.filter(area => area.cells.length > 0);
+
+            // 너무 적으면: 가장 큰 영역을 2분할
+            while (finalAreas.length < targetAreaCount) {
+                finalAreas.sort((a, b) => b.cells.length - a.cells.length);
+                const big = finalAreas.shift();
+                if (big.cells.length < 2) { finalAreas.push(big); break; }
+                const halves = splitCluster(big.cells, 2, size);
+                for (const half of halves) {
+                    finalAreas.push({
+                        cells: half,
+                        required: half.filter(([r, c]) => board[r][c] === 1).length
+                    });
+                }
+            }
+
+            // 최종 연결성 보장: 분리된 컴포넌트를 개별 영역으로 분리
+            const connectedAreas = [];
+            for (const area of finalAreas) {
+                if (area.cells.length === 0) continue;
+                if (isConnected(area.cells, size)) {
+                    connectedAreas.push(area);
+                } else {
+                    const cellSet = new Set(area.cells.map(([r, c]) => `${r},${c}`));
+                    const vis = new Set();
+                    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                    for (const [r, c] of area.cells) {
+                        const key = `${r},${c}`;
+                        if (vis.has(key)) continue;
+                        const comp = [];
+                        const q = [[r, c]]; vis.add(key);
+                        while (q.length > 0) {
+                            const [cr, cc] = q.shift(); comp.push([cr, cc]);
+                            for (const [dr, dc] of dirs) {
+                                const nk = `${cr+dr},${cc+dc}`;
+                                if (cellSet.has(nk) && !vis.has(nk)) { vis.add(nk); q.push([cr+dr, cc+dc]); }
+                            }
+                        }
+                        connectedAreas.push({ cells: comp, required: comp.filter(([r2,c2]) => board[r2][c2] === 1).length });
+                    }
+                }
+            }
+            finalAreas = connectedAreas;
+
+            // 분리 후 다시 수 조정
+            while (finalAreas.length > targetAreaCount && finalAreas.length > 2) {
+                finalAreas.sort((a, b) => a.cells.length - b.cells.length);
+                const small = finalAreas.shift();
+                // 1순위: 병합 후 연결되는 가장 가까운 영역
+                let connectedIdx = -1, connectedDist = Infinity;
+                // 2순위: 그냥 가장 가까운 영역 (폴백)
+                let anyIdx = 0, anyDist = Infinity;
+                for (let i = 0; i < finalAreas.length; i++) {
+                    for (const [r1, c1] of small.cells) {
+                        for (const [r2, c2] of finalAreas[i].cells) {
+                            const d = Math.abs(r1-r2) + Math.abs(c1-c2);
+                            if (d < anyDist) { anyDist = d; anyIdx = i; }
+                            if (d < connectedDist) {
+                                const merged = [...finalAreas[i].cells, ...small.cells];
+                                if (isConnected(merged, size)) { connectedDist = d; connectedIdx = i; }
+                            }
+                        }
+                    }
+                }
+                const mergeIdx = connectedIdx !== -1 ? connectedIdx : anyIdx;
+                finalAreas[mergeIdx].cells.push(...small.cells);
+                finalAreas[mergeIdx].required += small.cells.filter(([r,c]) => board[r][c] === 1).length;
+            }
+
+            return finalAreas.map(area => ({
+                cells: area.cells,
+                required: area.required >= 0 ? area.required : -1
+            }));
         }
 
         function renderBoard(solution, areas, initialState) {
@@ -1825,32 +1974,11 @@
                 return;
                 
             } else if (result.success && !result.unique) {
-                // 여러 해답 - 새 퍼즐 시도
-                updateValidationStatus('warning', '⚠️ 여러 해답 있음 - 새 퍼즐 시도');
-                log('여러 해답 존재. 새 퍼즐 생성...', 'error');
-                
-                if (genRetryCount < MAX_GENERATION_ATTEMPTS) {
-                    const nextStrategy = selectStrategy(genRetryCount + 1);
-                    setTimeout(() => generatePuzzle(genRetryCount + 1, {
-                        ...genParams,
-                        strategy: nextStrategy
-                    }), 100);
-                }
+                updateValidationStatus('warning', '⚠️ 여러 해답 있음');
+                log('여러 해답 존재. 영역을 수정하거나 다시 생성하세요.', 'warning');
             } else {
-                // 해답 없음 - 새 퍼즐 생성
-                updateValidationStatus('error', '❌ 해답 없음 - 새 퍼즐 시도');
-                log('빈 퍼즐로 해답 없음. 새 퍼즐 생성...', 'error');
-                
-                if (genRetryCount < MAX_GENERATION_ATTEMPTS) {
-                    const nextStrategy = selectStrategy(genRetryCount + 1);
-                    setTimeout(() => generatePuzzle(genRetryCount + 1, {
-                        ...genParams,
-                        strategy: nextStrategy
-                    }), 100);
-                } else {
-                    updateValidationStatus('error', '❌ 최대 시도 횟수 초과 - 설정 변경 필요');
-                    log('최대 생성 시도 횟수 초과. 설정을 변경해 보세요.', 'error');
-                }
+                updateValidationStatus('error', '❌ 해답 없음');
+                log('해답 없음. 영역을 수정하거나 다시 생성하세요.', 'error');
             }
         }
 
@@ -1958,7 +2086,8 @@
             
             // Compact format like puzzles.js
             const areasStr = currentPuzzle.areas.map(a => {
-                const cellsStr = a.cells.map(c => `[${c[0]},${c[1]}]`).join(', ');
+                const sorted = [...a.cells].sort((x, y) => x[0] !== y[0] ? x[0] - y[0] : x[1] - y[1]);
+                const cellsStr = sorted.map(c => `[${c[0]},${c[1]}]`).join(', ');
                 return `            { cells: [${cellsStr}], required: ${a.required} }`;
             }).join(',\n');
             
@@ -1969,7 +2098,8 @@
             
             const exportStr = `    {
         id: ${currentPuzzle.id},
-        name: "${currentPuzzle.name}",
+        chapter: 1,
+        difficulty: ${currentPuzzle.difficulty ?? 1},
         size: ${currentPuzzle.size},
         areas: [
 ${areasStr}
@@ -2031,7 +2161,6 @@ ${stateStr}
                 // currentPuzzle 설정
                 currentPuzzle = {
                     id: puzzleData.id,
-                    name: puzzleData.name || `Loaded ${puzzleData.size}x${puzzleData.size}`,
                     size: puzzleData.size,
                     areas: puzzleData.areas.map(a => ({
                         cells: a.cells,
@@ -2258,6 +2387,14 @@ ${stateStr}
                 areas: currentPuzzle.areas.map(a => ({ cells: a.cells.map(c => [...c]), required: a.required }))
             });
             if (editHistory.length > 30) editHistory.shift();
+            // 각 영역의 셀 좌표 정렬 (row, col 오름차순)
+            currentPuzzle.areas.forEach(a => {
+                a.cells.sort((x, y) => x[0] !== y[0] ? x[0] - y[0] : x[1] - y[1]);
+            });
+            // 수정 발생 시 해답 표시 초기화
+            allFoundSolutions = [];
+            currentSolutionIdx = 0;
+            renderSolutionNav();
         }
 
         function undoEdit() {
@@ -2314,6 +2451,187 @@ ${stateStr}
             }
             reRenderBoard();
             refreshAreaPalette();
+        }
+
+        function regenAreas() {
+            if (!currentPuzzle || !currentSolution) { log('먼저 퍼즐을 생성하세요', 'error'); return; }
+            const btn = document.getElementById('regenAreasBtn');
+            btn.disabled = true;
+            try {
+                saveHistory();
+                const inputVal = parseInt(document.getElementById('areaCount').value);
+                const targetCount = (inputVal > 0) ? inputVal : currentPuzzle.areas.length;
+                const board = currentSolution.board;
+                const size = board.length;
+                const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+
+                // 비검정 셀 목록 (랜덤 섞기)
+                let cells = [];
+                for (let r = 0; r < size; r++)
+                    for (let c = 0; c < size; c++)
+                        if (board[r][c] !== 2) cells.push([r, c]);
+                cells.sort(() => Math.random() - 0.5);
+
+                // BFS로 연결된 덩어리 하나씩 할당
+                const assigned = Array.from({length: size}, () => Array(size).fill(false));
+                // 검정 셀은 처음부터 assigned
+                for (let r = 0; r < size; r++)
+                    for (let c = 0; c < size; c++)
+                        if (board[r][c] === 2) assigned[r][c] = true;
+
+                const rawAreas = [];
+                const totalCells = cells.length;
+                const baseSize = Math.max(1, Math.floor(totalCells / targetCount));
+
+                for (let i = 0; i < targetCount; i++) {
+                    // 미할당 시작점 찾기
+                    let start = null;
+                    for (const [r, c] of cells) {
+                        if (!assigned[r][c]) { start = [r, c]; break; }
+                    }
+                    if (!start) break;
+
+                    // 마지막 영역이면 남은 셀 전부
+                    const quota = (i === targetCount - 1)
+                        ? Infinity
+                        : baseSize + (i < (totalCells % targetCount) ? 1 : 0);
+
+                    const areaCells = [];
+                    const queue = [start];
+                    assigned[start[0]][start[1]] = true;
+
+                    while (queue.length > 0 && areaCells.length < quota) {
+                        const [r, c] = queue.shift();
+                        areaCells.push([r, c]);
+                        // 인접 미할당 셀 추가 (랜덤 순서)
+                        const neighbors = dirs
+                            .map(([dr, dc]) => [r+dr, c+dc])
+                            .filter(([nr, nc]) => nr>=0 && nr<size && nc>=0 && nc<size && !assigned[nr][nc])
+                            .sort(() => Math.random() - 0.5);
+                        for (const [nr, nc] of neighbors) {
+                            if (areaCells.length + queue.length < quota && !assigned[nr][nc]) {
+                                assigned[nr][nc] = true;
+                                queue.push([nr, nc]);
+                            }
+                        }
+                    }
+
+                    if (areaCells.length > 0) {
+                        const grayCount = areaCells.filter(([r, c]) => board[r][c] === 1).length;
+                        const whiteCount = areaCells.filter(([r, c]) => board[r][c] === 0).length;
+                        const areaSize = areaCells.length;
+                        let required;
+                        if (grayCount === 0 && whiteCount > 0) {
+                            required = -1; // J
+                        } else if (grayCount >= areaSize) {
+                            required = areaSize - 1;
+                        } else {
+                            const minRequired = Math.max(1, grayCount);
+                            const maxRequired = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
+                            const sizeBonus = Math.floor(areaSize / 4);
+                            const baseValue = Math.min(minRequired + sizeBonus, maxRequired);
+                            const range = Math.max(1, maxRequired - baseValue + 1);
+                            required = Math.max(1, baseValue + Math.floor(Math.random() * range));
+                        }
+                        rawAreas.push({ cells: areaCells, required });
+                    }
+                }
+
+                // 미할당 셀이 남으면 가장 가까운 영역에 편입
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (!assigned[r][c]) {
+                            let bestIdx = 0, bestDist = Infinity;
+                            for (let i = 0; i < rawAreas.length; i++) {
+                                for (const [ar, ac] of rawAreas[i].cells) {
+                                    const d = Math.abs(r-ar)+Math.abs(c-ac);
+                                    if (d < bestDist) { bestDist = d; bestIdx = i; }
+                                }
+                            }
+                            rawAreas[bestIdx].cells.push([r, c]);
+                            if (board[r][c] === 1) rawAreas[bestIdx].required = Math.max(1, rawAreas[bestIdx].required + 1);
+                            assigned[r][c] = true;
+                        }
+                    }
+                }
+
+                if (rawAreas.length < 1) { log('영역 재생성 실패', 'error'); return; }
+
+                currentPuzzle.areas = rawAreas;
+                reRenderBoard();
+                refreshAreaPalette();
+                log(`영역 재설정 완료 (${rawAreas.length}개)`, 'success');
+            } catch(e) {
+                log(`영역 재설정 오류: ${e.message}`, 'error');
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function autoTryRequired() {
+            if (!currentPuzzle) { log('먼저 퍼즐을 생성하세요', 'error'); return; }
+            const btn = document.getElementById('autoTryBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 시도 중...';
+
+            const size = currentPuzzle.size;
+            const originalAreas = currentPuzzle.areas.map(a => ({ ...a, cells: a.cells.map(c => [...c]) }));
+
+            for (let attempt = 1; attempt <= 10; attempt++) {
+                log(`반복시도 ${attempt}/10...`, 'info');
+                // required 랜덤 변경
+                saveHistory();
+                currentPuzzle.areas = originalAreas.map(a => {
+                    const maxReq = a.cells.length - 1;
+                    const grayCount = a.cells.filter(([r, c]) => currentPuzzle.initialState[r][c] === 1).length;
+                    const minReq = Math.max(1, Math.floor(a.cells.length * 0.2));
+                    const max = Math.min(maxReq, Math.max(grayCount, Math.ceil(a.cells.length * 0.8)));
+                    const newReq = minReq + Math.floor(Math.random() * (max - minReq + 1));
+                    return { ...a, cells: a.cells.map(c => [...c]), required: Math.max(1, newReq) };
+                });
+                reRenderBoard();
+                refreshAreaPalette();
+
+                // 답 찾기
+                const request = {
+                    size,
+                    areas: currentPuzzle.areas.map(a => ({ cells: a.cells, required: a.required })),
+                    initialBoard: currentPuzzle.initialState.map(row => row.map(v => v === 2 ? 2 : -1)),
+                    blackCellBitmask: new Array(Math.ceil((size * size) / 32)).fill(0),
+                    maxSolutions: 2
+                };
+                for (let r = 0; r < size; r++)
+                    for (let c = 0; c < size; c++)
+                        if (currentPuzzle.initialState[r][c] === 2) {
+                            const pos = r * size + c;
+                            request.blackCellBitmask[Math.floor(pos / 32)] |= (1 << (pos % 32));
+                        }
+
+                let result;
+                try {
+                    const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+                    const json = await response.json();
+                    result = json.solutions?.length > 0 ? { solutions: json.solutions } : null;
+                } catch(e) { result = null; }
+
+                if (result?.solutions?.length === 1) {
+                    allFoundSolutions = result.solutions;
+                    currentSolutionIdx = 0;
+                    showSolution(0);
+                    renderSolutionNav();
+                    updateValidationStatus('success', `✅ 유일해 발견! (${attempt}번째 시도)`);
+                    log(`유일해 발견! (${attempt}번째 시도)`, 'success');
+                    btn.disabled = false;
+                    btn.textContent = '🔄 반복시도';
+                    return;
+                }
+            }
+
+            log('10회 시도 후 유일해를 찾지 못했습니다.', 'warning');
+            updateValidationStatus('warning', '⚠️ 유일해 미발견 (10회 시도)');
+            btn.disabled = false;
+            btn.textContent = '🔄 반복시도';
         }
 
         function onCellRightClick(r, c, e) {

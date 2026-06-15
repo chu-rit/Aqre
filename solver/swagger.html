@@ -92,9 +92,27 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 8px;
             width: 100%;
             margin: 0.5rem 0;
         }
+        .level-nav-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .level-nav-btn:hover { background: rgba(255,255,255,0.25); }
+        .level-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .level-select {
             padding: 0.8rem 1rem;
             font-size: 1rem;
@@ -259,10 +277,12 @@
             <div class="api-info">
                 <p>API: http://localhost:5000</p>
             </div>
-            <div class="level-select-wrapper">
+            <div class="level-select-wrapper" id="levelSelectWrapper">
+                <button class="level-nav-btn" id="levelPrevBtn" onclick="navigateLevel(-1)" disabled>&#9660;</button>
                 <select id="levelSelect" class="level-select">
                     <option value="" disabled selected>레벨을 선택하세요...</option>
                 </select>
+                <button class="level-nav-btn" id="levelNextBtn" onclick="navigateLevel(1)" disabled>&#9650;</button>
             </div>
             <button onclick="toggleManualInput()" style="margin-top: 12px; background: rgba(255,255,255,0.1); color: #aaa; border: 1px solid rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;">▼ 직접 퍼즐 데이터 검증</button>
             <div class="manual-input" id="manualInputSection" style="display:none;">
@@ -323,15 +343,18 @@
         const levelSelect = document.getElementById('levelSelect');
         levelSelect.innerHTML = '<option value="" disabled selected>레벨을 선택하세요...</option>';
         
+        const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
+
         const reversedPuzzles = [...PUZZLE_MAPS].reverse();
         
         reversedPuzzles.forEach((puzzle) => {
             const option = document.createElement('option');
             option.value = puzzle.id;
-            const originalIndex = PUZZLE_MAPS.indexOf(puzzle);
-            const chapter = puzzle.chapter ?? '?';
-            const difficulty = puzzle.difficulty ?? '?';
-            const label = `${chapter}-${difficulty}-${originalIndex}`;
+            const groupName = DIFFICULTY_NAMES[puzzle.difficulty] ?? `Lv${puzzle.difficulty}`;
+            const sameDiff = PUZZLE_MAPS.filter(p => p.difficulty === puzzle.difficulty);
+            const idx = sameDiff.findIndex(p => p.id === puzzle.id);
+            const num = idx >= 0 ? idx + 1 : '?';
+            const label = `${groupName} ${num}`;
             let fillableCells = 0;
             puzzle.initialState.forEach(row => {
                 row.forEach(cell => {
@@ -346,9 +369,36 @@
             const selectedPuzzleId = parseInt(levelSelect.value);
             if (selectedPuzzleId) {
                 currentPuzzle = PUZZLE_MAPS.find(puzzle => puzzle.id === selectedPuzzleId);
+                updateLevelNavBtns();
                 solveLevel();
             }
         });
+
+        // 휠 이벤트
+        document.getElementById('levelSelectWrapper').addEventListener('wheel', e => {
+            e.preventDefault();
+            navigateLevel(e.deltaY < 0 ? 1 : -1);
+        }, { passive: false });
+
+        updateLevelNavBtns();
+    }
+
+    function navigateLevel(delta) {
+        const levelSelect = document.getElementById('levelSelect');
+        const opts = Array.from(levelSelect.options).filter(o => o.value !== '');
+        if (opts.length === 0) return;
+        const curIdx = opts.findIndex(o => o.value === levelSelect.value);
+        const nextIdx = curIdx === -1 ? (delta > 0 ? 0 : opts.length - 1) : Math.max(0, Math.min(opts.length - 1, curIdx + delta));
+        levelSelect.value = opts[nextIdx].value;
+        levelSelect.dispatchEvent(new Event('change'));
+    }
+
+    function updateLevelNavBtns() {
+        const levelSelect = document.getElementById('levelSelect');
+        const opts = Array.from(levelSelect.options).filter(o => o.value !== '');
+        const curIdx = opts.findIndex(o => o.value === levelSelect.value);
+        document.getElementById('levelPrevBtn').disabled = opts.length === 0 || curIdx <= 0;
+        document.getElementById('levelNextBtn').disabled = opts.length === 0 || curIdx === -1 || curIdx >= opts.length - 1;
     }
 
     // 페이지 로드 시 퍼즐 목록 로드

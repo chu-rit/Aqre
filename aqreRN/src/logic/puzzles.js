@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 // 퍼즐 맵 데이터
 export const PUZZLE_MAPS = [
+    // Tutorial
     {
         id: 1,
         chapter: 1,
@@ -148,6 +149,9 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0]
         ]
     },
+    
+    // Easy
+    
     {
         id: 6,
         chapter: 1,
@@ -184,27 +188,19 @@ export const PUZZLE_MAPS = [
         difficulty: 1,
         size: 4,
         areas: [
-            {   // A
+            {
                 cells: [[0,0], [0,1], [1,0], [1,1]],
                 required: 3
             },
-            {   // B
-                cells: [[1,2], [1,3]],
-                required: 'J'
-            },
-            {   // C
+            {
                 cells: [[2,2], [2,3], [3,2], [3,3]],
                 required: 3
             },
-            {   // D
-                cells: [[2,0], [2,1]],
-                required: 'J'
-            },
-            {   // E
+            {
                 cells: [[3,0]],
                 required: 1
             },
-            {   // F
+            {
                 cells: [[0,3]],
                 required: 1
             }
@@ -217,37 +213,71 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
+        id: 2606152,
+        chapter: 1,
+        difficulty: 1,
+        size: 4,
+        areas: [
+            { cells: [[0,0], [0,1], [0,2], [0,3], [1,0], [1,1], [1,2], [1,3]], required: 3 },
+            { cells: [[2,0], [2,1], [2,2], [3,0]], required: 1 },
+            { cells: [[2,3], [3,1], [3,2], [3,3]], required: 3 }
+        ],
+        initialState: [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
+    },
+    {
+        id: 26061511,
+        chapter: 1,
+        difficulty: 1,
+        size: 4,
+        areas: [
+            { cells: [[0,2], [1,2], [0,3], [1,1]], required: 3 },
+            { cells: [[2,2], [2,1], [1,0], [2,0], [3,0], [0,0], [3,2], [3,1]], required: 7 },
+            { cells: [[1,3], [2,3], [3,3]], required: 2 }
+        ],
+        initialState: [
+            [0, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
+    },
+    {
         id: 8,
         chapter: 1,
         difficulty: 1,
         size: 4,
         areas: [
-            {   // A
+            {
                 cells: [[0,0], [0,1], [1,0]],
                 required: 2
             },
-            {   // B
+            {
                 cells: [[2,0], [2,1], [3,0]],
                 cells: [[0,2], [1,2]],
                 required: 1
             },
-            {   // C
+            {
                 cells: [[0,3], [1,3]],
                 required: 1
             },
-            {   // D
+            {
                 cells: [[1,1], [2,1]],
                 required: 1
             },
-            {   // E
+            {
                 cells: [[2,0], [3,0], [3,1]],
                 required: 2
             },
-            {   // F
+            {
                 cells: [[2,2], [2,3]],
                 required: 1
             },
-            {   // G
+            {
                 cells: [[3,2], [3,3]],
                 required: 0
             }
@@ -295,41 +325,6 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 10,
-        chapter: 1,
-        difficulty: 1,
-        size: 5,
-        areas: [
-            {   // A
-                cells: [[0,0], [0,1], [0,2],
-                        [1,0], [1,1], [1,2]],
-                required: 5
-            },
-            {   // B
-                cells: [[2,0], [2,1],
-                        [3,0], [3,1]],
-                required: 2
-            },
-            {   // C
-                cells: [[0,3], [0,4]
-                       ,[1,3], [1,4]],
-                required: 3
-            },
-            {   // D
-                cells: [[2, 2], [2, 3], [2, 4],
-                        [3, 2], [3, 3], [3, 4]],
-                required: 5
-            }
-        ],
-        initialState: [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [2, 2, 2, 2, 2]
-        ]
-    },
-    {
         id: 11,
         chapter: 1,
         difficulty: 1,
@@ -365,6 +360,59 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0, 0],
             [2, 0, 0, 0, 2],
             [2, 2, 0, 2, 2]
+        ]
+    },
+    {
+        id: 26061614,
+        chapter: 1,
+        difficulty: 1,
+        size: 5,
+        areas: [
+            { cells: [[2,2], [3,1], [3,2], [3,3], [4,0], [4,1], [4,2], [4,3]], required: 7 },
+            { cells: [[0,2], [0,3], [1,2], [1,3], [2,3]], required: 3 },
+            { cells: [[0,0], [0,1], [1,1], [2,0], [2,1]], required: 3 }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 2],
+            [2, 0, 0, 0, 2],
+            [0, 0, 0, 0, 2],
+            [2, 0, 0, 0, 2],
+            [0, 0, 0, 0, 2]
+        ]
+    },
+    {
+        id: 10,
+        chapter: 1,
+        difficulty: 1,
+        size: 5,
+        areas: [
+            {
+                cells: [[0,0], [0,1], [0,2],
+                        [1,0], [1,1], [1,2]],
+                required: 5
+            },
+            {
+                cells: [[2,0], [2,1],
+                        [3,0], [3,1]],
+                required: 2
+            },
+            {
+                cells: [[0,3], [0,4]
+                       ,[1,3], [1,4]],
+                required: 3
+            },
+            {
+                cells: [[2, 2], [2, 3], [2, 4],
+                        [3, 2], [3, 3], [3, 4]],
+                required: 5
+            }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [2, 2, 2, 2, 2]
         ]
     },
     {
