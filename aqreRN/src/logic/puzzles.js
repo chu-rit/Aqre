@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 export const PUZZLE_MAPS = [
     {
         id: 1,
-        chapter: 0,
+        chapter: 1,
         difficulty: 0,
         size: 5,
         areas: [
@@ -1043,6 +1043,31 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0, 0, 0, 0]
         ]
     },
+    {
+        id: 260615,
+        chapter: 1,
+        difficulty: 2,
+        size: 6,
+        areas: [
+            { cells: [[0,0], [1,0], [0,1]], required: 3 },
+            { cells: [[0,3], [0,4], [0,5]], required: 0 },
+            { cells: [[1,1], [2,1], [1,2], [1,3], [1,4], [1,5], [2,4], [2,2], [2,3]], required: 5 },
+            { cells: [[2,5], [3,4], [4,3], [4,5], [5,2], [5,5], [4,4], [5,4], [5,3], [3,3], [3,5]], required: 2 },
+            { cells: [[0,2]], required: 1 },
+            { cells: [[3,1], [4,1], [3,0], [5,1], [4,0], [4,2], [2,0], [5,0]], required: 5 }
+        ],
+        initialState: [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ]
+    },
+
+    // LEVEL difficulty 3
+
     {
         id: 24,
         chapter: 1,
