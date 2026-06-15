@@ -1,0 +1,13 @@
+{
+  "name": "aqre-solver-node",
+  "version": "1.0.0",
+  "description": "Aqre Puzzle Solver API (Node.js)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

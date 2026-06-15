@@ -1,0 +1,191 @@
+/**
+ * Aqre Puzzle Solver API Server (Node.js)
+ */
+
+const http = require('http');
+const { PuzzleSolver } = require('./solver');
+
+const PORT = 5000;
+
+function parseJSON(body) {
+    try {
+        return JSON.parse(body);
+    } catch (e) {
+        return null;
+    }
+}
+
+const server = http.createServer((req, res) => {
+    // CORS 헤더
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
+
+    const url = req.url;
+    const method = req.method;
+
+    // Health check
+    if (url === '/' && method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Aqre Puzzle Solver API is running (Node.js)');
+        return;
+    }
+
+    // Solve puzzle
+    if (url === '/api/solve' && method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            const request = parseJSON(body);
+            if (!request) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON' }));
+                return;
+            }
+
+            try {
+                const solver = new PuzzleSolver();
+                const result = solver.solve(request);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result));
+            } catch (err) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message }));
+            }
+        });
+        return;
+    }
+
+    // Get puzzles endpoint
+    if (url === '/api/puzzles' && method === 'GET') {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const puzzlesJsPath = path.join(__dirname, '..', 'aqreRN', 'src', 'logic', 'puzzles.js');
+            
+            if (!fs.existsSync(puzzlesJsPath)) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'puzzles.js not found' }));
+                return;
+            }
+            
+            const content = fs.readFileSync(puzzlesJsPath, 'utf8');
+            
+            // Simple parser for the JS format
+            const arrayStart = content.indexOf('[');
+            const arrayEnd = content.lastIndexOf(']');
+            if (arrayStart === -1 || arrayEnd === -1) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid puzzles.js format' }));
+                return;
+            }
+            
+            let arrayContent = content.substring(arrayStart, arrayEnd + 1);
+            
+            // Convert to valid JSON
+            arrayContent = arrayContent.replace(/\/\/.*/g, ''); // Remove comments
+            arrayContent = arrayContent.replace(/(\w+):\s*/g, '"$1": '); // Quote property names
+            arrayContent = arrayContent.replace(/'/g, '"'); // Replace single quotes
+            arrayContent = arrayContent.replace(/"J"/g, '-99'); // Handle J value
+            arrayContent = arrayContent.replace(/:\s*J/g, ': -99');
+            arrayContent = arrayContent.replace(/,\s*}/g, '}'); // Remove trailing commas
+            arrayContent = arrayContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+            
+            const puzzles = JSON.parse(arrayContent);
+            
+            // Convert required: -99 to -1
+            const convertedPuzzles = puzzles.map(p => ({
+                ...p,
+                areas: p.areas.map(a => ({
+                    ...a,
+                    required: a.required === -99 ? -1 : a.required
+                }))
+            }));
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(convertedPuzzles));
+        } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message }));
+        }
+        return;
+    }
+
+    // Preset cells endpoint
+    if (url === '/api/preset' && method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            const request = parseJSON(body);
+            if (!request) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON' }));
+                return;
+            }
+
+            try {
+                const board = request.initialBoard.map(row => [...row]);
+                const size = request.size;
+                const areas = request.areas;
+                let presetCount = 0;
+
+                for (const area of areas) {
+                    const required = area.required;
+                    if (required === 0) {
+                        for (const cell of area.cells) {
+                            const row = cell[0], col = cell[1];
+                            if (board[row][col] === -1) {
+                                board[row][col] = 0;
+                                presetCount++;
+                            }
+                        }
+                    } else if (required === area.cells.length) {
+                        for (const cell of area.cells) {
+                            const row = cell[0], col = cell[1];
+                            if (board[row][col] === -1) {
+                                board[row][col] = 1;
+                                presetCount++;
+                            }
+                        }
+                    }
+                }
+
+                const blackCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+                for (let row = 0; row < size; row++) {
+                    for (let col = 0; col < size; col++) {
+                        if (board[row][col] === 2) {
+                            const pos = row * size + col;
+                            const idx = Math.floor(pos / 32);
+                            blackCellBitmask[idx] |= (1 << (pos % 32));
+                        }
+                    }
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    presetBoard: board,
+                    blackCellBitmask: blackCellBitmask,
+                    presetCount: presetCount
+                }));
+            } catch (err) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message }));
+            }
+        });
+        return;
+    }
+
+    // 404
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+});
+
+server.listen(PORT, () => {
+    console.log(`Aqre Puzzle Solver API running at http://localhost:${PORT}`);
+});

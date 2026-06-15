@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aqre Puzzle Generator</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background: #1a1a2e;
+            color: #eee;
+            overflow-y: auto;
+        }
+        h1 { color: #00d4aa; margin: 0 0 8px 0; font-size: 20px; }
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+            align-items: center;
+            background: #16213e;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        .controls .control-group {
+            flex: 0 0 auto;
+        }
+        .controls input, .controls select {
+            padding: 4px 8px;
+            font-size: 12px;
+            width: 80px;
+        }
+        .controls button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label { font-size: 12px; color: #888; }
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #fff;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #00d4aa;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.8; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .main-content {
+            display: grid;
+            grid-template-columns: minmax(300px, 1fr) 280px;
+            gap: 10px;
+            height: auto;
+            max-height: 90vh;
+        }
+        @media (max-width: 900px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            max-height: calc(90vh - 20px);
+            overflow: hidden;
+        }
+        .panel h3 {
+            margin: 0 0 8px 0;
+            color: #00d4aa;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 6px;
+            font-size: 14px;
+        }
+        .board {
+            display: grid;
+            gap: 2px;
+            margin: 0 auto;
+            width: 420px;
+            height: 420px;
+            background: #000;
+        }
+        .cell {
+            aspect-ratio: 1;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cell.white { background: #fff; color: #1a1a2e; }
+        .cell.gray { background: #666; color: #fff; }
+        .cell.black { background: #000; color: #fff; }
+        .cell.empty { background: #1e3a5f; color: #fff; } /* 빈칸: 남색 (검정과 구분) */
+        .cell.area-border { border: 2px solid #00d4aa; }
+        .cell:hover { opacity: 0.7; }
+        .log {
+            background: #0f3460;
+            border-radius: 4px;
+            padding: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            flex: 1;
+            min-height: 80px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .log .success { color: #00d4aa; }
+        .log .error { color: #e94560; }
+        .log .info { color: #888; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 11px;
+        }
+        .stat-box {
+            background: #0f3460;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value { font-size: 16px; font-weight: bold; color: #00d4aa; }
+        .stat-label { font-size: 10px; color: #888; }
+        .export-section {
+            margin-top: 6px;
+        }
+        .export-section h3 {
+            font-size: 11px;
+            margin: 0 0 4px 0;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0f3460;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            color: #fff;
+            font-family: monospace;
+            padding: 6px;
+            resize: vertical;
+            font-size: 12px;
+        }
+        .test-mode .controls,
+        .test-mode .panel:nth-child(2) {
+            display: none;
+        }
+        .test-mode .panel:first-child {
+            flex: 1;
+        }
+        .mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <button class="mode-toggle" onclick="toggleTestMode()">테스트 모드</button>
+    <h1>Aqre Puzzle Generator</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>크기 (Size)</label>
+            <select id="size">
+                <option value="4">4x4</option>
+                <option value="5">5x5</option>
+                <option value="6" selected>6x6</option>
+                <option value="7">7x7</option>
+                <option value="8">8x8</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>영역 개수 (0 = 랜덤)</label>
+            <input type="number" id="areaCount" min="0" max="20" value="0">
+        </div>
+        <div class="control-group">
+            <label>검정 셀 개수 (비어있으면 자동)</label>
+            <input type="number" id="blackCount" min="0" max="20" value="" placeholder="자동">
+        </div>
+        <button id="generateBtn" onclick="generatePuzzle()">퍼즐 생성</button>
+        <button id="solveBtn" onclick="verifyWithSolver()" disabled>Solver 검증</button>
+        <button id="exportBtn" onclick="exportPuzzle()" disabled>보내기</button>
+    </div>
+
+    <div class="main-content">
+        <div class="panel">
+            <h3>미리보기</h3>
+            <div id="board" class="board"></div>
+            <div class="stats" id="stats"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>생성 로그</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <div class="panel export-section">
+        <h3>퍼즐 데이터 (검증 실패해도 여기서 확인 가능)</h3>
+        <div id="validationStatus" style="margin-bottom: 10px; padding: 8px 12px; border-radius: 5px; font-size: 12px; background: #0f3460; color: #888;">
+            ⏳ 퍼즐 생성 전...
+        </div>
+        <textarea id="exportData" placeholder="퍼즐 데이터를 입력하거나 생성 결과가 여기에 표시됩니다"></textarea>
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button onclick="loadFromExportData()">미리보기 및 검증</button>
+            <button onclick="copyExportData()">복사</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api/solve';
+        let currentPuzzle = null;
+        let currentSolution = null;
+        let generationAttempts = 0;
+        const MAX_GENERATION_ATTEMPTS = 15;
+        const MAX_VERIFICATION_ATTEMPTS = 5;
+        
+        // 생성 전략 목록
+        const STRATEGIES = [
+            { name: 'pattern', weight: 0.3 },
+            { name: 'snake', weight: 0.25 },
+            { name: 'clusters', weight: 0.25 },
+            { name: 'random', weight: 0.2 }
+        ];
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            logEl.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function selectStrategy(retryCount) {
+            // 재시도 횟수에 따라 전략 가중치 조정
+            if (retryCount < 3) {
+                return STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)].name;
+            } else if (retryCount < 6) {
+                // 실패 시 더 안정적인 전략 선호
+                const stable = ['pattern', 'snake'];
+                return stable[Math.floor(Math.random() * stable.length)];
+            } else {
+                // 계속 실패하면 랜덤으로
+                return 'random';
+            }
+        }
+
+        function getRandomAreaCount(size) {
+            // 크기에 따라 적절한 영역 개수 범위 설정 - 더 보수적으로
+            const minAreas = Math.max(3, Math.floor(size / 2));
+            const maxAreas = Math.min(8, size + 1);
+            return minAreas + Math.floor(Math.random() * (maxAreas - minAreas + 1));
+        }
+
+        function generatePuzzle(retryCount = 0, adjustedParams = null) {
+            const size = adjustedParams?.size || parseInt(document.getElementById('size').value);
+            let areaCount = adjustedParams?.areaCount ?? parseInt(document.getElementById('areaCount').value);
+            const blackCountInput = document.getElementById('blackCount').value;
+            let targetBlackCount = adjustedParams?.targetBlackCount ?? (blackCountInput === '' ? null : parseInt(blackCountInput));
+            
+            // 0이면 랜덤 영역 개수 선택
+            if (areaCount === 0) {
+                areaCount = getRandomAreaCount(size);
+            }
+            
+            // 비어있을 때만 자동, 0은 0으로 작동
+            
+            const strategy = adjustedParams?.strategy || selectStrategy(retryCount, targetBlackCount);
+
+            if (retryCount === 0) {
+                generationAttempts = 0;
+                const areaText = document.getElementById('areaCount').value === '0' ? 
+                    `${areaCount}개 (랜덤)` : `${areaCount}개`;
+                const blackText = targetBlackCount !== null ? `${targetBlackCount}개` : '자동';
+                log(`퍼즐 생성 시작... (${size}x${size}, 영역 ${areaText}, 검정 ${blackText}, 전략: ${strategy})`, 'info');
+            } else {
+                log(`재시도 ${retryCount}/${MAX_GENERATION_ATTEMPTS}... 전략: ${strategy}`, 'info');
+            }
+            
+            generationAttempts++;
+            
+            // 1. 선택된 전략으로 해답 생성 (검정 셀 개수 지정)
+            let solution;
+            try {
+                solution = generateSolutionWithStrategy(size, strategy, null, targetBlackCount);
+            } catch (e) {
+                log(`전략 ${strategy} 실패: ${e.message}`, 'error');
+                solution = null;
+            }
+            
+            if (!solution) {
+                log(`해답 생성 실패 (전략: ${strategy})`, 'error');
+                if (generationAttempts < MAX_GENERATION_ATTEMPTS) {
+                    const nextStrategy = selectStrategy(retryCount + 1);
+                    setTimeout(() => generatePuzzle(retryCount + 1, { 
+                        size, areaCount, strategy: nextStrategy, targetBlackCount 
+                    }), 10);
+                } else {
+                    log('최대 시도 횟수 초과. 크기를 줄이거나 다시 시도하세요.', 'error');
+                }
+                return;
+            }
+            log(`유효한 해답 생성 완료 (회색: ${solution.grayCells.length}개)`, 'success');
+
+            // 2. 해답 기반으로 영역 생성
+            const areas = generateAreasFromSolution(solution, areaCount);
+            if (areas.length < 2) {
+                log('영역 생성 실패, 영역 개수 조정 후 재시도...', 'error');
+                if (generationAttempts < MAX_GENERATION_ATTEMPTS) {
+                    const newAreaCount = Math.max(2, areaCount - 1);
+                    setTimeout(() => generatePuzzle(retryCount + 1, { 
+                        size, areaCount: newAreaCount, strategy, targetBlackCount 
+                    }), 10);
+                }
+                return;
+            }
+            log(`${areas.length}개 영역 생성 완료`, 'success');
+
+            // 3. 빈 퍼즐 생성 (검정 셀만 표시, 나머지는 빈칸)
+            const emptyState = generateEmptyState(solution);
+            log('빈 퍼즐 생성 (검정 셀만 표시)', 'info');
+
+            // 4. 퍼즐 데이터 구성 (빈 상태로)
+            currentPuzzle = {
+                id: Date.now(),
+                name: `Generated ${size}x${size}`,
+                size: size,
+                areas: areas,
+                initialState: emptyState
+            };
+            currentSolution = solution;
+
+            // UI 업데이트 (빈 퍼즐 표시)
+            renderBoard(solution, areas, emptyState);
+            updateStats(size, areas, emptyState, solution);
+            
+            // 데이터 표시
+            displayPuzzleData();
+            updateValidationStatus('pending', `🔍 빈 퍼즐로 Solver 시도 중... (전략: ${strategy})`);
+            
+            document.getElementById('solveBtn').disabled = false;
+            document.getElementById('exportBtn').disabled = false;
+            
+            log('빈 퍼즐 생성 완료! Solver로 해답 검증 중...', 'success');
+            
+            // 자동 검증 시작 (빈 퍼즐로)
+            setTimeout(() => autoVerifyWithRetry(0, retryCount, { 
+                size, areaCount, strategy, targetBlackCount, solution, areas 
+            }), 100);
+        }
+        
+        function generateEmptyState(solution) {
+            const { board, blackCells } = solution;
+            const size = board.length;
+            
+            // 모든 셀을 빈칸(-1)으로 초기화
+            const emptyState = Array(size).fill(null).map(() => Array(size).fill(-1));
+            
+            // 검정 셀만 표시
+            for (const [r, c] of blackCells) {
+                emptyState[r][c] = 2;
+            }
+            
+            return emptyState;
+        }
+
+        function generateSolutionWithStrategy(size, strategy, targetGrayCount = null, targetBlackCount = null) {
+            switch (strategy) {
+                case 'pattern':
+                    return generatePatternSolution(size, targetGrayCount, targetBlackCount);
+                case 'snake':
+                    return generateSnakeSolution(size, targetGrayCount, targetBlackCount);
+                case 'clusters':
+                    return generateClustersSolution(size, targetGrayCount, targetBlackCount);
+                case 'random':
+                default:
+                    return generateRandomSolution(size, targetGrayCount, targetBlackCount);
+            }
+        }
+        
+        function generatePatternSolution(size, targetGrayCount = null, targetBlackCount = null) {
+            // 체크무늬 기반 패턴 생성
+            const board = Array(size).fill(null).map(() => Array(size).fill(0));
+            
+            // 타겟 회색 개수가 있으면 해당 비율에 맞는 패턴 선택/조정
+            let targetRatio = targetGrayCount ? targetGrayCount / (size * size) : 0.5;
+            targetRatio = Math.max(0.05, Math.min(0.95, targetRatio)); // 5%~95% 범위
+            
+            // 패턴들을 비율 기반으로 선택
+            const patterns = [
+                { fn: (r, c) => (r + c) % 2 === 0, ratio: 0.5 }, // 체크무늬
+                { fn: (r, c) => (Math.floor(r/2) + Math.floor(c/2)) % 2 === 0, ratio: 0.5 }, // 2x2 블록
+                { fn: (r, c) => (r + c) % 3 !== 0, ratio: 0.67 }, // 대각선
+                { fn: (r, c) => r % 2 === 0, ratio: 0.5 } // 가로줄
+            ];
+            
+            // 타겟 비율에 가장 가까운 패턴 선택
+            let pattern = patterns[0];
+            let minDiff = Math.abs(patterns[0].ratio - targetRatio);
+            for (const p of patterns) {
+                const diff = Math.abs(p.ratio - targetRatio);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    pattern = p;
+                }
+            }
+            
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    board[r][c] = pattern.fn(r, c) ? 1 : 0;
+                }
+            }
+            
+            removeFourConsecutive(board, size);
+            ensureConnected(board, size, []);
+            
+            // 회색 셀 개수 조정 (타겟에 맞게)
+            if (targetGrayCount) {
+                adjustGrayCount(board, size, targetGrayCount);
+            }
+            
+            if (!validateSolution(board, size)) {
+                return null;
+            }
+            
+            const blackCells = placeBlackCells(board, size, targetBlackCount);
+            const grayCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) grayCells.push([r, c]);
+                }
+            }
+            
+            return { board: board.map(row => [...row]), grayCells, blackCells };
+        }
+        
+        function adjustGrayCount(board, size, targetGrayCount) {
+            // 현재 회색 셀 수 확인
+            let currentGray = 0;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) currentGray++;
+                }
+            }
+            
+            // 타겟보다 적으면 추가, 많으면 제거
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            if (currentGray < targetGrayCount) {
+                // 회색 추가
+                const candidates = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (board[r][c] === 0) {
+                            // 연결성 확인
+                            let adjacentGray = false;
+                            for (const [dr, dc] of directions) {
+                                const nr = r + dr, nc = c + dc;
+                                if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === 1) {
+                                    adjacentGray = true;
+                                    break;
+                                }
+                            }
+                            if (adjacentGray) candidates.push([r, c]);
+                        }
+                    }
+                }
+                
+                candidates.sort(() => Math.random() - 0.5);
+                let added = 0;
+                for (const [r, c] of candidates) {
+                    if (currentGray + added >= targetGrayCount) break;
+                    board[r][c] = 1;
+                    if (hasFourConsecutive(board, r, c, size)) {
+                        board[r][c] = 0;
+                    } else {
+                        added++;
+                    }
+                }
+            } else if (currentGray > targetGrayCount) {
+                // 회색 제거 (가장자리부터)
+                const grayCells = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (board[r][c] === 1) {
+                            // 연결된 이웃 수 확인
+                            let neighborCount = 0;
+                            for (const [dr, dc] of directions) {
+                                const nr = r + dr, nc = c + dc;
+                                if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === 1) {
+                                    neighborCount++;
+                                }
+                            }
+                            grayCells.push([r, c, neighborCount]);
+                        }
+                    }
+                }
+                
+                // 이웃 많은 순으로 정렬 (가장자리 제거 우선)
+                grayCells.sort((a, b) => a[2] - b[2]);
+                
+                let removed = 0;
+                for (const [r, c, neighbors] of grayCells) {
+                    if (currentGray - removed <= targetGrayCount) break;
+                    if (neighbors > 0) { // 연결성 유지하며 제거
+                        board[r][c] = 0;
+                        removed++;
+                    }
+                }
+            }
+        }
+        
+        function generateSnakeSolution(size, targetGrayCount = null, targetBlackCount = null) {
+            // 뱀 모양 경로로 회색 셀 배치
+            const board = Array(size).fill(null).map(() => Array(size).fill(0));
+            const grayCells = [];
+            
+            let r = 0, c = 0;
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+            let dirIdx = 0;
+            
+            const totalCells = size * size;
+            const targetGray = targetGrayCount || Math.floor(totalCells * 0.4);
+            
+            for (let i = 0; i < totalCells && grayCells.length < targetGray; i++) {
+                // 현재 위치를 회색으로
+                board[r][c] = 1;
+                grayCells.push([r, c]);
+                
+                // 다음 위치 찾기
+                let nextR = r + directions[dirIdx][0];
+                let nextC = c + directions[dirIdx][1];
+                
+                // 벽에 닿으면 방향 전환
+                if (nextR < 0 || nextR >= size || nextC < 0 || nextC >= size || board[nextR][nextC] === 1) {
+                    dirIdx = (dirIdx + 1) % 4;
+                    nextR = r + directions[dirIdx][0];
+                    nextC = c + directions[dirIdx][1];
+                    
+                    // 여전히 안되면 랜덤
+                    if (nextR < 0 || nextR >= size || nextC < 0 || nextC >= size || board[nextR][nextC] === 1) {
+                        const candidates = [];
+                        for (const [dr, dc] of [[-1,0], [1,0], [0,-1], [0,1]]) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === 0) {
+                                candidates.push([nr, nc]);
+                            }
+                        }
+                        if (candidates.length === 0) break;
+                        [nextR, nextC] = candidates[Math.floor(Math.random() * candidates.length)];
+                    }
+                }
+                
+                r = nextR;
+                c = nextC;
+            }
+            
+            removeFourConsecutive(board, size);
+            ensureConnected(board, size, []);
+            
+            // 회색 개수 조정
+            if (targetGrayCount) {
+                adjustGrayCount(board, size, targetGrayCount);
+            }
+            
+            if (!validateSolution(board, size)) {
+                return null;
+            }
+            
+            const blackCells = placeBlackCells(board, size, targetBlackCount);
+            grayCells.length = 0;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) grayCells.push([r, c]);
+                }
+            }
+            
+            return { board: board.map(row => [...row]), grayCells, blackCells };
+        }
+        
+        function generateClustersSolution(size, targetGrayCount = null, targetBlackCount = null) {
+            // 여러 개의 작은 클러스터로 구성
+            const board = Array(size).fill(null).map(() => Array(size).fill(0));
+            const grayCells = [];
+            
+            const totalCells = size * size;
+            const targetGray = targetGrayCount || Math.floor(totalCells * 0.4);
+            
+            // 타겟 회색 개수에 따른 클러스터 수와 크기 계산
+            const avgClusterSize = 4;
+            const numClusters = Math.max(2, Math.floor(targetGray / avgClusterSize));
+            const clusterCenters = [];
+            
+            // 중심점 랜덤 선택 (균등하게 분포)
+            for (let i = 0; i < numClusters; i++) {
+                clusterCenters.push([
+                    Math.floor(Math.random() * size),
+                    Math.floor(Math.random() * size)
+                ]);
+            }
+            
+            // 각 중심점에서 BFS로 클러스터 생성
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            let totalPlaced = 0;
+            
+            for (const [cr, cc] of clusterCenters) {
+                if (totalPlaced >= targetGray) break;
+                
+                const remaining = targetGray - totalPlaced;
+                const clusterSize = Math.min(3 + Math.floor(Math.random() * 4), remaining);
+                const queue = [[cr, cc]];
+                const visited = new Set([`${cr},${cc}`]);
+                
+                if (board[cr][cc] === 0) {
+                    board[cr][cc] = 1;
+                    grayCells.push([cr, cc]);
+                    totalPlaced++;
+                }
+                
+                while (queue.length > 0 && visited.size < clusterSize && totalPlaced < targetGray) {
+                    const [r, c] = queue.shift();
+                    
+                    for (const [dr, dc] of directions) {
+                        const nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < size && nc >= 0 && nc < size && 
+                            board[nr][nc] === 0 && !visited.has(`${nr},${nc}`)) {
+                            board[nr][nc] = 1;
+                            grayCells.push([nr, nc]);
+                            visited.add(`${nr},${nc}`);
+                            queue.push([nr, nc]);
+                            totalPlaced++;
+                            
+                            if (visited.size >= clusterSize || totalPlaced >= targetGray) break;
+                        }
+                    }
+                }
+            }
+            
+            removeFourConsecutive(board, size);
+            ensureConnected(board, size, []);
+            
+            // 회색 개수 조정
+            if (targetGrayCount) {
+                adjustGrayCount(board, size, targetGrayCount);
+            }
+            
+            if (!validateSolution(board, size)) {
+                return null;
+            }
+            
+            const blackCells = placeBlackCells(board, size, targetBlackCount);
+            grayCells.length = 0;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) grayCells.push([r, c]);
+                }
+            }
+            
+            return { board: board.map(row => [...row]), grayCells, blackCells };
+        }
+        
+        function removeFourConsecutive(board, size) {
+            // 가로 4연속 제거
+            for (let r = 0; r < size; r++) {
+                let count = 1, lastColor = board[r][0];
+                for (let c = 1; c < size; c++) {
+                    if (board[r][c] === lastColor) {
+                        count++;
+                        if (count >= 4) {
+                            // 반대 색으로 변경
+                            board[r][c] = 1 - lastColor;
+                            count = 1;
+                            lastColor = board[r][c];
+                        }
+                    } else {
+                        count = 1;
+                        lastColor = board[r][c];
+                    }
+                }
+            }
+            
+            // 세로 4연속 제거
+            for (let c = 0; c < size; c++) {
+                let count = 1, lastColor = board[0][c];
+                for (let r = 1; r < size; r++) {
+                    if (board[r][c] === lastColor) {
+                        count++;
+                        if (count >= 4) {
+                            board[r][c] = 1 - lastColor;
+                            count = 1;
+                            lastColor = board[r][c];
+                        }
+                    } else {
+                        count = 1;
+                        lastColor = board[r][c];
+                    }
+                }
+            }
+        }
+        
+        function ensureConnected(board, size, grayCells) {
+            // 모든 회색 셀이 연결되도록 조정
+            const visited = Array(size).fill(null).map(() => Array(size).fill(false));
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            // 첫 회색 셀 찾기
+            let startR = -1, startC = -1;
+            for (let r = 0; r < size && startR === -1; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) {
+                        startR = r; startC = c;
+                        break;
+                    }
+                }
+            }
+            
+            if (startR === -1) return; // 회색 셀 없음
+            
+            // BFS로 연결된 영역 찾기
+            const queue = [[startR, startC]];
+            visited[startR][startC] = true;
+            const connected = [[startR, startC]];
+            
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size && 
+                        board[nr][nc] === 1 && !visited[nr][nc]) {
+                        visited[nr][nc] = true;
+                        connected.push([nr, nc]);
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            
+            // 연결되지 않은 회색 셀을 연결된 영역에 붙이기
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1 && !visited[r][c]) {
+                        // 가장 가까운 연결된 회색 셀 찾아 경로 연결
+                        let minDist = Infinity, closest = null;
+                        for (const [cr, cc] of connected) {
+                            const dist = Math.abs(r - cr) + Math.abs(c - cc);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closest = [cr, cc];
+                            }
+                        }
+                        
+                        if (closest) {
+                            // 경로 따라 셀들을 회색으로 변경
+                            let [cr, cc] = [r, c];
+                            while (cr !== closest[0] || cc !== closest[1]) {
+                                if (board[cr][cc] !== 2) {
+                                    board[cr][cc] = 1;
+                                    connected.push([cr, cc]);
+                                }
+                                if (cr < closest[0]) cr++;
+                                else if (cr > closest[0]) cr--;
+                                else if (cc < closest[1]) cc++;
+                                else if (cc > closest[1]) cc--;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function placeBlackCells(board, size, targetBlackCount = null) {
+            const blackCells = [];
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            // 타겟 검정 셀 개수 (null이면 자동, 0이면 0개)
+            const totalCells = size * size;
+            const maxBlack = Math.floor(totalCells * 0.12); // 최대 12%로 감소
+            const targetBlack = targetBlackCount !== null ? targetBlackCount : Math.min(maxBlack, Math.max(0, Math.floor(size / 4)));
+            
+            if (targetBlack === 0) return blackCells; // 0개 요청 시 바로 반환
+            
+            // 후보 셀 수집 - 더 엄격한 조건
+            const candidates = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 0) { // 흰색 셀 중에서
+                        // 4연속 규칙 위반 검사 - 검정 배치 시 주변 패턴 확인
+                        let canPlace = true;
+                        
+                        // 가상으로 검정 배치 후 4연속 검정 검사
+                        const tempRow = [0,0,0,0,0,0,0,0];
+                        const tempCol = [0,0,0,0,0,0,0,0];
+                        for (let i = -3; i <= 3; i++) {
+                            if (c+i >= 0 && c+i < size) {
+                                tempRow[c+i+3] = (i === 0) ? 2 : board[r][c+i];
+                            }
+                            if (r+i >= 0 && r+i < size) {
+                                tempCol[r+i+3] = (i === 0) ? 2 : board[r+i][c];
+                            }
+                        }
+                        
+                        // 연속 4개 검정 체크
+                        let blackCount = 0;
+                        for (let i = 0; i < 8; i++) {
+                            if (tempRow[i] === 2) {
+                                blackCount++;
+                                if (blackCount >= 4) { canPlace = false; break; }
+                            } else blackCount = 0;
+                        }
+                        blackCount = 0;
+                        for (let i = 0; i < 8; i++) {
+                            if (tempCol[i] === 2) {
+                                blackCount++;
+                                if (blackCount >= 4) { canPlace = false; break; }
+                            } else blackCount = 0;
+                        }
+                        
+                        if (!canPlace) continue;
+                        
+                        // 회색 셀과 인접한 개수 계산
+                        let adjacentGray = 0;
+                        let adjacentBlack = 0;
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                                if (board[nr][nc] === 1) adjacentGray++;
+                                if (board[nr][nc] === 2) adjacentBlack++;
+                            }
+                        }
+                        
+                        // 회색과 인접하고, 다른 검정과 인접하지 않은 셀 우선
+                        if (adjacentGray >= 1 && adjacentBlack === 0) {
+                            candidates.push([r, c, adjacentGray * 10 + (r === 0 || r === size-1 || c === 0 || c === size-1 ? 5 : 0)]);
+                        }
+                    }
+                }
+            }
+            
+            // 우선순위로 정렬
+            candidates.sort((a, b) => b[2] - a[2]);
+            
+            // 하나씩 배치하면서 연결성과 4연속 규칙 검사
+            let attempts = 0;
+            for (const [r, c, score] of candidates) {
+                if (blackCells.length >= targetBlack) break;
+                attempts++;
+                if (attempts > 50) break; // 시도 횟수 제한
+                
+                // 일시적으로 검정으로 변경
+                const original = board[r][c];
+                board[r][c] = 2;
+                
+                // 연결성 + 4연속 검사
+                const connected = isAllNonBlackConnected(board, size);
+                const noFour = !hasFourConsecutiveBlack(board, r, c, size);
+                
+                if (connected && noFour) {
+                    blackCells.push([r, c]);
+                } else {
+                    board[r][c] = original;
+                }
+            }
+            
+            return blackCells;
+        }
+        
+        function hasFourConsecutiveBlack(board, row, col, size) {
+            // 가로 검사
+            let count = 0;
+            for (let c = Math.max(0, col-3); c <= Math.min(size-1, col+3); c++) {
+                if (board[row][c] === 2) {
+                    count++;
+                    if (count >= 4) return true;
+                } else count = 0;
+            }
+            // 세로 검사
+            count = 0;
+            for (let r = Math.max(0, row-3); r <= Math.min(size-1, row+3); r++) {
+                if (board[r][col] === 2) {
+                    count++;
+                    if (count >= 4) return true;
+                } else count = 0;
+            }
+            return false;
+        }
+        
+        function isAllNonBlackConnected(board, size) {
+            // 검정 셀을 제외한 모든 셀(회색+흰색)이 연결되어 있는지 확인
+            const nonBlackCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] !== 2) { // 검정(2)이 아닌 모든 셀
+                        nonBlackCells.push([r, c]);
+                    }
+                }
+            }
+            
+            if (nonBlackCells.length <= 1) return true;
+            
+            const visited = Array(size).fill(null).map(() => Array(size).fill(false));
+            const queue = [nonBlackCells[0]];
+            const [startR, startC] = nonBlackCells[0];
+            visited[startR][startC] = true;
+            
+            let visitedCount = 0;
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+                visitedCount++;
+                
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size && 
+                        board[nr][nc] !== 2 && !visited[nr][nc]) {
+                        visited[nr][nc] = true;
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            
+            return visitedCount === nonBlackCells.length;
+        }
+
+        function validateSolution(board, size) {
+            // 모든 검증 수행
+            const grayCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) {
+                        // 4연속 검사
+                        if (hasFourConsecutive(board, r, c, size)) return false;
+                        grayCells.push([r, c]);
+                    }
+                }
+            }
+            
+            // 회색 셀 연결성 검사
+            if (grayCells.length > 0 && !isConnected(board, grayCells, size)) {
+                return false;
+            }
+            
+            // 검정 셀 제외한 모든 셀 연결성 검사
+            if (!isAllNonBlackConnected(board, size)) {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function generateRandomSolution(size, targetGrayCount = null, targetBlackCount = null) {
+            // 여러 개의 작은 클러스터로 구성
+            const board = Array(size).fill(null).map(() => Array(size).fill(0));
+            const grayCells = [];
+            
+            const totalCells = size * size;
+            const targetGray = targetGrayCount || Math.floor(totalCells * 0.4);
+            const targetClusters = Math.max(3, Math.floor(size / 2)); // 최소 3개 클러스터
+            const clusterSize = Math.max(2, Math.floor(targetGray / targetClusters));
+            
+            for (let attempt = 0; attempt < 1000; attempt++) {
+                for (let i = 0; i < size; i++) board[i].fill(0);
+                grayCells.length = 0;
+                
+                // 시작점 후보 (여러 위치에서 시작)
+                const startPositions = [];
+                for (let r = 1; r < size - 1; r++) {
+                    for (let c = 1; c < size - 1; c++) {
+                        startPositions.push([r, c]);
+                    }
+                }
+                
+                for (let i = startPositions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [startPositions[i], startPositions[j]] = [startPositions[j], startPositions[i]];
+                }
+                
+                // 여러 시작점에서 BFS로 클러스터 생성
+                const used = new Set();
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                
+                for (let i = 0; i < startPositions.length && grayCells.length < targetGray; i++) {
+                    const [sr, sc] = startPositions[i];
+                    if (board[sr][sc] === 1) continue;
+                    
+                    const cluster = [];
+                    const queue = [[sr, sc]];
+                    board[sr][sc] = 1;
+                    cluster.push([sr, sc]);
+                    grayCells.push([sr, sc]);
+                    
+                    while (queue.length > 0 && cluster.length < clusterSize && grayCells.length < targetGray) {
+                        const [r, c] = queue.shift();
+                        const neighbors = directions
+                            .map(([dr, dc]) => [r + dr, c + dc])
+                            .filter(([nr, nc]) => nr >= 0 && nr < size && nc >= 0 && nc < size 
+                                && board[nr][nc] === 0);
+                        
+                        for (const [nr, nc] of neighbors) {
+                            if (Math.random() < 0.6) {
+                                board[nr][nc] = 1;
+                                if (!hasFourConsecutive(board, nr, nc, size)) {
+                                    cluster.push([nr, nc]);
+                                    grayCells.push([nr, nc]);
+                                    queue.push([nr, nc]);
+                                } else {
+                                    board[nr][nc] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (grayCells.length > 0 && isConnected(board, grayCells, size)) {
+                    if (targetGrayCount) {
+                        adjustGrayCount(board, size, targetGrayCount);
+                    }
+                    
+                    const blackCells = placeBlackCells(board, size, targetBlackCount);
+                    
+                    grayCells.length = 0;
+                    for (let r = 0; r < size; r++) {
+                        for (let c = 0; c < size; c++) {
+                            if (board[r][c] === 1) grayCells.push([r, c]);
+                        }
+                    }
+                    
+                    return { board, grayCells, blackCells };
+                }
+            }
+            return null;
+        }
+
+        function hasFourConsecutive(board, row, col, size) {
+            const color = board[row][col];
+            if (color !== 1) return false;
+            
+            // 가로 검사
+            let count = 1;
+            for (let c = col - 1; c >= 0 && board[row][c] === color; c--) count++;
+            for (let c = col + 1; c < size && board[row][c] === color; c++) count++;
+            if (count >= 4) return true;
+            
+            // 세로 검사
+            count = 1;
+            for (let r = row - 1; r >= 0 && board[r][col] === color; r--) count++;
+            for (let r = row + 1; r < size && board[r][col] === color; r++) count++;
+            if (count >= 4) return true;
+            
+            return false;
+        }
+
+        function isConnected(board, grayCells, size) {
+            if (grayCells.length <= 1) return true;
+            
+            const visited = Array(size).fill(null).map(() => Array(size).fill(false));
+            const queue = [grayCells[0]];
+            const [startR, startC] = grayCells[0];
+            visited[startR][startC] = true;
+            
+            let visitedCount = 0;
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+                visitedCount++;
+                
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size && 
+                        board[nr][nc] === 1 && !visited[nr][nc]) {
+                        visited[nr][nc] = true;
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            
+            return visitedCount === grayCells.length;
+        }
+
+        function generateAreasFromSolution(solution, targetAreaCount) {
+            const { board, grayCells } = solution;
+            const size = board.length;
+            const areas = [];
+            const assigned = Array(size).fill(null).map(() => Array(size).fill(false));
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            // 1. 회색 셀을 중심으로 클러스터 형성
+            const grayClusters = [];
+            const grayVisited = Array(size).fill(null).map(() => Array(size).fill(false));
+            
+            for (const [gr, gc] of grayCells) {
+                if (grayVisited[gr][gc]) continue;
+                
+                // BFS로 인접한 회색 셀들 찾기
+                const cluster = [];
+                const queue = [[gr, gc]];
+                grayVisited[gr][gc] = true;
+                
+                while (queue.length > 0 && cluster.length < 10) {
+                    const [r, c] = queue.shift();
+                    cluster.push([r, c]);
+                    
+                    for (const [dr, dc] of directions) {
+                        const nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < size && nc >= 0 && nc < size && 
+                            board[nr][nc] === 1 && !grayVisited[nr][nc] && 
+                            cluster.length < 10) {
+                            grayVisited[nr][nc] = true;
+                            queue.push([nr, nc]);
+                        }
+                    }
+                }
+                
+                if (cluster.length > 0) {
+                    grayClusters.push(cluster);
+                }
+            }
+            
+            // 2. 회색 클러스터별로 영역 생성 (큰 클러스터는 분할)
+            for (const cluster of grayClusters) {
+                if (areas.length >= targetAreaCount) break;
+                
+                // 클러스터가 너무 크면 분할 (작은 보드에서는 더 작은 클러스터도 분할)
+                let clusterParts = [cluster];
+                const splitThreshold = size <= 5 ? 3 : 6; // 5x5 이하에서는 3셀부터 분할
+                const targetParts = Math.min(3, Math.ceil(cluster.length / 3)); // 3개 회색당 1영역
+                
+                if (cluster.length >= splitThreshold && areas.length + targetParts <= targetAreaCount) {
+                    // BFS로 균등하게 분할
+                    clusterParts = splitCluster(cluster, targetParts, size);
+                }
+                
+                for (const part of clusterParts) {
+                    if (areas.length >= targetAreaCount) break;
+                    
+                    const areaCells = [...part];
+                    
+                    // 이미 할당된 셀 제외
+                    const validCells = areaCells.filter(([r, c]) => !assigned[r][c]);
+                    if (validCells.length === 0) continue;
+                    
+                    // required 계산: 영역 크기에 비례해서 높은 숫자가 높은 확률로
+                    const grayCount = validCells.filter(([r, c]) => board[r][c] === 1).length;
+                    const whiteCount = validCells.filter(([r, c]) => board[r][c] === 0).length;
+                    const areaSize = validCells.length;
+                    
+                    let required;
+                    if (grayCount === 0 && whiteCount > 0) {
+                        required = -1; // J - 자유 영역
+                    } else if (grayCount >= areaSize) {
+                        required = areaSize - 1; // 최대값 제한
+                    } else {
+                        // 회색 셀 수를 기준으로 하되, 영역 크기에 비례해서 높은 값이 나올 확률 증가
+                        const minRequired = Math.max(1, grayCount);
+                        const maxRequired = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
+                        
+                        // 높은 숫자가 나올 확률을 높이기 위한 가중치
+                        // areaSize가 클수록 더 높은 값이 나올 확률 증가
+                        const sizeBonus = Math.floor(areaSize / 4); // 큰 영역 보너스
+                        const baseValue = Math.min(minRequired + sizeBonus, maxRequired);
+                        
+                        // baseValue ~ maxRequired 사이에서 랜덤 (높은 값에 가중치)
+                        const range = maxRequired - baseValue + 1;
+                        const randomOffset = Math.floor(Math.random() * range);
+                        required = Math.min(baseValue + randomOffset, maxRequired);
+                        
+                        // 최소 1 보장
+                        required = Math.max(1, required);
+                    }
+                    
+                    // 영역 등록
+                    for (const [r, c] of validCells) {
+                        assigned[r][c] = true;
+                    }
+                    
+                    areas.push({
+                        cells: validCells,
+                        required: required
+                    });
+                }
+            }
+            
+            // 클러스터 분할 함수
+            function splitCluster(cluster, numParts, size) {
+                if (numParts <= 1) return [cluster];
+                
+                const parts = [];
+                const unassigned = new Set(cluster.map(([r, c]) => `${r},${c}`));
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                
+                const targetSize = Math.floor(cluster.length / numParts);
+                
+                for (let i = 0; i < numParts && unassigned.size > 0; i++) {
+                    const part = [];
+                    // 시작점: 미할당 셀 중 하나
+                    const startKey = Array.from(unassigned)[0];
+                    const [sr, sc] = startKey.split(',').map(Number);
+                    
+                    const queue = [[sr, sc]];
+                    unassigned.delete(startKey);
+                    part.push([sr, sc]);
+                    
+                    // BFS로 주변 셀 수집
+                    while (queue.length > 0 && part.length < targetSize && unassigned.size > 0) {
+                        const [r, c] = queue.shift();
+                        
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr, nc = c + dc;
+                            const key = `${nr},${nc}`;
+                            if (unassigned.has(key)) {
+                                unassigned.delete(key);
+                                part.push([nr, nc]);
+                                queue.push([nr, nc]);
+                                if (part.length >= targetSize) break;
+                            }
+                        }
+                    }
+                    
+                    if (part.length > 0) {
+                        parts.push(part);
+                    }
+                }
+                
+                // 남은 셀은 마지막 파트에 추가
+                if (unassigned.size > 0 && parts.length > 0) {
+                    for (const key of unassigned) {
+                        const [r, c] = key.split(',').map(Number);
+                        parts[parts.length - 1].push([r, c]);
+                    }
+                }
+                
+                return parts.length > 0 ? parts : [cluster];
+            }
+            
+            // 3. 남은 흰색/블랙 셀들을 기존 영역에 병합 또는 새 영역 생성
+            const remaining = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (!assigned[r][c] && board[r][c] !== 2) {
+                        remaining.push([r, c]);
+                    }
+                }
+            }
+            
+            // 남은 셀들을 영역 크기에 비례하여 분배 (1번 영역 과잉 방지)
+            // 각 영역의 현재 크기 추적
+            const areaSizes = areas.map(a => a.cells.length);
+            const totalSize = areaSizes.reduce((a, b) => a + b, 0);
+            
+            for (const [r, c] of remaining) {
+                // 가장 작은 영역 우선 할당 (균형 유지)
+                let targetAreaIdx = 0;
+                let minSize = Infinity;
+                let minDist = Infinity;
+                
+                for (let i = 0; i < areas.length; i++) {
+                    const area = areas[i];
+                    // 거리 계산
+                    let dist = Infinity;
+                    for (const [ar, ac] of area.cells) {
+                        const d = Math.abs(r - ar) + Math.abs(c - ac);
+                        if (d < dist) dist = d;
+                    }
+                    
+                    // 크기와 거리 모두 고려 (작은 영역 우선, 거리 2 이내)
+                    if (dist <= 2 && area.cells.length < minSize) {
+                        minSize = area.cells.length;
+                        minDist = dist;
+                        targetAreaIdx = i;
+                    }
+                }
+                
+                const targetArea = areas[targetAreaIdx];
+                if (minDist <= 2) {
+                    targetArea.cells.push([r, c]);
+                    if (board[r][c] === 1) {
+                        targetArea.required++;
+                    }
+                    assigned[r][c] = true;
+                }
+            }
+            
+            // 4. 영역 크기 균형 조정 (너무 큰 영역 분할, 너무 작은 건 병합)
+            const MIN_AREA_SIZE = 2;
+            const MAX_AREA_SIZE = 8;
+            const balancedAreas = [];
+            
+            for (const area of areas) {
+                if (area.cells.length > MAX_AREA_SIZE) {
+                    // 큰 영역 분할
+                    const numSplits = Math.ceil(area.cells.length / MAX_AREA_SIZE);
+                    const splits = splitCluster(area.cells, numSplits, size);
+                    for (const split of splits) {
+                        const splitRequired = split.filter(([r, c]) => board[r][c] === 1).length;
+                        balancedAreas.push({
+                            cells: split,
+                            required: splitRequired
+                        });
+                    }
+                } else if (area.cells.length < MIN_AREA_SIZE && balancedAreas.length > 0) {
+                    // 작은 영역은 마지막 영역에 병합
+                    const lastArea = balancedAreas[balancedAreas.length - 1];
+                    if (lastArea.cells.length + area.cells.length <= MAX_AREA_SIZE) {
+                        lastArea.cells.push(...area.cells);
+                        lastArea.required += area.required;
+                    } else {
+                        balancedAreas.push(area);
+                    }
+                } else {
+                    balancedAreas.push(area);
+                }
+            }
+            
+            const mergedAreas = balancedAreas;
+            
+            // 5. 검증: 각 셀이 정확히 하나의 영역에만 속하는지 확인
+            const cellOwnership = new Map();
+            let hasOverlap = false;
+            
+            for (let i = 0; i < mergedAreas.length; i++) {
+                const area = mergedAreas[i];
+                for (const [r, c] of area.cells) {
+                    const key = `${r},${c}`;
+                    if (cellOwnership.has(key)) {
+                        // 중복 발견!
+                        hasOverlap = true;
+                        const prevArea = cellOwnership.get(key);
+                        console.error(`셀 [${r},${c}]가 영역 ${prevArea}와 영역 ${i}에 중복됨`);
+                    } else {
+                        cellOwnership.set(key, i);
+                    }
+                }
+            }
+            
+            // 6. 중복 제거 (첫 번째 영역만 유지)
+            if (hasOverlap) {
+                const seen = new Set();
+                for (const area of mergedAreas) {
+                    area.cells = area.cells.filter(([r, c]) => {
+                        const key = `${r},${c}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                }
+            }
+            
+            // 연결성 검증: 분리된 셀들은 가장 가까운 영역에 병합
+            function isConnected(cells, size) {
+                if (cells.length <= 1) return true;
+                const cellSet = new Set(cells.map(([r, c]) => `${r},${c}`));
+                const visited = new Set();
+                const queue = [cells[0]];
+                visited.add(`${cells[0][0]},${cells[0][1]}`);
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                
+                while (queue.length > 0) {
+                    const [r, c] = queue.shift();
+                    for (const [dr, dc] of directions) {
+                        const nr = r + dr, nc = c + dc;
+                        const key = `${nr},${nc}`;
+                        if (cellSet.has(key) && !visited.has(key)) {
+                            visited.add(key);
+                            queue.push([nr, nc]);
+                        }
+                    }
+                }
+                return visited.size === cells.length;
+            }
+            
+            // 분리된 영역 처리
+            for (let i = 0; i < mergedAreas.length; i++) {
+                const area = mergedAreas[i];
+                if (!isConnected(area.cells, size)) {
+                    // BFS로 분리된 컴포넌트들 찾기
+                    const cellSet = new Set(area.cells.map(([r, c]) => `${r},${c}`));
+                    const visited = new Set();
+                    const components = [];
+                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                    
+                    for (const [r, c] of area.cells) {
+                        const key = `${r},${c}`;
+                        if (visited.has(key)) continue;
+                        
+                        // 새 컴포넌트 탐색
+                        const component = [];
+                        const queue = [[r, c]];
+                        visited.add(key);
+                        
+                        while (queue.length > 0) {
+                            const [cr, cc] = queue.shift();
+                            component.push([cr, cc]);
+                            
+                            for (const [dr, dc] of directions) {
+                                const nr = cr + dr, nc = cc + dc;
+                                const nkey = `${nr},${nc}`;
+                                if (cellSet.has(nkey) && !visited.has(nkey)) {
+                                    visited.add(nkey);
+                                    queue.push([nr, nc]);
+                                }
+                            }
+                        }
+                        components.push(component);
+                    }
+                    
+                    // 가장 큰 컴포넌트를 원래 영역으로 유지
+                    components.sort((a, b) => b.length - a.length);
+                    area.cells = components[0];
+                    
+                    // 나머지 컴포넌트는 가장 가까운 영역에 병합
+                    for (let j = 1; j < components.length; j++) {
+                        const comp = components[j];
+                        let closestArea = null;
+                        let minDist = Infinity;
+                        
+                        for (const otherArea of mergedAreas) {
+                            if (otherArea === area && j === 0) continue;
+                            for (const [r1, c1] of comp) {
+                                for (const [r2, c2] of otherArea.cells) {
+                                    const dist = Math.abs(r1 - r2) + Math.abs(c1 - c2);
+                                    if (dist < minDist) {
+                                        minDist = dist;
+                                        closestArea = otherArea;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (closestArea) {
+                            closestArea.cells.push(...comp);
+                            closestArea.required += comp.filter(([r, c]) => board[r][c] === 1).length;
+                        }
+                    }
+                }
+            }
+            
+            // 빈 영역 제거 및 최종 반환
+            return mergedAreas
+                .filter(area => area.cells.length > 0)
+                .map(area => ({
+                    cells: area.cells,
+                    required: area.required >= 0 ? area.required : -1
+                }));
+        }
+
+        function renderBoard(solution, areas, initialState) {
+            const board = document.getElementById('board');
+            const size = solution.board.length;
+            
+            board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            board.innerHTML = '';
+            board.style.position = 'relative';
+            
+            // 영역 맵 생성: 각 셀이 어떤 영역에 속하는지
+            const areaMap = Array(size).fill(null).map(() => Array(size).fill(-1));
+            areas.forEach((area, idx) => {
+                area.cells.forEach(([r, c]) => {
+                    areaMap[r][c] = idx;
+                });
+            });
+            
+            // 영역 색상 미리 계산
+            const areaColors = areas.map((_, idx) => `hsl(${idx * 60}, 50%, 30%)`);
+            
+            // 셀 생성
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    const value = initialState[r][c];
+                    const areaIdx = areaMap[r][c];
+                    
+                    // 기본 셀 색상
+                    if (value === 0) {
+                        cell.classList.add('white');
+                        cell.style.background = '#fff';
+                    } else if (value === 1) {
+                        cell.classList.add('gray');
+                        cell.style.background = '#666';
+                    } else if (value === 2) {
+                        cell.classList.add('black');
+                        cell.style.background = '#000';
+                    } else {
+                        cell.classList.add('empty');
+                        cell.style.background = '#1e3a5f';
+                    }
+                    
+                    // 영역 배경색 (투명도 30%로 오버레이)
+                    if (areaIdx >= 0) {
+                        const baseColor = areaColors[areaIdx];
+                        // 현재 색상 위에 영역색 블렌딩
+                        cell.style.background = baseColor;
+                        cell.style.opacity = '0.9';
+                    }
+                    
+                    // 영역 테두리 (RN 스타일: 4방향 개별 설정)
+                    if (areaIdx >= 0) {
+                        const borderColor = 'deepskyblue'; // RN과 동일한 색상
+                        const borderWidth = '5px';
+                        
+                        // 위쪽: 보드 경계거나 위 셀이 다른 영역이면 표시
+                        if (r === 0 || areaMap[r][c] !== areaMap[r - 1]?.[c]) {
+                            cell.style.borderTop = `${borderWidth} solid ${borderColor}`;
+                        } else {
+                            cell.style.borderTop = 'none';
+                        }
+                        
+                        // 아래쪽: 보드 경계거나 아래 셀이 다른 영역이면 표시
+                        if (r === size - 1 || areaMap[r][c] !== areaMap[r + 1]?.[c]) {
+                            cell.style.borderBottom = `${borderWidth} solid ${borderColor}`;
+                        } else {
+                            cell.style.borderBottom = 'none';
+                        }
+                        
+                        // 왼쪽: 보드 경계거나 왼쪽 셀이 다른 영역이면 표시
+                        if (c === 0 || areaMap[r][c] !== areaMap[r][c - 1]) {
+                            cell.style.borderLeft = `${borderWidth} solid ${borderColor}`;
+                        } else {
+                            cell.style.borderLeft = 'none';
+                        }
+                        
+                        // 오른쪽: 보드 경계거나 오른쪽 셀이 다른 영역이면 표시
+                        if (c === size - 1 || areaMap[r][c] !== areaMap[r][c + 1]) {
+                            cell.style.borderRight = `${borderWidth} solid ${borderColor}`;
+                        } else {
+                            cell.style.borderRight = 'none';
+                        }
+                    }
+                    
+                    // 숫자 표시 (RN 스타일: 영역 첫 셀에만, 위치 고정)
+                    const area = areas.find(a => a.cells.some(([ar, ac]) => ar === r && ac === c));
+                    if (area && area.required > 0 && area.cells[0][0] === r && area.cells[0][1] === c) {
+                        cell.style.position = 'relative';
+                        const label = document.createElement('span');
+                        label.textContent = area.required;
+                        label.style.cssText = `
+                            position: absolute;
+                            left: 2px;
+                            top: 2px;
+                            color: #fff;
+                            font-weight: bold;
+                            font-size: 21px;
+                            z-index: 10;
+                            line-height: 1;
+                            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+                            -webkit-text-stroke: 1px #000;
+                        `;
+                        cell.appendChild(label);
+                    }
+                    
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function updateStats(size, areas, initialState, solution) {
+            const stats = document.getElementById('stats');
+            const totalCells = size * size;
+            const grayCount = solution.grayCells.length;
+            const presetCount = initialState.flat().filter(v => v !== -1).length;
+            
+            stats.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${size}x${size}</div>
+                    <div class="stat-label">크기</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${areas.length}</div>
+                    <div class="stat-label">영역</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${grayCount}</div>
+                    <div class="stat-label">회색 셀</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${presetCount}/${totalCells}</div>
+                    <div class="stat-label">프리셋</div>
+                </div>
+            `;
+        }
+
+        function updateValidationStatus(status, message) {
+            const statusEl = document.getElementById('validationStatus');
+            statusEl.textContent = message;
+            
+            if (status === 'pending') {
+                statusEl.style.background = '#0f3460';
+                statusEl.style.color = '#888';
+            } else if (status === 'success') {
+                statusEl.style.background = '#00d4aa';
+                statusEl.style.color = '#1a1a2e';
+            } else if (status === 'warning') {
+                statusEl.style.background = '#f39c12';
+                statusEl.style.color = '#1a1a2e';
+            } else if (status === 'error') {
+                statusEl.style.background = '#e94560';
+                statusEl.style.color = '#fff';
+            }
+        }
+
+        async function autoVerifyWithRetry(retryCount = 0, genRetryCount = 0, genParams = null) {
+            if (!currentPuzzle) return;
+            
+            updateValidationStatus('pending', `🔍 빈 퍼즐로 Solver 시도 ${retryCount + 1}/${MAX_VERIFICATION_ATTEMPTS}...`);
+            log(`빈 퍼즐로 Solver 시도 ${retryCount + 1}/${MAX_VERIFICATION_ATTEMPTS}...`, 'info');
+            
+            const result = await tryVerify();
+            
+            if (result.success && result.unique) {
+                // 찾은 해답이 현재 initialState와 일치하는지 검증
+                const foundSolution = result.solutions[0];
+                let matchesInitial = true;
+                
+                for (let r = 0; r < currentPuzzle.size; r++) {
+                    for (let c = 0; c < currentPuzzle.size; c++) {
+                        const initialVal = currentPuzzle.initialState[r][c];
+                        const solutionVal = foundSolution[r][c];
+                        // 고정된 셀(0, 1, 2)이 해답과 다르면 불일치
+                        if (initialVal !== -1 && initialVal !== solutionVal) {
+                            matchesInitial = false;
+                            break;
+                        }
+                    }
+                    if (!matchesInitial) break;
+                }
+                
+                if (!matchesInitial) {
+                    updateValidationStatus('error', '❌ 해답 불일치 - 유효하지 않은 퍼즐');
+                    log('찾은 해답이 initialState와 불일치! 유효하지 않은 퍼즐입니다.', 'error');
+                    return;
+                }
+                
+                // 유일해 발견! 완성된 퍼즐 표시
+                updateValidationStatus('success', '✅ 유일해 확인! 완성된 퍼즐 표시...');
+                log('유일해 발견! 완성된 퍼즐 표시...', 'success');
+                
+                // 완성된 해답 표시 (프리셋 없이 전체 표시)
+                const solution = genParams?.solution || currentSolution;
+                const areas = genParams?.areas || currentPuzzle.areas;
+                
+                // 해답을 그대로 initialState로 사용 (모두 표시)
+                const completedState = foundSolution.map(row => [...row]);
+                currentPuzzle.initialState = completedState;
+                
+                // UI 업데이트
+                renderBoard({...solution, board: foundSolution}, areas, completedState);
+                updateStats(currentPuzzle.size, areas, completedState, {...solution, board: foundSolution});
+                displayPuzzleData();
+                
+                updateValidationStatus('success', '✅ 유효한 퍼즐 완성! (유일해 보장)');
+                document.getElementById('exportBtn').disabled = false;
+                log('퍼즐 생성 완료! 유일해 보장됨.', 'success');
+                return;
+                
+            } else if (result.success && !result.unique) {
+                // 여러 해답 - 새 퍼즐 시도
+                updateValidationStatus('warning', '⚠️ 여러 해답 있음 - 새 퍼즐 시도');
+                log('여러 해답 존재. 새 퍼즐 생성...', 'error');
+                
+                if (genRetryCount < MAX_GENERATION_ATTEMPTS) {
+                    const nextStrategy = selectStrategy(genRetryCount + 1);
+                    setTimeout(() => generatePuzzle(genRetryCount + 1, {
+                        ...genParams,
+                        strategy: nextStrategy
+                    }), 100);
+                }
+            } else {
+                // 해답 없음 - 새 퍼즐 생성
+                updateValidationStatus('error', '❌ 해답 없음 - 새 퍼즐 시도');
+                log('빈 퍼즐로 해답 없음. 새 퍼즐 생성...', 'error');
+                
+                if (genRetryCount < MAX_GENERATION_ATTEMPTS) {
+                    const nextStrategy = selectStrategy(genRetryCount + 1);
+                    setTimeout(() => generatePuzzle(genRetryCount + 1, {
+                        ...genParams,
+                        strategy: nextStrategy
+                    }), 100);
+                } else {
+                    updateValidationStatus('error', '❌ 최대 시도 횟수 초과 - 설정 변경 필요');
+                    log('최대 생성 시도 횟수 초과. 설정을 변경해 보세요.', 'error');
+                }
+            }
+        }
+
+        async function tryVerify() {
+            const size = currentPuzzle.size;
+            const blackCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            // 디버깅: initialState 확인
+            log(`검증 시작: size=${size}, areas=${currentPuzzle.areas.length}`, 'info');
+            const blackCount = currentPuzzle.initialState.flat().filter(v => v === 2).length;
+            const grayCount = currentPuzzle.initialState.flat().filter(v => v === 1).length;
+            const whiteCount = currentPuzzle.initialState.flat().filter(v => v === 0).length;
+            log(`initialState: 검정=${blackCount}, 회색=${grayCount}, 흰색=${whiteCount}`, 'info');
+            
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (currentPuzzle.initialState[r][c] === 2) {
+                        const pos = r * size + c;
+                        const idx = Math.floor(pos / 32);
+                        blackCellBitmask[idx] |= (1 << (pos % 32));
+                    }
+                }
+            }
+            
+            const request = {
+                size: size,
+                areas: currentPuzzle.areas.map(a => ({
+                    cells: a.cells,
+                    required: a.required
+                })),
+                initialBoard: currentPuzzle.initialState,
+                blackCellBitmask: blackCellBitmask,
+                maxSolutions: 5
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+                
+                const result = await response.json();
+                
+                if (result.solutions && result.solutions.length > 0) {
+                    log(`검증 완료: ${result.solutions.length}개 해답 발견`, 'success');
+                    return { success: true, unique: result.solutions.length === 1, solutions: result.solutions };
+                } else {
+                    return { success: false, unique: false, solutions: null };
+                }
+            } catch (err) {
+                log(`API 오류: ${err.message}`, 'error');
+                return { success: false, unique: false };
+            }
+        }
+
+        async function verifyWithSolver() {
+            if (!currentPuzzle) {
+                log('먼저 퍼즐을 생성하세요', 'error');
+                return;
+            }
+            
+            log('Solver API 호출 중...', 'info');
+            const result = await tryVerify();
+            
+            if (result.success) {
+                if (result.unique) {
+                    log('유일해 보장됨! 완성된 퍼즐 데이터로 업데이트됩니다.', 'success');
+                    // 완성된 해답으로 업데이트 (첫 번째 해답 사용)
+                    if (result.solutions && result.solutions.length > 0) {
+                        const solution = result.solutions[0];
+                        // initialState를 완성된 해답으로 교체
+                        currentPuzzle.initialState = solution;
+                        // currentSolution도 업데이트
+                        currentSolution = {
+                            board: solution.map(row => [...row]),
+                            grayCells: [],
+                            blackCells: currentSolution?.blackCells || []
+                        };
+                        // 회색 셀 카운트 업데이트
+                        for (let r = 0; r < currentPuzzle.size; r++) {
+                            for (let c = 0; c < currentPuzzle.size; c++) {
+                                if (solution[r][c] === 1) {
+                                    currentSolution.grayCells.push([r, c]);
+                                }
+                            }
+                        }
+                        // 미리보기 업데이트
+                        renderBoard(currentSolution, currentPuzzle.areas, solution);
+                        updateStats(currentPuzzle.size, currentPuzzle.areas, solution, currentSolution);
+                        // 완성된 데이터 표시
+                        displayPuzzleData();
+                        log('완성된 퍼즐 데이터가 표시됨 (initialState에 해답 값이 포함됨)', 'success');
+                    }
+                } else {
+                    log('경고: 여러 해답 존재 - 완성된 퍼즐로 업데이트하지 않음', 'error');
+                }
+            } else {
+                log('검증 실패: 해답 없음', 'error');
+            }
+        }
+
+        function displayPuzzleData() {
+            if (!currentPuzzle) return;
+            
+            // Compact format like puzzles.js
+            const areasStr = currentPuzzle.areas.map(a => {
+                const cellsStr = a.cells.map(c => `[${c[0]},${c[1]}]`).join(', ');
+                return `            { cells: [${cellsStr}], required: ${a.required} }`;
+            }).join(',\n');
+            
+            // -1을 0으로 변환하여 표시
+            const stateStr = currentPuzzle.initialState.map(row => 
+                `            [${row.map(v => v === -1 ? 0 : v).join(', ')}]`
+            ).join(',\n');
+            
+            const exportStr = `    {
+        id: ${currentPuzzle.id},
+        name: "${currentPuzzle.name}",
+        size: ${currentPuzzle.size},
+        areas: [
+${areasStr}
+        ],
+        initialState: [
+${stateStr}
+        ]
+    }`;
+            
+            document.getElementById('exportData').value = exportStr;
+        }
+
+        function exportPuzzle() {
+            displayPuzzleData();
+            log('퍼즐 데이터가 보내기 영역에 표시됨', 'success');
+        }
+
+        function loadFromExportData() {
+            const exportText = document.getElementById('exportData').value.trim();
+            if (!exportText) {
+                log('퍼즐 데이터가 비어있습니다', 'error');
+                return;
+            }
+            
+            try {
+                // JSON 또는 JS 객체 형식 파싱
+                let puzzleData;
+                try {
+                    puzzleData = JSON.parse(exportText);
+                } catch (e) {
+                    // JS 객체 형식 시도 - 키를 따옴표로 감싸서 JSON처럼 만듦
+                    let cleanText = exportText;
+                    
+                    // id, name, size 등 키에 따옴표 추가
+                    cleanText = cleanText.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+                    
+                    // 줄 끝 쉼표 제거
+                    cleanText = cleanText.replace(/,(\s*[}\]])/g, '$1');
+                    
+                    // 추가/제거된 문자 정리
+                    cleanText = cleanText.trim();
+                    if (!cleanText.startsWith('{')) cleanText = '{' + cleanText;
+                    if (!cleanText.endsWith('}')) cleanText = cleanText + '}';
+                    
+                    try {
+                        puzzleData = JSON.parse(cleanText);
+                    } catch (e2) {
+                        // 마지막 방법: Function 사용
+                        puzzleData = new Function('return ' + exportText)();
+                    }
+                }
+                
+                // 필수 필드 검증
+                if (!puzzleData.id || !puzzleData.size || !puzzleData.areas || !puzzleData.initialState) {
+                    log('퍼즐 데이터 형식이 올바르지 않습니다 (id, size, areas, initialState 필수)', 'error');
+                    return;
+                }
+                
+                // currentPuzzle 설정
+                currentPuzzle = {
+                    id: puzzleData.id,
+                    name: puzzleData.name || `Loaded ${puzzleData.size}x${puzzleData.size}`,
+                    size: puzzleData.size,
+                    areas: puzzleData.areas.map(a => ({
+                        cells: a.cells,
+                        required: a.required
+                    })),
+                    initialState: puzzleData.initialState
+                };
+                
+                // 빈 solution 생성 (미리보기용)
+                const board = Array(puzzleData.size).fill(null).map(() => Array(puzzleData.size).fill(-1));
+                const blackCells = [];
+                for (let r = 0; r < puzzleData.size; r++) {
+                    for (let c = 0; c < puzzleData.size; c++) {
+                        if (puzzleData.initialState[r][c] === 2) {
+                            blackCells.push([r, c]);
+                            board[r][c] = 0;
+                        } else if (puzzleData.initialState[r][c] === 0 || puzzleData.initialState[r][c] === 1) {
+                            board[r][c] = puzzleData.initialState[r][c];
+                        }
+                    }
+                }
+                currentSolution = { board, grayCells: [], blackCells };
+                
+                // 미리보기 표시
+                renderBoard(currentSolution, currentPuzzle.areas, currentPuzzle.initialState);
+                updateStats(currentPuzzle.size, currentPuzzle.areas, currentPuzzle.initialState, currentSolution);
+                
+                // 버튼 활성화
+                document.getElementById('solveBtn').disabled = false;
+                document.getElementById('exportBtn').disabled = false;
+                
+                log('퍼즐 데이터 로드 완료. Solver 검증을 시작합니다...', 'success');
+                
+                // 디버깅: 로드된 데이터 확인
+                const loadedBlack = currentPuzzle.initialState.flat().filter(v => v === 2).length;
+                const loadedGray = currentPuzzle.initialState.flat().filter(v => v === 1).length;
+                const loadedWhite = currentPuzzle.initialState.flat().filter(v => v === 0).length;
+                log(`로드된 데이터: 검정=${loadedBlack}, 회색=${loadedGray}, 흰색=${loadedWhite}`, 'info');
+                
+                // 자동 Solver 검증 시작
+                setTimeout(() => verifyWithSolver(), 100);
+                
+            } catch (e) {
+                log(`데이터 파싱 오류: ${e.message}`, 'error');
+            }
+        }
+
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            log('퍼즐 데이터가 클립보드에 복사되었습니다', 'success');
+        }
+
+        let isTestMode = false;
+        function toggleTestMode() {
+            isTestMode = !isTestMode;
+            document.body.classList.toggle('test-mode', isTestMode);
+            const btn = document.querySelector('.mode-toggle');
+            btn.textContent = isTestMode ? '생성 모드' : '테스트 모드';
+            
+            if (isTestMode) {
+                log('테스트 모드로 전환. 퍼즐 데이터를 입력하고 "미리보기 및 검증"을 누르세요.', 'info');
+            } else {
+                log('생성 모드로 전환', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

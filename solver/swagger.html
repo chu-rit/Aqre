@@ -197,6 +197,57 @@
         .api-info a:hover {
             text-decoration: underline;
         }
+        .manual-input {
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .manual-input h3 {
+            color: #4a90e2;
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+        }
+        .manual-input textarea {
+            width: 100%;
+            min-height: 200px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            resize: vertical;
+        }
+        .manual-input button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .manual-input button:hover {
+            background-color: #357abD;
+        }
+        .verify-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .verify-result.success {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+        }
+        .verify-result.error {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6666;
+        }
     </style>
 </head>
 <body>
@@ -205,12 +256,24 @@
             <h2>퍼즐 선택 (C# API)</h2>
             <div class="api-info">
                 <p>API: http://localhost:5000</p>
-                <p><a href="http://localhost:5000/swagger" target="_blank">Swagger UI 열기</a></p>
             </div>
             <div class="level-select-wrapper">
                 <select id="levelSelect" class="level-select">
                     <option value="" disabled selected>레벨을 선택하세요...</option>
                 </select>
+            </div>
+            <div class="manual-input">
+                <h3>직접 퍼즐 데이터 검증</h3>
+                <p style="color: #aaa; font-size: 12px; margin: 5px 0;">제너레이터에서 생성한 퍼즐 데이터를 붙여넣어 검증하세요</p>
+                <textarea id="manualPuzzleData" placeholder="{
+  id: 123,
+  name: \"Test\",
+  size: 6,
+  areas: [...],
+  initialState: [...]
+}"></textarea>
+                <button onclick="verifyManualPuzzle()">검증</button>
+                <div id="verifyResult"></div>
             </div>
         </div>
     </div>
@@ -279,6 +342,371 @@
 
     // 페이지 로드 시 퍼즐 목록 로드
     loadPuzzles();
+
+    // 클라이언트 측 규칙 검증 함수
+    function validatePuzzleRules(puzzleData) {
+        const violations = [];
+        const { size, areas, initialState } = puzzleData;
+        
+        // 1. 4연속 체크 (가로/세로)
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size - 3; c++) {
+                const val = initialState[r][c];
+                if (val === 1 || val === 2) { // gray or black
+                    if (initialState[r][c+1] === val && initialState[r][c+2] === val && initialState[r][c+3] === val) {
+                        violations.push(`4연속 위반: (${r},${c})~(${r},${c+3}) 가로 ${val === 1 ? '회색' : '검정'}`);
+                    }
+                }
+            }
+        }
+        for (let c = 0; c < size; c++) {
+            for (let r = 0; r < size - 3; r++) {
+                const val = initialState[r][c];
+                if (val === 1 || val === 2) {
+                    if (initialState[r+1][c] === val && initialState[r+2][c] === val && initialState[r+3][c] === val) {
+                        violations.push(`4연속 위반: (${r},${c})~(${r+3},${c}) 세로 ${val === 1 ? '회색' : '검정'}`);
+                    }
+                }
+            }
+        }
+        
+        // 2. 영역별 required 체크
+        for (const area of areas) {
+            const grayCount = area.cells.filter(([r, c]) => initialState[r][c] === 1).length;
+            if (area.required > 0 && grayCount > area.required) {
+                violations.push(`영역 ${area.cells[0]} required(${area.required}) < 실제 회색(${grayCount})`);
+            }
+        }
+        
+        // 3. 2x2 회색 체크
+        for (let r = 0; r < size - 1; r++) {
+            for (let c = 0; c < size - 1; c++) {
+                if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
+                    initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
+                    violations.push(`2x2 회색 위반: (${r},${c})~(${r+1},${c+1})`);
+                }
+            }
+        }
+        
+        // 4. 회색 연결성 체크
+        const grayCells = [];
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (initialState[r][c] === 1) grayCells.push([r, c]);
+            }
+        }
+        if (grayCells.length > 0) {
+            const visited = new Set();
+            const queue = [grayCells[0]];
+            visited.add(`${grayCells[0][0]},${grayCells[0][1]}`);
+            const directions = [[-1,0],[1,0],[0,-1],[0,1]];
+            
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size &&
+                        initialState[nr][nc] === 1 && !visited.has(`${nr},${nc}`)) {
+                        visited.add(`${nr},${nc}`);
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            
+            if (visited.size !== grayCells.length) {
+                violations.push(`회색 연결성 위반: ${grayCells.length}개 중 ${visited.size}개만 연결됨`);
+            }
+        }
+        
+        return violations;
+    }
+
+    // 완성된 퍼즐 종합 검증
+    function validateFullPuzzle(puzzleData) {
+        const violations = [];
+        const { size, areas, initialState } = puzzleData;
+        
+        // 1. 4연속 체크 (가로/세로)
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size - 3; c++) {
+                const val = initialState[r][c];
+                if (val === 1 || val === 2) {
+                    if (initialState[r][c+1] === val && initialState[r][c+2] === val && initialState[r][c+3] === val) {
+                        violations.push(`4연속 위반: (${r},${c})~(${r},${c+3}) 가로 ${val === 1 ? '회색' : '검정'}`);
+                    }
+                }
+            }
+        }
+        for (let c = 0; c < size; c++) {
+            for (let r = 0; r < size - 3; r++) {
+                const val = initialState[r][c];
+                if (val === 1 || val === 2) {
+                    if (initialState[r+1][c] === val && initialState[r+2][c] === val && initialState[r+3][c] === val) {
+                        violations.push(`4연속 위반: (${r},${c})~(${r+3},${c}) 세로 ${val === 1 ? '회색' : '검정'}`);
+                    }
+                }
+            }
+        }
+        
+        // 2. 영역별 required 정확히 체크
+        for (const area of areas) {
+            const grayCount = area.cells.filter(([r, c]) => initialState[r][c] === 1).length;
+            if (area.required > 0 && grayCount !== area.required) {
+                violations.push(`영역 ${area.cells[0]}: required ${area.required} ≠ 실제 회색 ${grayCount}`);
+            }
+        }
+        
+        // 3. 2x2 회색 체크
+        for (let r = 0; r < size - 1; r++) {
+            for (let c = 0; c < size - 1; c++) {
+                if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
+                    initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
+                    violations.push(`2x2 회색 위반: (${r},${c})~(${r+1},${c+1})`);
+                }
+            }
+        }
+        
+        // 4. 회색 연결성 체크
+        const grayCells = [];
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                if (initialState[r][c] === 1) grayCells.push([r, c]);
+            }
+        }
+        if (grayCells.length > 0) {
+            const visited = new Set();
+            const queue = [grayCells[0]];
+            visited.add(`${grayCells[0][0]},${grayCells[0][1]}`);
+            const directions = [[-1,0],[1,0],[0,-1],[0,1]];
+            
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size &&
+                        initialState[nr][nc] === 1 && !visited.has(`${nr},${nc}`)) {
+                        visited.add(`${nr},${nc}`);
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            
+            if (visited.size !== grayCells.length) {
+                violations.push(`회색 연결성 위반: ${grayCells.length}개 중 ${visited.size}개만 연결`);
+            }
+        }
+        
+        return violations;
+    }
+
+    // 직접 입력한 퍼즐 데이터 검증
+    async function verifyManualPuzzle() {
+        const textarea = document.getElementById('manualPuzzleData');
+        const resultDiv = document.getElementById('verifyResult');
+        const text = textarea.value.trim();
+        
+        if (!text) {
+            resultDiv.innerHTML = '<div class="verify-result error">데이터를 입력하세요</div>';
+            return;
+        }
+        
+        try {
+            // 파싱 시도
+            let puzzleData;
+            try {
+                puzzleData = JSON.parse(text);
+            } catch (e) {
+                // JS 객체 형식으로 변환 시도
+                let cleanText = text;
+                cleanText = cleanText.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+                cleanText = cleanText.replace(/,(\s*[}\]])/g, '$1');
+                try {
+                    puzzleData = JSON.parse(cleanText);
+                } catch (e2) {
+                    puzzleData = new Function('return ' + text)();
+                }
+            }
+            
+            // 필수 필드 확인
+            if (!puzzleData.size || !puzzleData.areas || !puzzleData.initialState) {
+                resultDiv.innerHTML = '<div class="verify-result error">필수 필드 누락: size, areas, initialState</div>';
+                return;
+            }
+            
+            // 클라이언트 측 규칙 검증
+            const violations = validatePuzzleRules(puzzleData);
+            if (violations.length > 0) {
+                resultDiv.innerHTML = `<div class="verify-result error">❌ 규칙 위반:<br>${violations.join('<br>')}</div>`;
+                return;
+            }
+            
+            // API 요청 데이터 구성
+            const size = puzzleData.size;
+            const blackCellBitmask = new Array(Math.ceil((size * size) / 32)).fill(0);
+            
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (puzzleData.initialState[r][c] === 2) {
+                        const pos = r * size + c;
+                        const idx = Math.floor(pos / 32);
+                        blackCellBitmask[idx] |= (1 << (pos % 32));
+                    }
+                }
+            }
+            
+            const request = {
+                size: size,
+                areas: puzzleData.areas.map(a => ({
+                    cells: a.cells,
+                    required: a.required
+                })),
+                initialBoard: puzzleData.initialState,
+                blackCellBitmask: blackCellBitmask,
+                maxSolutions: 5
+            };
+            
+            // 빈 셀이 없는지 확인 (완성된 퍼즐인지)
+            const hasEmptyCells = puzzleData.initialState.some(row => 
+                row.some(v => v === -1 || v === 0)
+            );
+            
+            // 빈 셀이 없으면 현재 상태가 유효한지 직접 검증
+            if (!hasEmptyCells) {
+                resultDiv.innerHTML = '<div class="verify-result" style="background: rgba(255,255,0,0.2); color: #ff0;">완성된 퍼즐 검증 중...</div>';
+                
+                // 클라이언트 측에서 직접 검증
+                const fullViolations = validateFullPuzzle(puzzleData);
+                if (fullViolations.length === 0) {
+                    resultDiv.innerHTML = '<div class="verify-result success">✅ 완성된 퍼즐 - 모든 규칙 만족</div>';
+                    renderPuzzle(puzzleData.initialState, '완성된 퍼즐');
+                } else {
+                    resultDiv.innerHTML = `<div class="verify-result error">❌ 완성된 퍼즐 규칙 위반:<br>${fullViolations.join('<br>')}</div>`;
+                }
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="verify-result" style="background: rgba(255,255,0,0.2); color: #ff0;">검증 중...</div>';
+            
+            // API 호출
+            const response = await fetch(`${API_BASE_URL}/solve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request)
+            });
+            
+            const result = await response.json();
+            
+            if (result.solutions && result.solutions.length > 0) {
+                if (result.solutions.length === 1) {
+                    resultDiv.innerHTML = '<div class="verify-result success">✅ 유일한 해답 존재 (1개)</div>';
+                    // 해답 표시
+                    renderPuzzle(result.solutions[0], '검증된 해답');
+                } else {
+                    resultDiv.innerHTML = `<div class="verify-result error">⚠️ ${result.solutions.length}개 해답 존재 (유일하지 않음)</div>`;
+                }
+            } else {
+                // 해답 없음 - 상세 원인 분석
+                let details = [];
+                const { size, areas, initialState } = puzzleData;
+                
+                // 1. 영역별 required 분석
+                for (const area of areas) {
+                    const grayCount = area.cells.filter(([r, c]) => initialState[r][c] === 1).length;
+                    const emptyCount = area.cells.filter(([r, c]) => initialState[r][c] === 0 || initialState[r][c] === -1).length;
+                    const minPossible = grayCount;
+                    const maxPossible = grayCount + emptyCount;
+                    
+                    if (area.required > 0) {
+                        if (area.required < minPossible) {
+                            details.push(`• 영역 ${area.cells[0]}: required ${area.required} < 고정 회색 ${minPossible} (불가능)`);
+                        } else if (area.required > maxPossible) {
+                            details.push(`• 영역 ${area.cells[0]}: required ${area.required} > 최대 가능 ${maxPossible} (영역 크기 ${area.cells.length})`);
+                        }
+                    }
+                }
+                
+                // 2. 4연속 위반 체크
+                const fourConsecutive = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size - 3; c++) {
+                        const val = initialState[r][c];
+                        if (val === 1 || val === 2) {
+                            if (initialState[r][c+1] === val && initialState[r][c+2] === val && initialState[r][c+3] === val) {
+                                fourConsecutive.push(`(${r},${c})~(${r},${c+3}) 가로 ${val===1?'회색':'검정'}`);
+                            }
+                        }
+                    }
+                }
+                for (let c = 0; c < size; c++) {
+                    for (let r = 0; r < size - 3; r++) {
+                        const val = initialState[r][c];
+                        if (val === 1 || val === 2) {
+                            if (initialState[r+1][c] === val && initialState[r+2][c] === val && initialState[r+3][c] === val) {
+                                fourConsecutive.push(`(${r},${c})~(${r+3},${c}) 세로 ${val===1?'회색':'검정'}`);
+                            }
+                        }
+                    }
+                }
+                if (fourConsecutive.length > 0) {
+                    details.push(`• 4연속 위반: ${fourConsecutive.join(', ')}`);
+                }
+                
+                // 3. 2x2 회색 체크
+                const twoByTwo = [];
+                for (let r = 0; r < size - 1; r++) {
+                    for (let c = 0; c < size - 1; c++) {
+                        if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
+                            initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
+                            twoByTwo.push(`(${r},${c})`);
+                        }
+                    }
+                }
+                if (twoByTwo.length > 0) {
+                    details.push(`• 2x2 회색 위반: ${twoByTwo.join(', ')}`);
+                }
+                
+                // 4. 회색 연결성 체크
+                const grayCells = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (initialState[r][c] === 1) grayCells.push([r, c]);
+                    }
+                }
+                if (grayCells.length > 0) {
+                    const visited = new Set();
+                    const queue = [grayCells[0]];
+                    visited.add(`${grayCells[0][0]},${grayCells[0][1]}`);
+                    const directions = [[-1,0],[1,0],[0,-1],[0,1]];
+                    
+                    while (queue.length > 0) {
+                        const [r, c] = queue.shift();
+                        for (const [dr, dc] of directions) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size &&
+                                initialState[nr][nc] === 1 && !visited.has(`${nr},${nc}`)) {
+                                visited.add(`${nr},${nc}`);
+                                queue.push([nr, nc]);
+                            }
+                        }
+                    }
+                    
+                    if (visited.size !== grayCells.length) {
+                        details.push(`• 회색 연결성 위반: ${grayCells.length}개 중 ${visited.size}개만 연결 (고립된 회색 있음)`);
+                    }
+                }
+                
+                // 결과 표시
+                if (details.length === 0) {
+                    details.push('• 명확한 규칙 위반은 없으나, 복합적인 제약 조건으로 인해 해답이 없을 수 있음');
+                    details.push('• 영역 간 required 충돌, 또는 미래 상태의 불가능성');
+                }
+                
+                resultDiv.innerHTML = `<div class="verify-result error">❌ 해답 없음 (검증 실패)<br><br>🔍 상세 분석:<br>${details.join('<br>')}</div>`;
+            }
+        } catch (e) {
+            resultDiv.innerHTML = `<div class="verify-result error">파싱/검증 오류: ${e.message}</div>`;
+        }
+    }
 
     // 퍼즐 HTML 렌더링
     function renderPuzzle(solution, title = '솔루션') {
