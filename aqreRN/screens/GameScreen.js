@@ -16,6 +16,17 @@ import Toast, { showToast } from '../components/Toast';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import { playTap, playClear, setSoundEnabled } from '../utils/sound';
+import { PUZZLE_MAPS } from '../src/logic/puzzles';
+
+const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
+
+function getPuzzleTitle(puzzle) {
+  const groupName = DIFFICULTY_NAMES[puzzle.difficulty] ?? `Lv${puzzle.difficulty}`;
+  const sameDiff = PUZZLE_MAPS.filter(p => p.difficulty === puzzle.difficulty);
+  const idx = sameDiff.findIndex(p => p.id === puzzle.id);
+  const num = idx >= 0 ? idx + 1 : '?';
+  return `${groupName} ${num}`;
+}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 32, 480);
@@ -290,7 +301,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             <BackButton />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Level {puzzle.id}</Text>
+            <Text style={styles.headerTitle}>{getPuzzleTitle(puzzle)}</Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconBtn} onPress={reset} testID="reset-level">
