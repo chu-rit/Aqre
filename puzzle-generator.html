@@ -2583,12 +2583,15 @@ ${stateStr}
                 // required 랜덤 변경
                 saveHistory();
                 currentPuzzle.areas = originalAreas.map(a => {
+                    if (a.cells.length === 1) {
+                        return { ...a, cells: a.cells.map(c => [...c]), required: Math.floor(Math.random() * 2) };
+                    }
                     const maxReq = a.cells.length - 1;
                     const grayCount = a.cells.filter(([r, c]) => currentPuzzle.initialState[r][c] === 1).length;
                     const minReq = Math.max(1, Math.floor(a.cells.length * 0.2));
                     const max = Math.min(maxReq, Math.max(grayCount, Math.ceil(a.cells.length * 0.8)));
-                    const newReq = minReq + Math.floor(Math.random() * (max - minReq + 1));
-                    return { ...a, cells: a.cells.map(c => [...c]), required: Math.max(1, newReq) };
+                    const newReq = minReq + Math.floor(Math.random() * (Math.max(max, minReq) - minReq + 1));
+                    return { ...a, cells: a.cells.map(c => [...c]), required: newReq };
                 });
                 reRenderBoard();
                 refreshAreaPalette();
