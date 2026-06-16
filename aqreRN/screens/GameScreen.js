@@ -73,21 +73,30 @@ function checkGameRules(board, puzzle) {
   const grayCells = [];
   for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (board[r][c] === 1) grayCells.push([r, c]);
   if (grayCells.length > 0) {
-    const visited = new Set();
-    const stack = [grayCells[0]];
-    while (stack.length) {
-      const [r, c] = stack.pop();
-      const key = `${r},${c}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-        const nr = r + dr, nc = c + dc;
-        if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === 1 && !visited.has(`${nr},${nc}`)) stack.push([nr, nc]);
+    const globalVisited = new Set();
+    const groups = [];
+    for (const [sr, sc] of grayCells) {
+      const startKey = `${sr},${sc}`;
+      if (globalVisited.has(startKey)) continue;
+      const group = [];
+      const stack = [[sr, sc]];
+      while (stack.length) {
+        const [r, c] = stack.pop();
+        const key = `${r},${c}`;
+        if (globalVisited.has(key)) continue;
+        globalVisited.add(key);
+        group.push([r, c]);
+        for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === 1 && !globalVisited.has(`${nr},${nc}`)) stack.push([nr, nc]);
+        }
       }
+      groups.push(group);
     }
-    if (visited.size !== grayCells.length) {
-      const unconnected = grayCells.filter(([r, c]) => !visited.has(`${r},${c}`));
-      violationMessages.add(JSON.stringify({ type: '회색 칸 연결성 위반', message: '회색 칸들이 서로 연결되어 있지 않습니다.', cells: unconnected.map(([r, c]) => ({ row: r, col: c })) }));
+    if (groups.length > 1) {
+      groups.sort((a, b) => b.length - a.length);
+      const disconnected = groups.slice(1).flat();
+      violationMessages.add(JSON.stringify({ type: '회색 칸 연결성 위반', message: '회색 칸들이 서로 연결되어 있지 않습니다.', cells: disconnected.map(([r, c]) => ({ row: r, col: c })) }));
     }
   }
 
@@ -123,16 +132,22 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, areaMap, isViolation, onPress, puzzle, cellRef }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, areaMap, isViolation, onPress, puzzle, cellRef, dotResetKey }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef(null);
   useEffect(() => {
+    dotAnim.stopAnimation();
+    dotAnim.setValue(0);
+    if (loopRef.current) { loopRef.current.stop(); loopRef.current = null; }
+    if (!isViolation) return;
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(dotAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
       Animated.timing(dotAnim, { toValue: 0, duration: 1500, useNativeDriver: false }),
     ]));
+    loopRef.current = loop;
     loop.start();
-    return () => loop.stop();
-  }, [dotAnim]);
+    return () => { loop.stop(); dotAnim.stopAnimation(); loopRef.current = null; };
+  }, [isViolation, dotResetKey]);
 
   const areaIdx = areaMap[rowIdx][colIdx];
   const borders = { borderTopColor: 'transparent', borderTopWidth: 5, borderBottomColor: 'transparent', borderBottomWidth: 5, borderLeftColor: 'transparent', borderLeftWidth: 5, borderRightColor: 'transparent', borderRightWidth: 5 };
@@ -205,6 +220,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [selectedViolation, setSelectedViolation] = useState(null);
   const [clearVisible, setClearVisible] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  const [dotResetKey, setDotResetKey] = useState(0);
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -328,6 +345,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   onPress={() => toggleCell(rIdx, cIdx)}
                   puzzle={puzzle}
                   cellRef={cellRefs.current[rIdx][cIdx]}
+                  dotResetKey={dotResetKey}
                 />
               ))}
             </View>
@@ -342,10 +360,10 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                 testID={`violation-item-${idx}`}
                 style={[styles.violationRow, selectedViolation?.type === msg.type && styles.violationRowSelected]}
                 onPress={() => {
-                  if (msg.type === '회색 칸 연결성 위반') { showToast('해당 규칙은 표시할 수 없습니다'); return; }
                   const same = selectedViolation?.type === msg.type;
                   setSelectedViolation(same ? null : msg);
                   setHighlightedCells(same ? [] : msg.cells.map(c => ({ ...c, type: msg.type })));
+                  if (!same) setDotResetKey(k => k + 1);
                 }}
               >
                 <Text style={{ fontSize: 18, marginRight: 6 }}>⚠️</Text>

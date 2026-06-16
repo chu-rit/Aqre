@@ -26,7 +26,7 @@ export const tutorialSteps = {
     {
       text: '레벨1부터 시작해보실까요?',
       highlight: {
-        selectors: ["data-testid=level-1"]
+        selectors: ["data-testid=level-26000001"]
       },
       condition: null,
       showNextButton: false
@@ -34,7 +34,7 @@ export const tutorialSteps = {
   ],
   
   // 레벨 1 튜토리얼
-  'level1': [
+  'level26000001': [
     {
       text: '위에 보이는 뉴런 패턴을 조작해 기억을 되살릴 수 있습니다.',
       highlight: null,
@@ -68,7 +68,7 @@ export const tutorialSteps = {
   ],
   
   // 레벨 2 튜토리얼
-  'level2': [
+  'level26000002': [
     {
       text: '뉴런은 특정 규칙에 맞게 조작해야 합니다.',
       highlight: null,
@@ -132,7 +132,7 @@ export const tutorialSteps = {
   ],
   
   // 레벨 3 튜토리얼
-  'level3': [
+  'level26000003': [
     {
       step: 0,
       text: '각 영역은 지정된 수의 활성 뉴런만 있어야 합니다.',
@@ -193,7 +193,7 @@ export const tutorialSteps = {
   ],
   
   // 레벨 4 튜토리얼
-  'level4': [
+  'level26000004': [
     {
       step: 0,
       text: '마지막으로 활성화된 뉴런은 하나의 영역을 이루고 있어야 됩니다.',
@@ -250,7 +250,7 @@ export const tutorialSteps = {
   ],
 
   // 레벨 5 튜토리얼
-  'level5': [
+  'level26000005': [
     {
       step: 0,
       text: '훌륭합니다. 모든 규칙을 이해하셨습니다.',

@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 export const PUZZLE_MAPS = [
     // Tutorial
     {
-        id: 1,
+        id: 26000001,
         chapter: 1,
         difficulty: 0,
         size: 5,
@@ -27,7 +27,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 2,
+        id: 26000002,
         chapter: 1,
         difficulty: 0,
         size: 5,
@@ -50,7 +50,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 3,
+        id: 26000003,
         chapter: 1,
         difficulty: 0,
         size: 4,
@@ -80,7 +80,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 4,
+        id: 26000004,
         chapter: 1,
         difficulty: 0,
         size: 5,
@@ -120,7 +120,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 5,
+        id: 26000005,
         chapter: 1,
         difficulty: 0,
         size: 4,
@@ -153,7 +153,7 @@ export const PUZZLE_MAPS = [
     // Easy
     
     {
-        id: 6,
+        id: 26000006,
         chapter: 1,
         difficulty: 1,
         size: 4,
@@ -183,7 +183,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 7,
+        id: 26000007,
         chapter: 1,
         difficulty: 1,
         size: 4,
@@ -247,7 +247,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     { //5
-        id: 8,
+        id: 26000008,
         chapter: 1,
         difficulty: 1,
         size: 4,
@@ -290,7 +290,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 9,
+        id: 26000009,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -325,7 +325,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 11,
+        id: 26000011,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -381,7 +381,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 10,
+        id: 26000010,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -436,7 +436,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 12,
+        id: 26000012,
         chapter: 1,
         difficulty: 1,
         size: 6,
@@ -477,7 +477,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 14,
+        id: 26000014,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -551,7 +551,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 16,
+        id: 26000016,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -601,7 +601,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 15,
+        id: 26000015,
         chapter: 1,
         difficulty: 1,
         size: 5,
@@ -683,7 +683,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 13,
+        id: 26000013,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -727,7 +727,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 17,
+        id: 26000017,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -775,7 +775,7 @@ export const PUZZLE_MAPS = [
         ],
     },
     {
-        id: 18,
+        id: 26000018,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -829,7 +829,7 @@ export const PUZZLE_MAPS = [
         ],
     },
     {
-        id: 19,
+        id: 26000019,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -881,7 +881,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 20,
+        id: 26000020,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -944,7 +944,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 21,
+        id: 26000021,
         chapter: 1,
         difficulty: 2,
         size: 6,
@@ -992,7 +992,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 22,
+        id: 26000022,
         chapter: 1,
         difficulty: 2,
         size: 7,
@@ -1043,7 +1043,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 23,
+        id: 26000023,
         chapter: 1,
         difficulty: 2,
         size: 7,
@@ -1186,7 +1186,7 @@ export const PUZZLE_MAPS = [
     // LEVEL difficulty 3
 
     {
-        id: 24,
+        id: 26000024,
         chapter: 1,
         difficulty: 3,
         size: 8,
@@ -1240,7 +1240,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     {
-        id: 25,
+        id: 26000025,
         chapter: 1,
         difficulty: 3,
         size: 8,

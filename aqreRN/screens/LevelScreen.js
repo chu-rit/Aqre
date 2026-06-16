@@ -17,10 +17,69 @@ import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 
 const LEVELS_PER_ROW = 5;
 
+function CollapsibleSection({ label, badgeStyle, children, collapsed, onToggle }) {
+  const animHeight = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
+  const measuredHeight = useRef(0);
+  const [ready, setReady] = useState(false);
+  const collapsedRef = useRef(collapsed);
+
+  useEffect(() => {
+    if (!ready) return;
+    Animated.timing(animHeight, {
+      toValue: collapsed ? 0 : 1,
+      duration: 280,
+      useNativeDriver: false,
+    }).start();
+  }, [collapsed, ready]);
+
+  const heightStyle = ready
+    ? { height: animHeight.interpolate({ inputRange: [0, 1], outputRange: [0, measuredHeight.current] }) }
+    : (collapsedRef.current ? { height: 0 } : {});
+
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity
+        style={[styles.sectionBadge, badgeStyle]}
+        onPress={onToggle}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.sectionBadgeText} numberOfLines={1}>{label}</Text>
+        <Ionicons
+          name={collapsed ? 'chevron-forward' : 'chevron-down'}
+          size={12}
+          color="rgba(255,255,255,0.85)"
+          style={{ marginLeft: 6 }}
+        />
+      </TouchableOpacity>
+      <Animated.View style={[styles.sectionCardWrapper, heightStyle]}>
+        <View
+          style={styles.sectionCard}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0 && measuredHeight.current === 0) {
+              measuredHeight.current = h;
+              animHeight.setValue(collapsedRef.current ? 0 : 1);
+              setReady(true);
+            }
+          }}
+        >
+          {children}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
 export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [loaded, setLoaded] = useState(false);
+
+  const toggleSection = (key) => {
+    setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
   const level0Steps = getTutorialStepsByLevel(0);
   const overlayAnim = useRef(new Animated.Value(1)).current;
 
@@ -37,14 +96,22 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       try {
         const data = await AsyncStorage.getItem('clearedPuzzles');
         if (data) setClearedPuzzles(JSON.parse(data));
-        const completed = await AsyncStorage.getItem('completedTutorials');
-        const parsed = completed ? JSON.parse(completed) : {};
         const cleared = data ? JSON.parse(data) : [];
-        const alreadyPlayed = parsed['level0'] || cleared.length > 0;
+        const alreadyPlayed = cleared.length > 0;
         if (!alreadyPlayed && level0Steps.length > 0) {
           setShowTutorial(true);
         }
+        const sectionMap = { TUTORIAL: 0, EASY: 1, NORMAL: 2 };
+        const updates = {};
+        for (const [label, diff] of Object.entries(sectionMap)) {
+          const puzzles = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === diff);
+          if (puzzles.length > 0 && puzzles.every(p => cleared.includes(p.id))) {
+            updates[label] = true;
+          }
+        }
+        setCollapsedSections(prev => ({ ...prev, ...updates }));
       } catch (e) {}
+      setLoaded(true);
     };
     load();
   }, []);
@@ -98,22 +165,27 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     ));
   };
 
-  const renderSection = (label, badgeStyle, puzzles, sectionLocked = false) => (
-    <View style={styles.section}>
-      <View style={[styles.sectionBadge, badgeStyle]}>
-        <Text style={styles.sectionBadgeText}>{label}</Text>
-      </View>
-      <View style={styles.sectionCard}>
+  const renderSection = (label, badgeStyle, puzzles, sectionLocked = false, unlockHint = null) => {
+    const collapsed = collapsedSections[label] ?? false;
+    return (
+      <CollapsibleSection
+        key={label}
+        label={label}
+        badgeStyle={badgeStyle}
+        collapsed={collapsed}
+        onToggle={() => toggleSection(label)}
+      >
         {sectionLocked ? (
-          <View style={styles.lockedSection}>
+          <View style={[styles.lockedSection, !unlockHint && styles.lockedSectionCompact]}>
             <Ionicons name="lock-closed" size={36} color="#9aa5b0" />
+            {unlockHint && <Text style={styles.unlockHint}>{unlockHint}</Text>}
           </View>
         ) : (
           renderPuzzleRows(puzzles)
         )}
-      </View>
-    </View>
-  );
+      </CollapsibleSection>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -161,17 +233,20 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
       {selectedChapter === 1 ? (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {(() => {
+          {loaded && (() => {
             const d0 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 0);
             const d1 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 1);
             const d2 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 2);
             const d3 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 3);
+            const easyLocked = !d0.every(p => clearedPuzzles.includes(p.id));
+            const normalLocked = easyLocked || !d1.every(p => clearedPuzzles.includes(p.id));
+            const hardLocked = normalLocked || !d2.every(p => clearedPuzzles.includes(p.id));
             return (
               <>
                 {d0.length > 0 && renderSection('TUTORIAL', styles.badgeTutorial, d0)}
-                {d1.length > 0 && renderSection('EASY', styles.badgeEasy, d1)}
-                {d2.length > 0 && renderSection('NORMAL', styles.badgeNormal, d2)}
-                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, true)}
+                {d1.length > 0 && renderSection('EASY', styles.badgeEasy, d1, easyLocked, easyLocked ? '튜토리얼을 완료하면 잠금 해제됩니다.' : null)}
+                {d2.length > 0 && renderSection('NORMAL', styles.badgeNormal, d2, normalLocked, normalLocked && !easyLocked ? 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
+                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, true, hardLocked && !normalLocked ? 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
               </>
             );
           })()}
@@ -194,7 +269,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
               await AsyncStorage.setItem('completedTutorials', JSON.stringify(completed));
               setShowTutorial(false);
             }}
-            onSkip={() => handleSkipTutorial(0, () => setShowTutorial(false))}
+            onSkip={() => setShowTutorial(false)}
             levelId={0}
             steps={level0Steps}
           />
@@ -254,6 +329,8 @@ const styles = StyleSheet.create({
   },
   sectionBadge: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 7,
     borderRadius: 12,
@@ -271,6 +348,9 @@ const styles = StyleSheet.create({
   badgeEasy:    { backgroundColor: '#5ba4cf' },
   badgeNormal:  { backgroundColor: '#e8914a' },
   badgeHard:    { backgroundColor: '#4a6fa5' },
+  sectionCardWrapper: {
+    overflow: 'hidden',
+  },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -401,6 +481,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 24,
+  },
+  lockedSectionCompact: {
+    paddingVertical: 10,
+  },
+  unlockHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#9aa5b0',
+    fontWeight: '500',
   },
   levelText: {
     fontSize: 22,

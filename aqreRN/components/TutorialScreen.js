@@ -716,14 +716,22 @@ const TutorialScreen = ({
                   </>
                 );
               })()
-            ) : hasHighlight && boardRect ? (
-              // 기본: 보드 영역만 밝게 유지 (셀/그룹 하이라이트 등)
-              <>
-                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: 0, height: boardRect.top, zIndex: 1000 }]} />
-                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: boardRect.bottom, bottom: 0, zIndex: 1000 }]} />
-                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, top: boardRect.top, width: boardRect.left, height: boardRect.height, zIndex: 1000 }]} />
-                <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: boardRect.right, right: 0, top: boardRect.top, height: boardRect.height, zIndex: 1000 }]} />
-              </>
+            ) : hasHighlight && isSingleHighlight ? (
+              // 셀 기반 단일 하이라이트: 하이라이트 영역 안쪽만 밝게
+              (() => {
+                const r = rectsToRender[0];
+                return (
+                  <>
+                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: 0, height: r.top, zIndex: 1000 }]} />
+                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: r.top + r.height, bottom: 0, zIndex: 1000 }]} />
+                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, top: r.top, width: r.left, height: r.height, zIndex: 1000 }]} />
+                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: r.left + r.width, right: 0, top: r.top, height: r.height, zIndex: 1000 }]} />
+                  </>
+                );
+              })()
+            ) : hasHighlight ? (
+              // 다중 하이라이트: 전체 딤 + 하이라이트 테두리만
+              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
             ) : (
               // 하이라이트가 없으면 전체 딤
               <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
