@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const aspectRatio = height / width;
+const is16x9 = aspectRatio >= 1.6 && aspectRatio <= 1.85;
 
 const LOADING_DURATION = 2500;
 
@@ -101,14 +103,14 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     position: 'absolute',
-    bottom: '20%',
+    bottom: is16x9 ? '15%' : '20%',
     left: 0,
     right: 0,
     alignItems: 'center',
   },
   loadingContainer: {
     position: 'absolute',
-    bottom: '20%',
+    bottom: is16x9 ? '15%' : '20%',
     left: 0,
     right: 0,
     flexDirection: 'row',

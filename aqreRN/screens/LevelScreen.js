@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +17,11 @@ import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 
 const LEVELS_PER_ROW = 5;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CARD_PADDING = 12 * 2;
+const SCROLL_PADDING = 16 * 2;
+const BTN_MARGIN = 5 * 2;
+const LEVEL_BTN_SIZE = Math.min(62, Math.floor((SCREEN_WIDTH - SCROLL_PADDING - CARD_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
 
 function CollapsibleSection({ label, badgeStyle, children, collapsed, onToggle }) {
   const animHeight = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
@@ -459,9 +465,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   levelButton: {
-    width: 62,
-    height: 62,
-    borderRadius: 18,
+    width: LEVEL_BTN_SIZE,
+    height: LEVEL_BTN_SIZE,
+    borderRadius: Math.round(LEVEL_BTN_SIZE * 0.29),
     backgroundColor: '#c8d8e8',
     alignItems: 'center',
     justifyContent: 'center',
@@ -492,7 +498,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   levelText: {
-    fontSize: 22,
+    fontSize: Math.round(LEVEL_BTN_SIZE * 0.35),
     color: '#1a3a5a',
     fontWeight: '700',
   },
