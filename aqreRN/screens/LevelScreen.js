@@ -154,6 +154,16 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 }
                 onSelectPuzzle(puzzle);
               }}
+              onLongPress={async () => {
+                const json = await AsyncStorage.getItem('clearedPuzzles') || '[]';
+                const list = JSON.parse(json);
+                const updated = list.includes(puzzle.id)
+                  ? list.filter(id => id !== puzzle.id)
+                  : [...list, puzzle.id];
+                await AsyncStorage.setItem('clearedPuzzles', JSON.stringify(updated));
+                setClearedPuzzles(updated);
+              }}
+              delayLongPress={800}
               activeOpacity={0.7}
             >
               <Text style={[styles.levelText, cleared && styles.clearedText]}>
@@ -245,14 +255,16 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
             const d2 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 2);
             const d3 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 3);
             const easyLocked = !d0.every(p => clearedPuzzles.includes(p.id));
-            const normalLocked = easyLocked || !d1.every(p => clearedPuzzles.includes(p.id));
-            const hardLocked = normalLocked || !d2.every(p => clearedPuzzles.includes(p.id));
+            const clearedEasy = d1.filter(p => clearedPuzzles.includes(p.id)).length;
+            const clearedNormal = d2.filter(p => clearedPuzzles.includes(p.id)).length;
+            const normalLocked = easyLocked || clearedEasy < 10;
+            const hardLocked = normalLocked || clearedNormal < 10;
             return (
               <>
                 {d0.length > 0 && renderSection('TUTORIAL', styles.badgeTutorial, d0)}
                 {d1.length > 0 && renderSection('EASY', styles.badgeEasy, d1, easyLocked, easyLocked ? '튜토리얼을 완료하면 잠금 해제됩니다.' : null)}
                 {d2.length > 0 && renderSection('NORMAL', styles.badgeNormal, d2, normalLocked, normalLocked && !easyLocked ? 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
-                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, true, hardLocked && !normalLocked ? 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
+                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, hardLocked, hardLocked && !normalLocked ? 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
               </>
             );
           })()}
