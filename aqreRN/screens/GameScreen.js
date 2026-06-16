@@ -399,7 +399,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#a4c8e0',
+    backgroundColor: '#dde4ed',
   },
   header: {
     flexDirection: 'row',

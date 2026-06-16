@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +22,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const level0Steps = getTutorialStepsByLevel(0);
+  const overlayAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(overlayAnim, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -49,12 +59,13 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
   const renderPuzzleRows = (puzzles) => {
     const rows = getRows(puzzles);
-    let displayNumber = 1;
+    let idx = 0;
     return rows.map((row, rowIndex) => (
       <View key={rowIndex} style={styles.row}>
         {row.map((puzzle) => {
           const cleared = clearedPuzzles.includes(puzzle.id);
-          const currentNumber = displayNumber++;
+          const currentNumber = idx + 1;
+          idx++;
           return (
             <TouchableOpacity
               key={puzzle.id}
@@ -77,7 +88,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
               </Text>
               {cleared && (
                 <View style={styles.checkmark}>
-                  <Ionicons name="checkmark" size={12} color="#fff" />
+                  <Ionicons name="checkmark" size={16} color="#fff" />
                 </View>
               )}
             </TouchableOpacity>
@@ -86,6 +97,23 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       </View>
     ));
   };
+
+  const renderSection = (label, badgeStyle, puzzles, sectionLocked = false) => (
+    <View style={styles.section}>
+      <View style={[styles.sectionBadge, badgeStyle]}>
+        <Text style={styles.sectionBadgeText}>{label}</Text>
+      </View>
+      <View style={styles.sectionCard}>
+        {sectionLocked ? (
+          <View style={styles.lockedSection}>
+            <Ionicons name="lock-closed" size={36} color="#9aa5b0" />
+          </View>
+        ) : (
+          renderPuzzleRows(puzzles)
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,57 +161,20 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
       {selectedChapter === 1 ? (
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Tutorial - Difficulty 0 */}
-          {PUZZLE_MAPS.some(p => p.difficulty === 0) && (
-            <>
-              <View style={styles.difficultyHeader}>
-                <View style={styles.difficultyBadge}>
-                  <Text style={styles.difficultyBadgeText}>Tutorial</Text>
-                </View>
-                <View style={styles.difficultyLine} />
-              </View>
-              {renderPuzzleRows(PUZZLE_MAPS.filter(p => p.difficulty === 0))}
-            </>
-          )}
-          
-          {/* Easy - Difficulty 1 */}
-          {PUZZLE_MAPS.some(p => p.difficulty === 1) && (
-            <>
-              <View style={styles.difficultyHeader}>
-                <View style={[styles.difficultyBadge, styles.difficultyBadge1]}>
-                  <Text style={styles.difficultyBadgeText}>Easy</Text>
-                </View>
-                <View style={styles.difficultyLine} />
-              </View>
-              {renderPuzzleRows(PUZZLE_MAPS.filter(p => p.difficulty === 1))}
-            </>
-          )}
-          
-          {/* Normal - Difficulty 2 */}
-          {PUZZLE_MAPS.some(p => p.difficulty === 2) && (
-            <>
-              <View style={styles.difficultyHeader}>
-                <View style={[styles.difficultyBadge, styles.difficultyBadge2]}>
-                  <Text style={styles.difficultyBadgeText}>Normal</Text>
-                </View>
-                <View style={styles.difficultyLine} />
-              </View>
-              {renderPuzzleRows(PUZZLE_MAPS.filter(p => p.difficulty === 2))}
-            </>
-          )}
-          
-          {/* Hard - Difficulty 3 */}
-          {PUZZLE_MAPS.some(p => p.difficulty === 3) && (
-            <>
-              <View style={styles.difficultyHeader}>
-                <View style={[styles.difficultyBadge, styles.difficultyBadge3]}>
-                  <Text style={styles.difficultyBadgeText}>Hard</Text>
-                </View>
-                <View style={styles.difficultyLine} />
-              </View>
-              {renderPuzzleRows(PUZZLE_MAPS.filter(p => p.difficulty === 3))}
-            </>
-          )}
+          {(() => {
+            const d0 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 0);
+            const d1 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 1);
+            const d2 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 2);
+            const d3 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 3);
+            return (
+              <>
+                {d0.length > 0 && renderSection('TUTORIAL', styles.badgeTutorial, d0)}
+                {d1.length > 0 && renderSection('EASY', styles.badgeEasy, d1)}
+                {d2.length > 0 && renderSection('NORMAL', styles.badgeNormal, d2)}
+                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, true)}
+              </>
+            );
+          })()}
         </ScrollView>
       ) : (
         <View style={styles.comingSoonContainer}>
@@ -209,6 +200,10 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           />
         </View>
       )}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.fadeOverlay, { opacity: overlayAnim }]}
+      />
     </SafeAreaView>
   );
 }
@@ -216,7 +211,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#a4c8e0',
+    backgroundColor: '#dde4ed',
+  },
+  fadeOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -224,19 +224,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.08)',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
-      android: { elevation: 3 },
-    }),
+    backgroundColor: 'transparent',
   },
   iconButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -245,52 +239,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#2c3e50',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 40,
   },
-  difficultyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 8,
-    marginTop: 16,
-    marginBottom: 12,
+  section: {
+    marginTop: 24,
   },
-  difficultyBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#8e9aaf',
-  },
-  difficultyBadge1: {
-    backgroundColor: '#4ade80',
-  },
-  difficultyBadge2: {
-    backgroundColor: '#fb923c',
-  },
-  difficultyBadge3: {
-    backgroundColor: '#f87171',
-  },
-  difficultyBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  difficultyLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.4)',
+  sectionBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    borderRadius: 12,
+    marginBottom: -1,
     marginLeft: 12,
-    borderRadius: 1,
+    zIndex: 1,
+  },
+  sectionBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  badgeTutorial: { backgroundColor: '#8e9aaf' },
+  badgeEasy:    { backgroundColor: '#5ba4cf' },
+  badgeNormal:  { backgroundColor: '#e8914a' },
+  badgeHard:    { backgroundColor: '#4a6fa5' },
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   chapterContainer: {
     paddingHorizontal: 20,
@@ -310,7 +299,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.35)',
     gap: 8,
     ...Platform.select({
       ios: { shadowColor: 'rgba(0,0,0,0.05)', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 2 },
@@ -364,12 +353,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#3b5bdb',
   },
-  activeDividerLeft: {
-    left: 0,
-  },
-  activeDividerRight: {
-    right: 0,
-  },
+  activeDividerLeft: { left: 0 },
+  activeDividerRight: { right: 0 },
   comingSoonContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -391,47 +376,54 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   levelButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 15,
-    backgroundColor: '#fff',
+    width: 62,
+    height: 62,
+    borderRadius: 18,
+    backgroundColor: '#c8d8e8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.09,
-    shadowRadius: 5,
-    elevation: 2,
+    marginHorizontal: 5,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 6 },
+      android: { elevation: 3 },
+    }),
   },
   clearedButton: {
-    backgroundColor: '#d4eaff',
+    backgroundColor: '#90b4d0',
+  },
+  lockedButton: {
+    backgroundColor: '#b0bcc8',
+  },
+  lockedSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
   },
   levelText: {
-    fontSize: 20,
-    color: '#3a3a3a',
-    fontWeight: 'bold',
+    fontSize: 22,
+    color: '#1a3a5a',
+    fontWeight: '700',
   },
   clearedText: {
-    color: '#3b5bdb',
+    color: '#3a5a7a',
   },
   checkmark: {
     position: 'absolute',
-    top: -7,
-    right: -7,
-    backgroundColor: '#ff9800',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    top: -8,
+    right: -8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#4a90d9',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fff',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.25, shadowRadius: 2 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
       android: { elevation: 3 },
     }),
   },

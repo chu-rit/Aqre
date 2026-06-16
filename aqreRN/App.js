@@ -10,6 +10,10 @@ export default function App() {
   const [prevScreen, setPrevScreen] = useState('level');
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
 
+  useEffect(() => {
+    loadSoundSettings();
+  }, []);
+
   const goOptions = (from) => { setPrevScreen(from); setScreen('options'); };
   const onChangeBgm = (enabled) => setBGMEnabled(enabled);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,32 +7,87 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 const { width } = Dimensions.get('window');
 
+const LOADING_DURATION = 2500;
+
 export default function StartScreen({ onStart }) {
+  const [loaded, setLoaded] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+
+  const handleStart = () => {
+    Animated.timing(overlayAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => onStart());
+  };
+
+  useEffect(() => {
+    const makeDotAnim = (dot, delay) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+          Animated.delay(800 - delay),
+        ])
+      );
+
+    const dotAnim = Animated.parallel([
+      makeDotAnim(dot1, 0),
+      makeDotAnim(dot2, 267),
+      makeDotAnim(dot3, 534),
+    ]);
+    dotAnim.start();
+
+    const timer = setTimeout(() => {
+      dotAnim.stop();
+      setLoaded(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    }, LOADING_DURATION);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.innerContainer}>
-        <Image
-          source={require('../assets/image.png')}
-          style={styles.mainImage}
-        />
-        <Image
-          source={require('../assets/logo1.png')}
-          style={styles.logo}
-        />
-        <View style={styles.titleContainer}>
-          <Text style={styles.gameSubtitle}>Fill & Flow</Text>
+      <Image
+        source={require('../assets/img/Loading.png')}
+        style={styles.bgImage}
+      />
+      {!loaded && (
+        <View style={styles.loadingContainer}>
+          <Animated.View style={[styles.dot, { opacity: dot1 }]} />
+          <Animated.View style={[styles.dot, { opacity: dot2 }]} />
+          <Animated.View style={[styles.dot, { opacity: dot3 }]} />
         </View>
-        <Text style={styles.versionTag}>v1.0.0</Text>
-        <TouchableOpacity style={styles.startButton} activeOpacity={0.8} onPress={onStart}>
-          <Text style={styles.startText}>Touch to Start</Text>
-        </TouchableOpacity>
-      </View>
+      )}
+      {loaded && (
+        <Animated.View style={[styles.innerContainer, { opacity: fadeAnim }]}>
+          <Text style={styles.versionTag}>v1.0.0</Text>
+          <TouchableOpacity style={styles.startButton} activeOpacity={0.8} onPress={handleStart}>
+            <Text style={styles.startText}>Touch to Start</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.overlay, { opacity: overlayAnim }]}
+      />
     </SafeAreaView>
   );
 }
@@ -40,20 +95,45 @@ export default function StartScreen({ onStart }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#a4c8e0',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   innerContainer: {
+    position: 'absolute',
+    bottom: '20%',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
   },
-  mainImage: {
-    width: Math.min(width * 0.82, 320),
-    height: Math.min(width * 0.82, 320),
+  loadingContainer: {
+    position: 'absolute',
+    bottom: '20%',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#fff',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#fff',
+  },
+  bgImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
     resizeMode: 'cover',
-    borderRadius: 24,
   },
   logo: {
     width: 220,
@@ -77,33 +157,32 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   versionTag: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 24,
-    marginTop: 4,
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   startButton: {
-    width: '72%',
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.8)',
+    width: '75%',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
   },
   startText: {
-    fontSize: 20,
-    color: '#fff',
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0,0,0,0.15)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 18,
+    color: '#2c3e50',
+    fontWeight: '800',
+    letterSpacing: 2.5,
   },
 });

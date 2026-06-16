@@ -1,18 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Switch, TouchableOpacity,
-  SafeAreaView, Alert, Platform, StyleSheet,
+  SafeAreaView, Alert, Platform, StyleSheet, PanResponder, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
 
-import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled } from '../utils/sound';
+import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume } from '../utils/sound';
+
+const VOLUME_STEPS = [0, 0.25, 0.5, 0.75, 1.0];
+const STEP_WIDTH = 18;
+const STEP_GAP = 8;
+const TOTAL_WIDTH = VOLUME_STEPS.length * STEP_WIDTH + (VOLUME_STEPS.length - 1) * STEP_GAP;
+
+function VolumeSlider({ value, onChange }) {
+  const containerRef = useRef(null);
+  const offsetX = useRef(0);
+
+  const getStepFromX = (x) => {
+    const ratio = x / TOTAL_WIDTH;
+    const step = Math.round(ratio * (VOLUME_STEPS.length - 1));
+    return Math.max(0, Math.min(VOLUME_STEPS.length - 1, step));
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const x = e.nativeEvent.locationX;
+        onChange(getStepFromX(x));
+      },
+      onPanResponderMove: (e) => {
+        const x = e.nativeEvent.locationX;
+        onChange(getStepFromX(x));
+      },
+    })
+  ).current;
+
+  return (
+    <View
+      style={styles.stepsContainer}
+      {...panResponder.panHandlers}
+    >
+      {VOLUME_STEPS.map((_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.stepBtn,
+            { height: 10 + i * 6 },
+            value > 0 && i <= value && styles.stepBtnActive,
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
 
 export default function OptionsScreen({ onClose, onChangeBgm }) {
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [bgmEnabled, setBgmEnabled] = useState(true);
+  const [soundVolume, setSoundVolumeState] = useState(4);
+  const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const overlayAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(overlayAnim, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -20,8 +78,8 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
         const json = await AsyncStorage.getItem('options');
         if (json) {
           const p = JSON.parse(json);
-          if (typeof p.soundEnabled === 'boolean') setSoundEnabled(p.soundEnabled);
-          if (typeof p.bgmEnabled === 'boolean') setBgmEnabled(p.bgmEnabled);
+          if (typeof p.soundVolumeStep === 'number') setSoundVolumeState(p.soundVolumeStep);
+          if (typeof p.bgmVolumeStep === 'number') setBgmVolumeState(p.bgmVolumeStep);
           if (typeof p.vibrationEnabled === 'boolean') setVibrationEnabled(p.vibrationEnabled);
         }
       } catch {}
@@ -29,11 +87,11 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
     load();
   }, []);
 
-  const save = async (key, value) => {
+  const saveMultiple = async (updates) => {
     try {
       const json = await AsyncStorage.getItem('options');
       const current = json ? JSON.parse(json) : {};
-      await AsyncStorage.setItem('options', JSON.stringify({ ...current, [key]: value }));
+      await AsyncStorage.setItem('options', JSON.stringify({ ...current, ...updates }));
     } catch {}
   };
 
@@ -67,27 +125,35 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Ionicons name="chevron-back" size={24} color="#2c3e50" />
           </TouchableOpacity>
           <Text style={styles.title}>Options</Text>
-          <View style={styles.iconBtn} />
+          <View style={{ width: 44 }} />
         </View>
 
         <View style={styles.section}>
-          <View style={styles.row}>
+          <View style={styles.volumeRow}>
             <Text style={styles.rowLabel}>효과음</Text>
-            <Switch
-              value={soundEnabled}
-              onValueChange={v => { setSoundEnabled(v); setGlobalSoundEnabled(v); save('soundEnabled', v); }}
-              trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
-              thumbColor="#fff"
+            <VolumeSlider
+              value={soundVolume}
+              onChange={(i) => {
+                setSoundVolumeState(i);
+                setGlobalSoundEnabled(i > 0);
+                setSoundVolume(VOLUME_STEPS[i]);
+                saveMultiple({ soundVolumeStep: i, soundVolume: VOLUME_STEPS[i], soundEnabled: i > 0 });
+              }}
             />
           </View>
           <View style={styles.divider} />
-          <View style={styles.row}>
+          <View style={styles.volumeRow}>
             <Text style={styles.rowLabel}>배경음</Text>
-            <Switch
-              value={bgmEnabled}
-              onValueChange={v => { setBgmEnabled(v); setBGMEnabled(v); if (onChangeBgm) onChangeBgm(v); save('bgmEnabled', v); }}
-              trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
-              thumbColor="#fff"
+            <VolumeSlider
+              value={bgmVolume}
+              onChange={(i) => {
+                setBgmVolumeState(i);
+                const vol = VOLUME_STEPS[i];
+                setBGMVolume(vol);
+                setBGMEnabled(i > 0);
+                if (onChangeBgm) onChangeBgm(i > 0);
+                saveMultiple({ bgmVolumeStep: i, bgmVolume: vol, bgmEnabled: i > 0 });
+              }}
             />
           </View>
           <View style={styles.divider} />
@@ -95,7 +161,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Text style={styles.rowLabel}>진동</Text>
             <Switch
               value={vibrationEnabled}
-              onValueChange={v => { setVibrationEnabled(v); save('vibrationEnabled', v); }}
+              onValueChange={v => { setVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
               trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
               thumbColor="#fff"
             />
@@ -107,6 +173,10 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Text style={styles.dangerBtnText}>클리어 데이터 초기화</Text>
           </TouchableOpacity>
         </View>
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', opacity: overlayAnim }}
+        />
       </SafeAreaView>
       <Toast />
     </>
@@ -116,7 +186,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#a4c8e0',
+    backgroundColor: '#dde4ed',
   },
   header: {
     flexDirection: 'row',
@@ -138,7 +208,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   title: {
-    fontSize: 20, fontWeight: '700', color: '#2c3e50', letterSpacing: 0.5,
+    fontSize: 22, fontWeight: '800', color: '#2c3e50', letterSpacing: 1.5,
   },
   section: {
     marginHorizontal: 16,
@@ -153,6 +223,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 18,
     paddingVertical: 14,
+  },
+  volumeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  stepsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-end',
+  },
+  stepBtn: {
+    width: 18,
+    borderRadius: 3,
+    backgroundColor: '#c8d8e8',
+  },
+  stepBtnActive: {
+    backgroundColor: '#4a90d9',
   },
   rowLabel: {
     fontSize: 16, color: '#2c3e50', fontWeight: '500',
