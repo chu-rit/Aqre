@@ -271,7 +271,7 @@ export const tutorialSteps = {
       step: 2,
       text: '또 아래의 규칙 위반 항목을 선택하면 문제가 있는 뉴런을 시각적으로 표시해줍니다.',
       highlight: {
-        selectors: ['[data-testid="violation-item-0"]'],
+        selectors: ['[data-testid="rule-card-area"]', '[data-testid="rule-card-connect"]', '[data-testid="rule-card-seq"]'],
         padding: 6
       },
       condition: null,

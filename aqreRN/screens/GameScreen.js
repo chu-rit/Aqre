@@ -373,36 +373,51 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           ))}
         </View>
 
-        {violations.length > 0 && (
-          <View style={styles.violationBox}>
-            {violations.map((msg, idx) => {
-              const meta = getViolationMeta(msg.type);
-              const selected = selectedViolation?.type === msg.type;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  testID={`violation-item-${idx}`}
-                  style={[styles.violationRow, selected && styles.violationRowSelected]}
-                  onPress={() => {
-                    const same = selectedViolation?.type === msg.type;
-                    setSelectedViolation(same ? null : msg);
-                    setHighlightedCells(same ? [] : msg.cells.map(c => ({ ...c, type: msg.type })));
-                    if (!same) setDotResetKey(k => k + 1);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.violationIcon, { backgroundColor: meta.tint }]}>
-                    <Ionicons name={meta.icon} size={20} color={meta.color} />
-                  </View>
-                  <View style={styles.violationTextWrap}>
-                    <Text style={styles.violationTitle}>{meta.title}</Text>
-                    <Text style={styles.violationDesc}>{msg.message}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
+{(() => {
+          const ALL_RULES = [
+            { key: 'area',    title: '영역 규칙', types: ['영역 회색 칸 초과', '영역 회색 칸 부족'], icon: 'apps',        okColor: '#3b82c4' },
+            { key: 'connect', title: '연결 규칙', types: ['회색 칸 연결성 위반'],                     icon: 'git-network', okColor: '#9b59b6' },
+            { key: 'seq',     title: '4연속 규칙', types: ['가로 연속 색상 위반', '세로 연속 색상 위반'], icon: 'warning',   okColor: '#e8a33d' },
+          ];
+          return (
+            <View style={styles.violationBox}>
+              {ALL_RULES.map(rule => {
+                const matched = violations.filter(v => rule.types.includes(v.type));
+                const isViolated = matched.length > 0;
+                const selected = matched.some(v => selectedViolation?.type === v.type);
+                return (
+                  <TouchableOpacity
+                    key={rule.key}
+                    testID={`rule-card-${rule.key}`}
+                    style={[
+                      styles.violationCard,
+                      isViolated ? styles.violationCardError : styles.violationCardSuccess,
+                      selected && styles.violationCardSelected,
+                    ]}
+                    onPress={() => {
+                      if (!isViolated) return;
+                      const msg = matched[0];
+                      const same = selectedViolation?.type === msg.type;
+                      setSelectedViolation(same ? null : msg);
+                      setHighlightedCells(same ? [] : msg.cells.map(c => ({ ...c, type: msg.type })));
+                      if (!same) setDotResetKey(k => k + 1);
+                    }}
+                    activeOpacity={isViolated ? 0.7 : 1}
+                  >
+                    <Ionicons
+                      name={isViolated ? rule.icon : 'checkmark-circle'}
+                      size={22}
+                      color={isViolated ? '#ef4444' : '#10b981'}
+                    />
+                    <Text style={[styles.violationCardText, isViolated && styles.violationCardTextError]}>
+                      {rule.title}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })()}
 
         {clearVisible && (
           <View style={styles.overlay}>
@@ -485,6 +500,46 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  violationCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 },
+      android: { elevation: 1 },
+    }),
+  },
+  violationCardSuccess: {
+    backgroundColor: '#fff',
+    borderColor: '#d1fae5',
+  },
+  violationCardError: {
+    backgroundColor: '#fff0f0',
+    borderColor: '#fca5a5',
+  },
+  violationCardSelected: {
+    borderColor: '#4a90d9',
+    backgroundColor: '#f5f9fd',
+  },
+  violationCardText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2c3e50',
+    flexShrink: 1,
+  },
+  violationCardTextError: {
+    color: '#dc2626',
   },
   violationRow: {
     flexDirection: 'row',
@@ -504,6 +559,10 @@ const styles = StyleSheet.create({
   violationRowSelected: {
     borderColor: '#4a90d9',
     backgroundColor: '#f5f9fd',
+  },
+  violationRowSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#86efac',
   },
   violationIcon: {
     width: 40, height: 40, borderRadius: 20,
