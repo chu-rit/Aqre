@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
+import { playTap } from '../utils/sound';
 
 const LEVELS_PER_ROW = 5;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -145,6 +146,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
               testID={`level-${puzzle.id}`}
               style={[styles.levelButton, cleared && styles.clearedButton]}
               onPress={async () => {
+                playTap();
                 if (showTutorial) {
                   const json = await AsyncStorage.getItem('completedTutorials') || '{}';
                   const c = JSON.parse(json);
@@ -155,6 +157,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 onSelectPuzzle(puzzle);
               }}
               onLongPress={async () => {
+                playTap();
                 const json = await AsyncStorage.getItem('clearedPuzzles') || '[]';
                 const list = JSON.parse(json);
                 const updated = list.includes(puzzle.id)
@@ -189,7 +192,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         label={label}
         badgeStyle={badgeStyle}
         collapsed={collapsed}
-        onToggle={() => toggleSection(label)}
+        onToggle={() => { playTap(); toggleSection(label); }}
       >
         {sectionLocked ? (
           <View style={[styles.lockedSection, !unlockHint && styles.lockedSectionCompact]}>
@@ -206,13 +209,13 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); onBack(); }} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Level Select</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton} onPress={onOptions} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); onOptions(); }} activeOpacity={0.7}>
           <Ionicons name="options" size={24} color="#2c3e50" />
         </TouchableOpacity>
       </View>
@@ -221,7 +224,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         <View style={styles.chapterTabs}>
           <TouchableOpacity
             style={[styles.chapterTab, selectedChapter === 1 && styles.chapterTabActive]}
-            onPress={() => setSelectedChapter(1)}
+            onPress={() => { playTap(); setSelectedChapter(1); }}
             activeOpacity={0.85}
           >
             <View style={[styles.tabIndicator, selectedChapter === 1 && styles.tabIndicatorActive]} />
@@ -232,7 +235,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.chapterTab, selectedChapter === 2 && styles.chapterTabActive]}
-            onPress={() => setSelectedChapter(2)}
+            onPress={() => { playTap(); setSelectedChapter(2); }}
             activeOpacity={0.85}
           >
             <View style={[styles.tabIndicator, selectedChapter === 2 && styles.tabIndicatorActive]} />
@@ -281,13 +284,14 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           <TutorialScreen
             isVisible={showTutorial}
             onClose={async () => {
+              playTap();
               const json = await AsyncStorage.getItem('completedTutorials') || '{}';
               const completed = JSON.parse(json);
               completed['level0'] = true;
               await AsyncStorage.setItem('completedTutorials', JSON.stringify(completed));
               setShowTutorial(false);
             }}
-            onSkip={() => setShowTutorial(false)}
+            onSkip={() => { playTap(); setShowTutorial(false); }}
             levelId={0}
             steps={level0Steps}
           />
@@ -480,7 +484,7 @@ const styles = StyleSheet.create({
     width: LEVEL_BTN_SIZE,
     height: LEVEL_BTN_SIZE,
     borderRadius: Math.round(LEVEL_BTN_SIZE * 0.29),
-    backgroundColor: '#c8d8e8',
+    backgroundColor: '#90b4d0',
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 5,
@@ -490,7 +494,7 @@ const styles = StyleSheet.create({
     }),
   },
   clearedButton: {
-    backgroundColor: '#90b4d0',
+    backgroundColor: '#c8d8e8',
   },
   lockedButton: {
     backgroundColor: '#b0bcc8',
@@ -511,11 +515,11 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: Math.round(LEVEL_BTN_SIZE * 0.35),
-    color: '#1a3a5a',
+    color: '#3a5a7a',
     fontWeight: '700',
   },
   clearedText: {
-    color: '#3a5a7a',
+    color: '#1a3a5a',
   },
   checkmark: {
     position: 'absolute',
@@ -524,7 +528,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#4a90d9',
+    backgroundColor: '#a8c8e0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

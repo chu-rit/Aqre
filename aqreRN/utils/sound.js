@@ -6,9 +6,17 @@ let soundEnabled = true;
 let bgmEnabled = true;
 let soundVolume = 1.0;
 let bgmVolume = 0.5;
+let tapSound = null;
 
 export async function loadSoundSettings() {
   try {
+    // Set audio mode for optimal performance
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: true,
+    });
+
     const json = await AsyncStorage.getItem('options');
     if (json) {
       const p = JSON.parse(json);
@@ -16,6 +24,15 @@ export async function loadSoundSettings() {
       bgmEnabled = p.bgmEnabled !== false;
       if (typeof p.soundVolume === 'number') soundVolume = p.soundVolume;
       if (typeof p.bgmVolume === 'number') bgmVolume = p.bgmVolume;
+    }
+    // Preload tap sound
+    if (!tapSound) {
+      tapSound = await Audio.Sound.createAsync(
+        require('../assets/tap.mp3'),
+        { shouldPlay: false, volume: soundVolume }
+      );
+    } else {
+      await tapSound.sound.setVolumeAsync(soundVolume);
     }
   } catch {}
 }
@@ -35,16 +52,17 @@ export async function initBGM() {
 }
 
 export async function playTap() {
-  if (!soundEnabled) return;
+  if (!soundEnabled || !tapSound) return;
   try {
-    const { sound } = await Audio.Sound.createAsync(
-      require('../assets/tap.mp3'),
-      { shouldPlay: true, volume: soundVolume }
-    );
-    sound.setOnPlaybackStatusUpdate(status => {
-      if (status.didJustFinish) sound.unloadAsync();
-    });
+    await tapSound.sound.replayAsync();
   } catch (e) {}
+}
+
+export async function setSoundVolume(volume) {
+  soundVolume = volume;
+  if (tapSound) {
+    await tapSound.sound.setVolumeAsync(volume);
+  }
 }
 
 export async function playClear() {
@@ -79,10 +97,6 @@ export async function setBGMVolume(volume) {
   if (bgmPlayer) {
     await bgmPlayer.setVolumeAsync(volume);
   }
-}
-
-export function setSoundVolume(volume) {
-  soundVolume = volume;
 }
 
 export async function stopBGM() {

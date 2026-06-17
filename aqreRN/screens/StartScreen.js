@@ -9,7 +9,9 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 import { StatusBar } from 'expo-status-bar';
+import { loadSoundSettings, initBGM } from '../utils/sound';
 
 const { width, height } = Dimensions.get('window');
 const aspectRatio = height / width;
@@ -24,6 +26,7 @@ export default function StartScreen({ onStart }) {
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const handleStart = () => {
     Animated.timing(overlayAnim, {
@@ -51,7 +54,10 @@ export default function StartScreen({ onStart }) {
     ]);
     dotAnim.start();
 
-    const timer = setTimeout(() => {
+    // Preload sounds and finish loading immediately when ready
+    const preload = async () => {
+      await loadSoundSettings();
+      await initBGM();
       dotAnim.stop();
       setLoaded(true);
       Animated.timing(fadeAnim, {
@@ -59,9 +65,28 @@ export default function StartScreen({ onStart }) {
         duration: 600,
         useNativeDriver: true,
       }).start();
-    }, LOADING_DURATION);
+    };
+    preload();
 
-    return () => clearTimeout(timer);
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.6,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+    };
   }, []);
 
   return (
@@ -81,9 +106,13 @@ export default function StartScreen({ onStart }) {
       {loaded && (
         <Animated.View style={[styles.innerContainer, { opacity: fadeAnim }]}>
           <Text style={styles.versionTag}>v1.0.0</Text>
-          <TouchableOpacity style={styles.startButton} activeOpacity={0.8} onPress={handleStart}>
+          <AnimatedTouchableOpacity 
+            style={[styles.startButton, { opacity: pulseAnim }]} 
+            activeOpacity={0.8} 
+            onPress={handleStart}
+          >
             <Text style={styles.startText}>Touch to Start</Text>
-          </TouchableOpacity>
+          </AnimatedTouchableOpacity>
         </Animated.View>
       )}
       <Animated.View

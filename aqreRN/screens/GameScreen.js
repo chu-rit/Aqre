@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
@@ -105,6 +106,19 @@ function checkGameRules(board, puzzle) {
 
 const GAP = 1;
 
+function getViolationMeta(type) {
+  if (type === '영역 회색 칸 초과' || type === '영역 회색 칸 부족') {
+    return { title: '영역 규칙', icon: 'apps', color: '#3b82c4', tint: '#e3eef8' };
+  }
+  if (type === '가로 연속 색상 위반' || type === '세로 연속 색상 위반') {
+    return { title: '4연속 규칙', icon: 'warning', color: '#e8a33d', tint: '#fbf1de' };
+  }
+  if (type === '회색 칸 연결성 위반') {
+    return { title: '연결 규칙', icon: 'git-network', color: '#9b59b6', tint: '#f0e6f6' };
+  }
+  return { title: '규칙 위반', icon: 'alert-circle', color: '#6b8e3d', tint: '#eef3e2' };
+}
+
 const BackButton = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
     <Path
@@ -150,15 +164,15 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
   }, [isViolation, dotResetKey]);
 
   const areaIdx = areaMap[rowIdx][colIdx];
-  const borders = { borderTopColor: 'transparent', borderTopWidth: 5, borderBottomColor: 'transparent', borderBottomWidth: 5, borderLeftColor: 'transparent', borderLeftWidth: 5, borderRightColor: 'transparent', borderRightWidth: 5 };
+  const borders = { borderTopColor: 'transparent', borderTopWidth: 4, borderBottomColor: 'transparent', borderBottomWidth: 4, borderLeftColor: 'transparent', borderLeftWidth: 4, borderRightColor: 'transparent', borderRightWidth: 4 };
   if (areaIdx !== -1) {
-    if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) borders.borderTopColor = 'deepskyblue';
-    if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) borders.borderBottomColor = 'deepskyblue';
-    if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) borders.borderLeftColor = 'deepskyblue';
-    if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) borders.borderRightColor = 'deepskyblue';
+    if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) borders.borderTopColor = '#acd4f5';
+    if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) borders.borderBottomColor = '#acd4f5';
+    if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) borders.borderLeftColor = '#acd4f5';
+    if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) borders.borderRightColor = '#acd4f5';
   }
 
-  const bgColor = cell === 0 ? '#fff' : cell === 1 ? '#888' : '#5b8fbf';
+  const bgColor = cell === 0 ? '#fff' : cell === 1 ? '#8a8a8a' : '#3a6b9c';
   const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
   const dotOpacity = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
 
@@ -176,7 +190,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
         flex: 1, aspectRatio: 1,
         marginRight: colIdx === size - 1 ? 0 : GAP,
         marginBottom: rowIdx === size - 1 ? 0 : GAP,
-        borderRadius: 2,
+        borderRadius: 0,
         backgroundColor: bgColor,
         justifyContent: 'center',
         alignItems: 'center',
@@ -201,7 +215,14 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
           testID={`area-${rowIdx}-${colIdx}`}
           style={{ position: 'absolute', left: 2, top: 2, zIndex: 10 }}
         >
-          <Text style={{ color: '#333', fontWeight: 'bold', fontSize: 21 }}>
+          <Text style={{
+            color: '#1e3a5f',
+            fontWeight: 'bold',
+            fontSize: 21,
+            textShadowColor: '#fff',
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 3,
+          }}>
             {puzzle.areas[areaIdx]?.required}
           </Text>
         </View>
@@ -354,22 +375,32 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
         {violations.length > 0 && (
           <View style={styles.violationBox}>
-            {violations.map((msg, idx) => (
-              <TouchableOpacity
-                key={idx}
-                testID={`violation-item-${idx}`}
-                style={[styles.violationRow, selectedViolation?.type === msg.type && styles.violationRowSelected]}
-                onPress={() => {
-                  const same = selectedViolation?.type === msg.type;
-                  setSelectedViolation(same ? null : msg);
-                  setHighlightedCells(same ? [] : msg.cells.map(c => ({ ...c, type: msg.type })));
-                  if (!same) setDotResetKey(k => k + 1);
-                }}
-              >
-                <Text style={{ fontSize: 18, marginRight: 6 }}>⚠️</Text>
-                <Text style={styles.violationText}>{msg.message}</Text>
-              </TouchableOpacity>
-            ))}
+            {violations.map((msg, idx) => {
+              const meta = getViolationMeta(msg.type);
+              const selected = selectedViolation?.type === msg.type;
+              return (
+                <TouchableOpacity
+                  key={idx}
+                  testID={`violation-item-${idx}`}
+                  style={[styles.violationRow, selected && styles.violationRowSelected]}
+                  onPress={() => {
+                    const same = selectedViolation?.type === msg.type;
+                    setSelectedViolation(same ? null : msg);
+                    setHighlightedCells(same ? [] : msg.cells.map(c => ({ ...c, type: msg.type })));
+                    if (!same) setDotResetKey(k => k + 1);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.violationIcon, { backgroundColor: meta.tint }]}>
+                    <Ionicons name={meta.icon} size={20} color={meta.color} />
+                  </View>
+                  <View style={styles.violationTextWrap}>
+                    <Text style={styles.violationTitle}>{meta.title}</Text>
+                    <Text style={styles.violationDesc}>{msg.message}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -442,9 +473,9 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#2c3e50', letterSpacing: 0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   boardWrapper: {
-    backgroundColor: '#2a2a2a',
-    padding: 8,
-    borderRadius: 12,
+    backgroundColor: '#2c3e50',
+    padding: 6,
+    borderRadius: 16,
     width: BOARD_SIZE,
     height: BOARD_SIZE,
     alignSelf: 'center',
@@ -454,21 +485,34 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
-    backgroundColor: '#ffeaea',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1.5,
-    borderColor: '#ffb3b3',
   },
   violationRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 4, borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
   },
   violationRowSelected: {
-    backgroundColor: '#f0fff0', borderWidth: 2, borderColor: '#2ecc71',
+    borderColor: '#4a90d9',
+    backgroundColor: '#f5f9fd',
   },
-  violationText: { color: '#b00020', fontWeight: 'bold', fontSize: 15, flexShrink: 1 },
+  violationIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 14,
+  },
+  violationTextWrap: { flex: 1 },
+  violationTitle: { color: '#2c3e50', fontWeight: '800', fontSize: 15, marginBottom: 2 },
+  violationDesc: { color: '#8a96a3', fontSize: 13, fontWeight: '500' },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.35)',

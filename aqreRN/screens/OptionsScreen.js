@@ -7,21 +7,31 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
 
-import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume } from '../utils/sound';
+import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap } from '../utils/sound';
 
-const VOLUME_STEPS = [0, 0.25, 0.5, 0.75, 1.0];
+const VOLUME_STEPS = [0, 0.1, 0.25, 0.5, 0.75, 1.0];
 const STEP_WIDTH = 18;
 const STEP_GAP = 8;
-const TOTAL_WIDTH = VOLUME_STEPS.length * STEP_WIDTH + (VOLUME_STEPS.length - 1) * STEP_GAP;
+const NUM_BARS = VOLUME_STEPS.length - 1;
+const TOTAL_WIDTH = NUM_BARS * STEP_WIDTH + (NUM_BARS - 1) * STEP_GAP;
 
 function VolumeSlider({ value, onChange }) {
   const containerRef = useRef(null);
   const offsetX = useRef(0);
+  const lastStep = useRef(value);
 
   const getStepFromX = (x) => {
     const ratio = x / TOTAL_WIDTH;
     const step = Math.round(ratio * (VOLUME_STEPS.length - 1));
     return Math.max(0, Math.min(VOLUME_STEPS.length - 1, step));
+  };
+
+  const handleStepChange = (x) => {
+    const newStep = getStepFromX(x);
+    if (newStep !== lastStep.current) {
+      lastStep.current = newStep;
+      onChange(newStep);
+    }
   };
 
   const panResponder = useRef(
@@ -30,11 +40,12 @@ function VolumeSlider({ value, onChange }) {
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e) => {
         const x = e.nativeEvent.locationX;
-        onChange(getStepFromX(x));
+        lastStep.current = getStepFromX(x);
+        onChange(lastStep.current);
       },
       onPanResponderMove: (e) => {
         const x = e.nativeEvent.locationX;
-        onChange(getStepFromX(x));
+        handleStepChange(x);
       },
     })
   ).current;
@@ -44,13 +55,13 @@ function VolumeSlider({ value, onChange }) {
       style={styles.stepsContainer}
       {...panResponder.panHandlers}
     >
-      {VOLUME_STEPS.map((_, i) => (
+      {VOLUME_STEPS.slice(1).map((_, i) => (
         <View
           key={i}
           style={[
             styles.stepBtn,
             { height: 10 + i * 6 },
-            value > 0 && i <= value && styles.stepBtnActive,
+            value > i && styles.stepBtnActive,
           ]}
         />
       ))}
@@ -121,7 +132,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
     <>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onClose}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => { playTap(); onClose(); }}>
             <Ionicons name="chevron-back" size={24} color="#2c3e50" />
           </TouchableOpacity>
           <Text style={styles.title}>Options</Text>
@@ -134,6 +145,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <VolumeSlider
               value={soundVolume}
               onChange={(i) => {
+                if (i !== soundVolume) playTap();
                 setSoundVolumeState(i);
                 setGlobalSoundEnabled(i > 0);
                 setSoundVolume(VOLUME_STEPS[i]);
@@ -147,6 +159,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <VolumeSlider
               value={bgmVolume}
               onChange={(i) => {
+                if (i !== bgmVolume) playTap();
                 setBgmVolumeState(i);
                 const vol = VOLUME_STEPS[i];
                 setBGMVolume(vol);
@@ -161,7 +174,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Text style={styles.rowLabel}>진동</Text>
             <Switch
               value={vibrationEnabled}
-              onValueChange={v => { setVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
+              onValueChange={v => { playTap(); setVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
               trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
               thumbColor="#fff"
             />
@@ -169,7 +182,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity style={styles.dangerBtn} onPress={clearAllData}>
+          <TouchableOpacity style={styles.dangerBtn} onPress={() => { playTap(); clearAllData(); }}>
             <Text style={styles.dangerBtnText}>클리어 데이터 초기화</Text>
           </TouchableOpacity>
         </View>
