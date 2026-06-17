@@ -13,6 +13,8 @@ class PuzzleSolver {
         this._solutions = [];
         this._knownSolutionIds = new Set();
         this._globalIterationCount = 0;
+        this._backtrackCount = 0;
+        this._maxDepth = 0;
         this._maxSolutions = 3;
         this._areaGrayCount = [];
         this._areaEmptyCount = [];
@@ -31,6 +33,8 @@ class PuzzleSolver {
         this._solutions = [];
         this._knownSolutionIds.clear();
         this._globalIterationCount = 0;
+        this._backtrackCount = 0;
+        this._maxDepth = 0;
 
         this._areaGrayCount = new Array(this._areas.length).fill(0);
         this._areaEmptyCount = new Array(this._areas.length).fill(0);
@@ -79,11 +83,29 @@ class PuzzleSolver {
             }
         }
 
-        this.backtrack(0);
+        const emptyCellCount = this._emptyCellList.length;
+        this.backtrack(0, 0);
+
+        const iterations = this._globalIterationCount;
+        const backtrackCount = this._backtrackCount;
+        const maxDepth = this._maxDepth;
+        const backtrackRate = backtrackCount / Math.max(iterations, 1);
+        const difficultyScore = emptyCellCount > 0
+            ? Math.round((iterations / emptyCellCount) * (1 + backtrackRate) * 10) / 10
+            : 0;
+        const difficultyLabel =
+            difficultyScore < 20  ? 'Easy' :
+            difficultyScore < 100 ? 'Normal' :
+            difficultyScore < 500 ? 'Hard' : 'Expert';
 
         return {
             solutions: this._solutions,
-            iterations: this._globalIterationCount,
+            iterations,
+            backtrackCount,
+            maxDepth,
+            emptyCellCount,
+            difficultyScore,
+            difficultyLabel,
             elapsedTime: (Date.now() - startTime) / 1000,
             status: this._solutions.length > 0 ? "Success" : "No solutions found"
         };
@@ -118,8 +140,9 @@ class PuzzleSolver {
         }
     }
 
-    backtrack(listIdx) {
+    backtrack(listIdx, depth) {
         this._globalIterationCount++;
+        if (depth > this._maxDepth) this._maxDepth = depth;
 
         if (listIdx === this._emptyCellList.length) {
             if (this.checkGrayConnectivity()) {
@@ -153,13 +176,14 @@ class PuzzleSolver {
             else if (curGray + unassigned === req) { firstColor = 1; skipSecond = true; }
         }
 
-        if (this.tryColor(r, c, firstColor, listIdx)) return true;
-        if (!skipSecond && this.tryColor(r, c, secondColor, listIdx)) return true;
+        if (this.tryColor(r, c, firstColor, listIdx, depth)) return true;
+        if (!skipSecond && this.tryColor(r, c, secondColor, listIdx, depth)) return true;
 
+        this._backtrackCount++;
         return false;
     }
 
-    tryColor(r, c, color, listIdx) {
+    tryColor(r, c, color, listIdx, depth) {
         if (!this.isValidColor(r, c, color)) return false;
         if (!this.checkAreaConstraints(r, c, color)) return false;
         if (color === 0 && !this.isStillConnectable(r, c)) return false;
@@ -168,7 +192,7 @@ class PuzzleSolver {
         this._board[r][c] = color;
         this.updateAreaState(r, c, color, 1);
 
-        if (this.backtrack(listIdx + 1)) return true;
+        if (this.backtrack(listIdx + 1, depth + 1)) return true;
 
         this.updateAreaState(r, c, color, -1);
         this._board[r][c] = -1;

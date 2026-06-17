@@ -548,7 +548,7 @@
                 chapter: 1,
                 difficulty: _difficulty,
                 size: size,
-                areas: areas,
+                areas: areas.filter(a => a.cells.length > 0),
                 initialState: emptyState
             };
             currentSolution = solution;
@@ -2159,10 +2159,13 @@ ${stateStr}
                 }
                 
                 // currentPuzzle 설정
+                const size = puzzleData.size;
+                const difficulty = size <= 5 ? 1 : size <= 7 ? 2 : 3;
                 currentPuzzle = {
                     id: puzzleData.id,
-                    size: puzzleData.size,
-                    areas: puzzleData.areas.map(a => ({
+                    size: size,
+                    difficulty: difficulty,
+                    areas: puzzleData.areas.filter(a => a.cells.length > 0).map(a => ({
                         cells: a.cells,
                         required: a.required
                     })),
@@ -2254,7 +2257,7 @@ ${stateStr}
                 });
                 const json = await response.json();
                 if (json.solutions && json.solutions.length > 0) {
-                    result = { success: true, unique: json.solutions.length === 1, solutions: json.solutions };
+                    result = { success: true, unique: json.solutions.length === 1, solutions: json.solutions, difficultyLabel: json.difficultyLabel, difficultyScore: json.difficultyScore };
                 } else {
                     result = { success: false };
                 }
@@ -2269,8 +2272,9 @@ ${stateStr}
                 showSolution(0);
 
                 const uniqueText = result.unique ? '(유일해)' : `(${result.solutions.length}개 해답 발견)`;
-                updateValidationStatus(result.unique ? 'success' : 'warning', `✅ 해답 표시됨 ${uniqueText}`);
-                log(`해답 표시 완료 ${uniqueText}`, 'success');
+                const diffText = result.difficultyLabel ? ` - 난이도: ${result.difficultyLabel} (${result.difficultyScore})` : '';
+                updateValidationStatus(result.unique ? 'success' : 'warning', `✅ 해답 표시됨 ${uniqueText}${diffText}`);
+                log(`해답 표시 완료 ${uniqueText}${diffText}`, 'success');
                 renderSolutionNav();
             } else {
                 allFoundSolutions = [];
@@ -2537,27 +2541,11 @@ ${stateStr}
                     }
                 }
 
-                // 미할당 셀이 남으면 가장 가까운 영역에 편입
-                for (let r = 0; r < size; r++) {
-                    for (let c = 0; c < size; c++) {
-                        if (!assigned[r][c]) {
-                            let bestIdx = 0, bestDist = Infinity;
-                            for (let i = 0; i < rawAreas.length; i++) {
-                                for (const [ar, ac] of rawAreas[i].cells) {
-                                    const d = Math.abs(r-ar)+Math.abs(c-ac);
-                                    if (d < bestDist) { bestDist = d; bestIdx = i; }
-                                }
-                            }
-                            rawAreas[bestIdx].cells.push([r, c]);
-                            if (board[r][c] === 1) rawAreas[bestIdx].required = Math.max(1, rawAreas[bestIdx].required + 1);
-                            assigned[r][c] = true;
-                        }
-                    }
-                }
+                // 미할당 셀은 영역에 편입하지 않음 (영역 없는 셀로 남음)
 
                 if (rawAreas.length < 1) { log('영역 재생성 실패', 'error'); return; }
 
-                currentPuzzle.areas = rawAreas;
+                currentPuzzle.areas = rawAreas.filter(a => a.cells.length > 0);
                 reRenderBoard();
                 refreshAreaPalette();
                 log(`영역 재설정 완료 (${rawAreas.length}개)`, 'success');
@@ -2578,19 +2566,20 @@ ${stateStr}
             const size = currentPuzzle.size;
             const originalAreas = currentPuzzle.areas.map(a => ({ ...a, cells: a.cells.map(c => [...c]) }));
 
-            for (let attempt = 1; attempt <= 10; attempt++) {
-                log(`반복시도 ${attempt}/10...`, 'info');
+            for (let attempt = 1; attempt <= 30; attempt++) {
+                log(`반복시도 ${attempt}/30...`, 'info');
                 // required 랜덤 변경
                 saveHistory();
                 currentPuzzle.areas = originalAreas.map(a => {
                     if (a.cells.length === 1) {
                         return { ...a, cells: a.cells.map(c => [...c]), required: Math.floor(Math.random() * 2) };
                     }
-                    const maxReq = a.cells.length - 1;
                     const grayCount = a.cells.filter(([r, c]) => currentPuzzle.initialState[r][c] === 1).length;
-                    const minReq = Math.max(1, Math.floor(a.cells.length * 0.2));
-                    const max = Math.min(maxReq, Math.max(grayCount, Math.ceil(a.cells.length * 0.8)));
-                    const newReq = minReq + Math.floor(Math.random() * (Math.max(max, minReq) - minReq + 1));
+                    const minReq = Math.max(1, grayCount);
+                    const maxReq = a.cells.length;
+                    const range = maxReq - minReq;
+                    // 낮은 값에 가중치: 1-sqrt(random)으로 낮은 쪽 확률 높임
+                    const newReq = range === 0 ? minReq : minReq + Math.floor((1 - Math.sqrt(Math.random())) * (range + 1));
                     return { ...a, cells: a.cells.map(c => [...c]), required: newReq };
                 });
                 reRenderBoard();
@@ -2615,7 +2604,7 @@ ${stateStr}
                 try {
                     const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
                     const json = await response.json();
-                    result = json.solutions?.length > 0 ? { solutions: json.solutions } : null;
+                    result = json.solutions?.length > 0 ? json : null;
                 } catch(e) { result = null; }
 
                 if (result?.solutions?.length === 1) {
@@ -2623,16 +2612,18 @@ ${stateStr}
                     currentSolutionIdx = 0;
                     showSolution(0);
                     renderSolutionNav();
-                    updateValidationStatus('success', `✅ 유일해 발견! (${attempt}번째 시도)`);
-                    log(`유일해 발견! (${attempt}번째 시도)`, 'success');
+                    const diffLabel = result.difficultyLabel || '-';
+                    const diffScore = result.difficultyScore ?? '-';
+                    updateValidationStatus('success', `✅ 유일해 발견! (${attempt}번째 시도) - 난이도: ${diffLabel} (${diffScore})`);
+                    log(`유일해 발견! (${attempt}번째 시도) - 난이도: ${diffLabel} (${diffScore})`, 'success');
                     btn.disabled = false;
                     btn.textContent = '🔄 반복시도';
                     return;
                 }
             }
 
-            log('10회 시도 후 유일해를 찾지 못했습니다.', 'warning');
-            updateValidationStatus('warning', '⚠️ 유일해 미발견 (10회 시도)');
+            log('30회 시도 후 유일해를 찾지 못했습니다.', 'warning');
+            updateValidationStatus('warning', '⚠️ 유일해 미발견 (30회 시도)');
             btn.disabled = false;
             btn.textContent = '🔄 반복시도';
         }

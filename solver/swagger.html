@@ -659,8 +659,14 @@
             
             if (result.solutions && result.solutions.length > 0) {
                 if (result.solutions.length === 1) {
-                    resultDiv.innerHTML = '<div class="verify-result success">✅ 유일한 해답 존재 (1개)</div>';
-                    // 해답 표시
+                    const diffLabel = result.difficultyLabel || '-';
+                    const diffScore = result.difficultyScore ?? '-';
+                    const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
+                    resultDiv.innerHTML = `<div class="verify-result success">
+                        ✅ 유일한 해답 존재 (1개)<br>
+                        <span style="font-size:13px;color:#ccc;">반복: ${(result.iterations||0).toLocaleString()} / 백트랙: ${(result.backtrackCount||0).toLocaleString()} / 빈칸: ${result.emptyCellCount||'-'} / 최대깊이: ${result.maxDepth||'-'}</span><br>
+                        <span style="font-size:15px;font-weight:bold;color:${diffColor};">난이도: ${diffLabel} (${diffScore})</span>
+                    </div>`;
                     renderPuzzle(result.solutions[0], '검증된 해답');
                 } else {
                     resultDiv.innerHTML = `<div class="verify-result error">⚠️ ${result.solutions.length}개 해답 존재 (유일하지 않음)</div>`;
@@ -836,17 +842,20 @@
     }
 
     // 솔루션 렌더링 함수
-    function renderSolutions(solutions, elapsedTime, iterations) {
+    function renderSolutions(solutions, elapsedTime, iterations, data) {
         const puzzleContainer = document.getElementById('puzzleContainer');
         puzzleContainer.innerHTML = '';
         
         if (solutions.length > 0) {
             const solutionCountDiv = document.createElement('div');
             solutionCountDiv.className = 'solution-count';
+            const diffLabel = data?.difficultyLabel || '-';
+            const diffScore = data?.difficultyScore ?? '-';
+            const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
             solutionCountDiv.innerHTML = `
                 총 ${solutions.length}개의 솔루션을 찾았습니다.<br>
-                경과 시간: ${elapsedTime.toFixed(3)}초<br>
-                반복 횟수: ${iterations.toLocaleString()}
+                경과 시간: ${elapsedTime.toFixed(3)}초 / 반복: ${iterations.toLocaleString()} / 백트랙: ${(data?.backtrackCount||0).toLocaleString()} / 빈칸: ${data?.emptyCellCount||'-'}<br>
+                <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>
             `;
             puzzleContainer.appendChild(solutionCountDiv);
             
@@ -996,9 +1005,9 @@
             
             const data = await response.json();
             
-            console.log(`[${new Date().toLocaleTimeString()}] 솔루션 완료: ${data.solutions.length}개, 경과 시간: ${data.elapsedTime.toFixed(3)}초`);
+            console.log(`[${new Date().toLocaleTimeString()}] 솔루션 완료: ${data.solutions.length}개, 경과 시간: ${data.elapsedTime.toFixed(3)}초, 난이도: ${data.difficultyLabel}(${data.difficultyScore})`);
             
-            renderSolutions(data.solutions, data.elapsedTime, data.iterations);
+            renderSolutions(data.solutions, data.elapsedTime, data.iterations, data);
             
         } catch (error) {
             console.error(`[${new Date().toLocaleTimeString()}] 오류 발생: ${error.message}`);

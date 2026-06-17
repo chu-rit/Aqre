@@ -380,7 +380,14 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             { key: 'seq',     title: '4연속 규칙', types: ['가로 연속 색상 위반', '세로 연속 색상 위반'], icon: 'warning',   okColor: '#e8a33d' },
           ];
           return (
-            <View style={styles.violationBox}>
+            <View style={styles.violationSection}>
+              <View style={styles.violationSectionHeader}>
+                <View style={styles.violationSectionBadge}>
+                  <Text style={styles.violationSectionBadgeText}>Rule Check</Text>
+                </View>
+                <View style={styles.violationSectionLine} />
+              </View>
+              <View style={styles.violationBox}>
               {ALL_RULES.map(rule => {
                 const matched = violations.filter(v => rule.types.includes(v.type));
                 const isViolated = matched.length > 0;
@@ -415,6 +422,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   </TouchableOpacity>
                 );
               })}
+              </View>
             </View>
           );
         })()}
@@ -496,12 +504,43 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 16,
   },
-  violationBox: {
+  violationSection: {
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+    backgroundColor: '#f0f4f8',
+    borderRadius: 16,
+    padding: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+      android: { elevation: 1 },
+    }),
+  },
+  violationSectionHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  violationSectionBadge: {
+    backgroundColor: '#2c3e50',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginRight: 8,
+  },
+  violationSectionBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  violationSectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d0d8e4',
+  },
+  violationBox: {
+    flexDirection: 'row',
     gap: 8,
   },
   violationCard: {

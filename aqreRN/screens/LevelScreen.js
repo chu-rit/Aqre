@@ -45,34 +45,38 @@ function CollapsibleSection({ label, badgeStyle, children, collapsed, onToggle }
 
   return (
     <View style={styles.section}>
-      <TouchableOpacity
-        style={[styles.sectionBadge, badgeStyle]}
-        onPress={onToggle}
-        activeOpacity={0.75}
-      >
-        <Text style={styles.sectionBadgeText} numberOfLines={1}>{label}</Text>
-        <Ionicons
-          name={collapsed ? 'chevron-forward' : 'chevron-down'}
-          size={12}
-          color="rgba(255,255,255,0.85)"
-          style={{ marginLeft: 6 }}
-        />
-      </TouchableOpacity>
-      <Animated.View style={[styles.sectionCardWrapper, heightStyle]}>
-        <View
-          style={styles.sectionCard}
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height;
-            if (h > 0 && measuredHeight.current === 0) {
-              measuredHeight.current = h;
-              animHeight.setValue(collapsedRef.current ? 0 : 1);
-              setReady(true);
-            }
-          }}
+      <View style={styles.sectionCard}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={onToggle}
+          activeOpacity={0.75}
         >
-          {children}
-        </View>
-      </Animated.View>
+          <View style={[styles.sectionBadge, badgeStyle]}>
+            <Text style={styles.sectionBadgeText} numberOfLines={1}>{label}</Text>
+          </View>
+          <View style={styles.sectionHeaderLine} />
+          <Ionicons
+            name={collapsed ? 'chevron-forward' : 'chevron-down'}
+            size={16}
+            color="#9aa5b0"
+          />
+        </TouchableOpacity>
+        <Animated.View style={[styles.sectionCardWrapper, heightStyle]}>
+          <View
+            style={{ paddingTop: 12 }}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              if (h > 0 && measuredHeight.current === 0) {
+                measuredHeight.current = h;
+                animHeight.setValue(collapsedRef.current ? 0 : 1);
+                setReady(true);
+              }
+            }}
+          >
+            {children}
+          </View>
+        </Animated.View>
+      </View>
     </View>
   );
 }
@@ -347,24 +351,42 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   section: {
-    marginTop: 24,
+    marginTop: 16,
   },
-  sectionBadge: {
-    alignSelf: 'flex-start',
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 7,
-    borderRadius: 12,
-    marginBottom: -1,
-    marginLeft: 12,
-    zIndex: 1,
+    paddingBottom: 5,
+    gap: 8,
+  },
+  sectionHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e4eaf0',
+  },
+  sectionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   sectionBadgeText: {
     fontSize: 13,
     fontWeight: '800',
     color: '#fff',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   badgeTutorial: { backgroundColor: '#8e9aaf' },
   badgeEasy:    { backgroundColor: '#5ba4cf' },
@@ -372,16 +394,6 @@ const styles = StyleSheet.create({
   badgeHard:    { backgroundColor: '#4a6fa5' },
   sectionCardWrapper: {
     overflow: 'hidden',
-  },
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
   },
   chapterContainer: {
     paddingHorizontal: 20,
@@ -523,8 +535,8 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: -4,
+    right: -4,
     width: 26,
     height: 26,
     borderRadius: 13,
