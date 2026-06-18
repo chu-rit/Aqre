@@ -7,7 +7,7 @@ Write-Host "Building..." -ForegroundColor Yellow
 Set-Location aqreRN
 npx expo export --output-dir ../docs
 Set-Location ..
-
+ 
 # 2. Create .nojekyll
 Write-Host "Creating .nojekyll..." -ForegroundColor Yellow
 New-Item -Path "docs\.nojekyll" -ItemType File -Force | Out-Null
@@ -42,8 +42,12 @@ if (Test-Path "docs\index.html") {
     (Get-Content "docs\index.html") -replace '/_expo/', '/Aqre/_expo/' | Set-Content "docs\index.html"
 }
 
-# 7. Remove Aqre folder if exists (keep files in docs root)
-Write-Host "Removing Aqre folder if exists..." -ForegroundColor Yellow
+# 7. Create Aqre folder structure
+Write-Host "Creating Aqre folder structure..." -ForegroundColor Yellow
 if (Test-Path "docs\Aqre") { Remove-Item -Path "docs\Aqre" -Recurse -Force }
+New-Item -Path "docs\Aqre" -ItemType Directory -Force | Out-Null
+Move-Item -Path "docs\assets" -Destination "docs\Aqre" -Force
+Move-Item -Path "docs\_expo" -Destination "docs\Aqre" -Force
+Move-Item -Path "docs\favicon.ico" -Destination "docs\Aqre" -Force
 
 Write-Host "Web deployment complete!" -ForegroundColor Green
