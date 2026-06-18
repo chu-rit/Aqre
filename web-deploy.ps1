@@ -19,7 +19,14 @@ if (Test-Path "docs\assets\assets") {
     Remove-Item -Path "docs\assets\assets" -Force
 }
 
-# 4. Fix JS file paths (add /Aqre prefix)
+# 4. Copy font files to assets root (gitignore prevents node_modules from being committed)
+Write-Host "Copying font files to assets root..." -ForegroundColor Yellow
+$fontsDir = "docs\assets\node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts"
+if (Test-Path $fontsDir) {
+    Get-ChildItem $fontsDir -Filter "*.ttf" | ForEach-Object { Copy-Item $_.FullName "docs\assets\" -Force }
+}
+
+# 5. Fix JS file paths (add /Aqre prefix)
 Write-Host "Fixing JS file paths..." -ForegroundColor Yellow
 $jsFile = Get-ChildItem "docs\_expo\static\js\web" -Filter "index-*.js" | Select-Object -First 1
 if ($jsFile) {
