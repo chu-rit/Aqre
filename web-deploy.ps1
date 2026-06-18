@@ -34,14 +34,14 @@ if (Test-Path "docs\metadata.json") {
     (Get-Content "docs\metadata.json") -replace 'assets\\node_modules\\@expo\\vector-icons\\build\\vendor\\react-native-vector-icons\\Fonts\\', 'assets\\' | Set-Content "docs\metadata.json"
 }
 
-# 6. Fix index.html (no /Aqre prefix needed)
+# 6. Fix index.html (use relative paths)
 Write-Host "Fixing index.html..." -ForegroundColor Yellow
 if (Test-Path "docs\index.html") {
-    (Get-Content "docs\index.html") -replace '/Aqre/favicon.ico', '/favicon.ico' | Set-Content "docs\index.html"
-    (Get-Content "docs\index.html") -replace '/Aqre/_expo/', '/_expo/' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/favicon.ico', 'favicon.ico' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/_expo/', '_expo/' | Set-Content "docs\index.html"
 }
 
-# 7. Remove Aqre folder if exists
+# 7. Remove Aqre folder if exists (keep files in docs root)
 Write-Host "Removing Aqre folder if exists..." -ForegroundColor Yellow
 if (Test-Path "docs\Aqre") { Remove-Item -Path "docs\Aqre" -Recurse -Force }
 
