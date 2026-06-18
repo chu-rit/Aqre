@@ -19,13 +19,14 @@ if (Test-Path "docs\assets\assets") {
     Remove-Item -Path "docs\assets\assets" -Force
 }
 
-# 4. Fix JS file paths (no /Aqre prefix needed)
+# 4. Fix JS file paths (add /Aqre prefix)
 Write-Host "Fixing JS file paths..." -ForegroundColor Yellow
 $jsFile = Get-ChildItem "docs\_expo\static\js\web" -Filter "index-*.js" | Select-Object -First 1
 if ($jsFile) {
-    (Get-Content $jsFile.FullName) -replace '/Aqre/Aqre/assets/', '/assets/' | Set-Content $jsFile.FullName
-    (Get-Content $jsFile.FullName) -replace '/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/', '/assets/' | Set-Content $jsFile.FullName
-    (Get-Content $jsFile.FullName) -replace '/assets/assets/', '/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/Aqre/Aqre/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/', '/Aqre/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
+    (Get-Content $jsFile.FullName) -replace '/assets/', '/Aqre/assets/' | Set-Content $jsFile.FullName
 }
 
 # 5. Fix metadata.json (no /Aqre prefix needed)
@@ -34,11 +35,11 @@ if (Test-Path "docs\metadata.json") {
     (Get-Content "docs\metadata.json") -replace 'assets\\node_modules\\@expo\\vector-icons\\build\\vendor\\react-native-vector-icons\\Fonts\\', 'assets\\' | Set-Content "docs\metadata.json"
 }
 
-# 6. Fix index.html (use relative paths)
+# 6. Fix index.html (add /Aqre prefix)
 Write-Host "Fixing index.html..." -ForegroundColor Yellow
 if (Test-Path "docs\index.html") {
-    (Get-Content "docs\index.html") -replace '/favicon.ico', 'favicon.ico' | Set-Content "docs\index.html"
-    (Get-Content "docs\index.html") -replace '/_expo/', '_expo/' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/favicon.ico', '/Aqre/favicon.ico' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '/_expo/', '/Aqre/_expo/' | Set-Content "docs\index.html"
 }
 
 # 7. Remove Aqre folder if exists (keep files in docs root)
