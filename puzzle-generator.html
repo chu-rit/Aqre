@@ -355,6 +355,15 @@
                 <button class="spinner-btn" onclick="spinVal('blackCount',1,-1,30)">▲</button>
             </div>
         </div>
+        <div class="control-group">
+            <label>미할당셀 %</label>
+            <div class="spinner-wrap">
+                <button class="spinner-btn" onclick="spinVal('unassignedPercent',-5,0,80)">▼</button>
+                <span class="spinner-val" id="unassignedPercent-display">0</span>
+                <input type="hidden" id="unassignedPercent" value="0">
+                <button class="spinner-btn" onclick="spinVal('unassignedPercent',5,0,80)">▲</button>
+            </div>
+        </div>
         <button id="generateBtn" onclick="generatePuzzle()">랜덤 생성</button>
         <button id="solveBtn" onclick="verifyWithSolver()" disabled>Solver 검증</button>
         <button id="exportBtn" onclick="exportPuzzle()" disabled>보내기</button>
@@ -1304,11 +1313,34 @@
         function generateAreasFromSolution(solution, targetAreaCount) {
             const { board, grayCells } = solution;
             const size = board.length;
+            const unassignedPercent = parseInt(document.getElementById('unassignedPercent').value) || 0;
             const areas = [];
             const assigned = Array(size).fill(null).map((_, r) =>
                 Array(size).fill(false).map((_, c) => board[r][c] === 2)
             );
             const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+            // 미할당셀 % 처리: 비검정 셀 중 해당 비율을 영역 할당에서 제외
+            if (unassignedPercent > 0) {
+                const nonBlackCells = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (board[r][c] !== 2) {
+                            nonBlackCells.push([r, c]);
+                        }
+                    }
+                }
+                // 셔플
+                for (let i = nonBlackCells.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [nonBlackCells[i], nonBlackCells[j]] = [nonBlackCells[j], nonBlackCells[i]];
+                }
+                const skipCount = Math.floor(nonBlackCells.length * unassignedPercent / 100);
+                for (let i = 0; i < skipCount; i++) {
+                    const [r, c] = nonBlackCells[i];
+                    assigned[r][c] = true; // 영역 할당에서 제외
+                }
+            }
             
             // 1. 회색 셀을 중심으로 클러스터 형성
             const grayClusters = [];
@@ -2419,6 +2451,7 @@ ${stateStr}
 
         function reRenderBoard() {
             if (!currentPuzzle || !currentSolution) return;
+            currentPuzzle.areas = currentPuzzle.areas.filter(a => a.cells.length > 0);
             const sol = { board: currentPuzzle.initialState.map(r => [...r]), grayCells: [], blackCells: [] };
             for (let r = 0; r < currentPuzzle.size; r++)
                 for (let c = 0; c < currentPuzzle.size; c++) {

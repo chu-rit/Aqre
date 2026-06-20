@@ -84,7 +84,24 @@ class PuzzleSolver {
         }
 
         const emptyCellCount = this._emptyCellList.length;
+
+        const initialForced = this.forceCells();
+        if (initialForced === null) {
+            return {
+                solutions: [],
+                iterations: 0,
+                elapsedTime: (Date.now() - startTime) / 1000,
+                status: "No solutions found - initial contradiction"
+            };
+        }
+
         this.backtrack(0, 0);
+
+        for (let i = initialForced.length - 1; i >= 0; i--) {
+            const [fr, fc, fcolor] = initialForced[i];
+            this.updateAreaState(fr, fc, fcolor, -1);
+            this._board[fr][fc] = -1;
+        }
 
         const iterations = this._globalIterationCount;
         const backtrackCount = this._backtrackCount;
@@ -141,6 +158,10 @@ class PuzzleSolver {
     }
 
     backtrack(listIdx, depth) {
+        while (listIdx < this._emptyCellList.length && this._board[this._emptyCellList[listIdx][0]][this._emptyCellList[listIdx][1]] !== -1) {
+            listIdx++;
+        }
+
         this._globalIterationCount++;
         if (depth > this._maxDepth) this._maxDepth = depth;
 
@@ -192,11 +213,157 @@ class PuzzleSolver {
         this._board[r][c] = color;
         this.updateAreaState(r, c, color, 1);
 
+        const forced = this.forceCells();
+        if (forced === null) {
+            this.updateAreaState(r, c, color, -1);
+            this._board[r][c] = -1;
+            return false;
+        }
+
         if (this.backtrack(listIdx + 1, depth + 1)) return true;
 
+        for (let i = forced.length - 1; i >= 0; i--) {
+            const [fr, fc, fcolor] = forced[i];
+            this.updateAreaState(fr, fc, fcolor, -1);
+            this._board[fr][fc] = -1;
+        }
         this.updateAreaState(r, c, color, -1);
         this._board[r][c] = -1;
         return false;
+    }
+
+    _forceCell(forced, r, c, color) {
+        if (this._board[r][c] === color) return true;
+        if (this._board[r][c] !== -1) return false;
+        if (!this.isValidColor(r, c, color)) return false;
+        if (!this.checkAreaConstraints(r, c, color)) return false;
+        if (color === 0 && !this.isStillConnectable(r, c)) return false;
+        if (color === 1 && !this.canConnectToGray(r, c)) return false;
+
+        this._board[r][c] = color;
+        this.updateAreaState(r, c, color, 1);
+        forced.push([r, c, color]);
+        return true;
+    }
+
+    _rollbackForced(forced) {
+        for (let i = forced.length - 1; i >= 0; i--) {
+            const [fr, fc, fcolor] = forced[i];
+            this.updateAreaState(fr, fc, fcolor, -1);
+            this._board[fr][fc] = -1;
+        }
+    }
+
+    applyAreaPropagation(forced) {
+        let changed = false;
+
+        for (let i = 0; i < this._areas.length; i++) {
+            const req = this._areas[i].required;
+            if (req === -1) continue;
+            const curGray = this._areaGrayCount[i];
+            const unassigned = this._areaEmptyCount[i];
+            if (unassigned === 0) continue;
+
+            let forceColor = -1;
+            if (curGray === req) forceColor = 0;
+            else if (curGray + unassigned === req) forceColor = 1;
+
+            if (forceColor !== -1) {
+                for (const [r, c] of this._areas[i].cells) {
+                    if (this._board[r][c] !== -1) continue;
+                    if (!this._forceCell(forced, r, c, forceColor)) return null;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    applyFourRulePropagation(forced) {
+        let changed = false;
+        const s = this._size;
+
+        for (let dim = 0; dim < 2; dim++) {
+            for (let i = 0; i < s; i++) {
+                for (let j = 0; j < s - 3; j++) {
+                    const p = dim === 0
+                        ? [[i, j], [i, j + 1], [i, j + 2], [i, j + 3]]
+                        : [[j, i], [j + 1, i], [j + 2, i], [j + 3, i]];
+
+                    const a = this._board[p[0][0]][p[0][1]];
+                    const b = this._board[p[1][0]][p[1][1]];
+                    const d = this._board[p[2][0]][p[2][1]];
+                    const e = this._board[p[3][0]][p[3][1]];
+
+                    // 111? -> ?=0
+                    if (a === 1 && b === 1 && d === 1 && e === -1) {
+                        if (!this._forceCell(forced, p[3][0], p[3][1], 0)) return null;
+                        changed = true;
+                    }
+                    // ?111 -> ?=0
+                    if (a === -1 && b === 1 && d === 1 && e === 1) {
+                        if (!this._forceCell(forced, p[0][0], p[0][1], 0)) return null;
+                        changed = true;
+                    }
+                    // 000? -> ?=1
+                    if (a === 0 && b === 0 && d === 0 && e === -1) {
+                        if (!this._forceCell(forced, p[3][0], p[3][1], 1)) return null;
+                        changed = true;
+                    }
+                    // ?000 -> ?=1
+                    if (a === -1 && b === 0 && d === 0 && e === 0) {
+                        if (!this._forceCell(forced, p[0][0], p[0][1], 1)) return null;
+                        changed = true;
+                    }
+                    // 11?1 -> ?=0 (sandwich)
+                    if (a === 1 && b === 1 && d === -1 && e === 1) {
+                        if (!this._forceCell(forced, p[2][0], p[2][1], 0)) return null;
+                        changed = true;
+                    }
+                    // 1?11 -> ?=0 (sandwich)
+                    if (a === 1 && b === -1 && d === 1 && e === 1) {
+                        if (!this._forceCell(forced, p[1][0], p[1][1], 0)) return null;
+                        changed = true;
+                    }
+                    // 00?0 -> ?=1 (sandwich)
+                    if (a === 0 && b === 0 && d === -1 && e === 0) {
+                        if (!this._forceCell(forced, p[2][0], p[2][1], 1)) return null;
+                        changed = true;
+                    }
+                    // 0?00 -> ?=1 (sandwich)
+                    if (a === 0 && b === -1 && d === 0 && e === 0) {
+                        if (!this._forceCell(forced, p[1][0], p[1][1], 1)) return null;
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    forceCells() {
+        const forced = [];
+        let changed = true;
+        while (changed) {
+            changed = false;
+
+            const areaChanged = this.applyAreaPropagation(forced);
+            if (areaChanged === null) {
+                this._rollbackForced(forced);
+                return null;
+            }
+            if (areaChanged) changed = true;
+
+            const fourChanged = this.applyFourRulePropagation(forced);
+            if (fourChanged === null) {
+                this._rollbackForced(forced);
+                return null;
+            }
+            if (fourChanged) changed = true;
+        }
+        return forced;
     }
 
     isValidColor(row, col, color) {

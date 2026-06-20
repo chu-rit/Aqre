@@ -75,7 +75,10 @@ const server = http.createServer((req, res) => {
                 return;
             }
             
-            const content = fs.readFileSync(puzzlesJsPath, 'utf8');
+            let content = fs.readFileSync(puzzlesJsPath, 'utf8');
+            
+            // Remove block comments before finding array bounds
+            content = content.replace(/\/\*[\s\S]*?\*\//g, '');
             
             // Simple parser for the JS format
             const arrayStart = content.indexOf('[');
@@ -87,16 +90,18 @@ const server = http.createServer((req, res) => {
             }
             
             let arrayContent = content.substring(arrayStart, arrayEnd + 1);
-            
+
             // Convert to valid JSON
-            arrayContent = arrayContent.replace(/\/\/.*/g, ''); // Remove comments
-            arrayContent = arrayContent.replace(/(\w+):\s*/g, '"$1": '); // Quote property names
-            arrayContent = arrayContent.replace(/'/g, '"'); // Replace single quotes
-            arrayContent = arrayContent.replace(/"J"/g, '-99'); // Handle J value
+            arrayContent = arrayContent.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove block comments
+            arrayContent = arrayContent.replace(/\/\/.*/g, ''); // Remove line comments
+            arrayContent = arrayContent.replace(/'J'/g, '-99'); // Handle J value
             arrayContent = arrayContent.replace(/:\s*J/g, ': -99');
             arrayContent = arrayContent.replace(/,\s*}/g, '}'); // Remove trailing commas
             arrayContent = arrayContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
-            
+
+            // Quote property names - match word followed by colon (not inside strings)
+            arrayContent = arrayContent.replace(/(\w+)\s*:/g, '"$1":');
+
             const puzzles = JSON.parse(arrayContent);
             
             // Convert required: -99 to -1

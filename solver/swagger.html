@@ -321,8 +321,14 @@
     async function loadPuzzles() {
         try {
             const response = await fetch(`${API_BASE_URL}/puzzles`);
-            if (!response.ok) throw new Error('Failed to load puzzles');
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                throw new Error(`Failed to load puzzles (${response.status}): ${errorText}`);
+            }
             const puzzles = await response.json();
+            console.log('Loaded puzzles count:', puzzles.length);
             // required: -99를 -1로 변환 (J 값 처리)
             PUZZLE_MAPS = puzzles.map(p => ({
                 ...p,
