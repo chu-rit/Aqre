@@ -420,9 +420,10 @@
                 <div class="rule-item" id="ruleAreaRequired"><span class="rule-icon">✓</span> 영역 회색 수</div>
                 <div class="rule-item" id="ruleConnectivity"><span class="rule-icon">✓</span> 회색 연결성</div>
             </div>
-            <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
+            <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <button class="tool-btn" onclick="undoEdit()" id="undoBtn">↩ 실행 취소</button>
                 <button class="tool-btn" onclick="findAndShowSolution()" style="background:#1a3a6e;color:#00d4aa;border-color:#00d4aa;">🔍 답찾기</button>
+                <span id="solveProgress" style="font-size:11px;color:#888;min-height:14px;"></span>
             </div>
             <div class="stats" id="stats"></div>
         </div>
@@ -2294,6 +2295,25 @@ ${stateStr}
             log('답 찾기 시작...', 'info');
             updateValidationStatus('pending', '🔍 답 찾는 중...');
 
+            const progressEl = document.getElementById('solveProgress');
+            let progressTimer = null;
+            progressEl.textContent = '';
+            progressTimer = setInterval(async () => {
+                try {
+                    const pRes = await fetch('http://localhost:5000/api/progress');
+                    const pData = await pRes.json();
+                    if (pData.status === 'running') {
+                        const t = pData.elapsedTime.toFixed(1);
+                        const iter = pData.iterations.toLocaleString();
+                        const depth = pData.currentDepth != null ? pData.currentDepth : '?';
+                        const total = pData.emptyCellTotal != null ? pData.emptyCellTotal : '?';
+                        const bt = pData.backtracks != null ? pData.backtracks.toLocaleString() : '0';
+                        const sols = pData.solutionsFound != null ? pData.solutionsFound : 0;
+                        progressEl.textContent = `⏱ ${t}초 | 반복 ${iter} | 깊이 ${depth}/${total} | 백트랙 ${bt} | 해답 ${sols}개`;
+                    }
+                } catch(e) {}
+            }, 500);
+
             const size = currentPuzzle.size;
             const strippedBoard = currentPuzzle.initialState.map(row =>
                 row.map(v => v === 2 ? 2 : -1)
@@ -2332,6 +2352,8 @@ ${stateStr}
                 log(`API 오류: ${err.message}`, 'error');
                 result = { success: false };
             }
+
+            clearInterval(progressTimer);
 
             if (result.success && result.solutions && result.solutions.length > 0) {
                 allFoundSolutions = result.solutions;

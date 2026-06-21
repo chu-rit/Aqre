@@ -21,6 +21,8 @@ class PuzzleSolver {
         this._emptyCellList = [];
         this._totalGrayCount = 0;
         this._dfsStack = [];
+        this._onProgress = null;
+        this._progressInterval = 10000;
     }
 
     solve(request) {
@@ -35,6 +37,8 @@ class PuzzleSolver {
         this._globalIterationCount = 0;
         this._backtrackCount = 0;
         this._maxDepth = 0;
+        this._solveStartTime = startTime;
+        this._emptyCellTotal = 0;
 
         this._areaGrayCount = new Array(this._areas.length).fill(0);
         this._areaEmptyCount = new Array(this._areas.length).fill(0);
@@ -84,6 +88,7 @@ class PuzzleSolver {
         }
 
         const emptyCellCount = this._emptyCellList.length;
+        this._emptyCellTotal = emptyCellCount;
 
         const initialForced = this.forceCells();
         if (initialForced === null) {
@@ -164,6 +169,18 @@ class PuzzleSolver {
 
         this._globalIterationCount++;
         if (depth > this._maxDepth) this._maxDepth = depth;
+
+        if (this._onProgress && this._globalIterationCount % this._progressInterval === 0) {
+            this._onProgress({
+                iterations: this._globalIterationCount,
+                backtracks: this._backtrackCount,
+                maxDepth: this._maxDepth,
+                emptyCellTotal: this._emptyCellTotal,
+                currentDepth: depth,
+                elapsedTime: (Date.now() - this._solveStartTime) / 1000,
+                solutionsFound: this._solutions.length
+            });
+        }
 
         if (listIdx === this._emptyCellList.length) {
             if (this.checkGrayConnectivity()) {

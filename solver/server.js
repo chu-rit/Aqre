@@ -3,9 +3,12 @@
  */
 
 const http = require('http');
+const { Worker } = require('worker_threads');
 const { PuzzleSolver } = require('./solver');
 
 const PORT = 5000;
+let currentProgress = { status: 'idle' };
+let activeWorker = null;
 
 function parseJSON(body) {
     try {
@@ -37,6 +40,13 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Progress endpoint
+    if (url === '/api/progress' && method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(currentProgress));
+        return;
+    }
+
     // Solve puzzle
     if (url === '/api/solve' && method === 'POST') {
         let body = '';
@@ -49,15 +59,44 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            try {
-                const solver = new PuzzleSolver();
-                const result = solver.solve(request);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(result));
-            } catch (err) {
+            currentProgress = { status: 'running', iterations: 0, elapsedTime: 0 };
+
+            const worker = new Worker(__dirname + '/solver-worker.js', { workerData: request });
+            activeWorker = worker;
+
+            worker.on('message', (msg) => {
+                if (msg.type === 'progress') {
+                    currentProgress = {
+                        status: 'running',
+                        iterations: msg.iterations,
+                        backtracks: msg.backtracks,
+                        maxDepth: msg.maxDepth,
+                        emptyCellTotal: msg.emptyCellTotal,
+                        currentDepth: msg.currentDepth,
+                        elapsedTime: msg.elapsedTime,
+                        solutionsFound: msg.solutionsFound
+                    };
+                } else if (msg.type === 'done') {
+                    currentProgress = { status: 'idle' };
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(msg.result));
+                    worker.terminate();
+                    activeWorker = null;
+                } else if (msg.type === 'error') {
+                    currentProgress = { status: 'idle' };
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: msg.error }));
+                    worker.terminate();
+                    activeWorker = null;
+                }
+            });
+
+            worker.on('error', (err) => {
+                currentProgress = { status: 'idle' };
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: err.message }));
-            }
+                activeWorker = null;
+            });
         });
         return;
     }
