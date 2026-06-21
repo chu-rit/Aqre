@@ -198,13 +198,43 @@
             resize: vertical;
             font-size: 12px;
         }
-        .test-mode .controls,
-        .test-mode .panel:nth-child(2) {
+        .game-mode .controls,
+        .game-mode .panel:nth-child(2),
+        .game-mode .export-section {
             display: none;
         }
-        .test-mode .panel:first-child {
+        .game-mode .panel:first-child {
             flex: 1;
         }
+        .game-mode .edit-toolbar,
+        .game-mode #regenAreasBtn,
+        .game-mode #autoTryBtn,
+        .game-mode #undoBtn {
+            display: none;
+        }
+        .game-mode .game-rules {
+            display: flex !important;
+        }
+        .game-rules {
+            display: none;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #0f3460;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .rule-item.ok { border-color: #00d4aa; color: #00d4aa; }
+        .rule-item.violation { border-color: #e94560; color: #e94560; background: rgba(233,69,96,0.1); }
+        .rule-icon { font-size: 16px; }
         .mode-toggle {
             position: absolute;
             top: 20px;
@@ -315,7 +345,7 @@
     </style>
 </head>
 <body>
-    <button class="mode-toggle" onclick="toggleTestMode()">테스트 모드</button>
+    <button class="mode-toggle" onclick="toggleTestMode()">제작 모드</button>
     <h1>Aqre Puzzle Generator</h1>
     
     <div class="controls">
@@ -385,6 +415,11 @@
                 <button class="tool-btn new-area" onclick="addNewArea()" id="addAreaBtn">+ 새 영역</button>
             </div>
             <div id="board" class="board"></div>
+            <div class="game-rules" id="gameRules">
+                <div class="rule-item" id="rule4Consecutive"><span class="rule-icon">✓</span> 4연속 금지</div>
+                <div class="rule-item" id="ruleAreaRequired"><span class="rule-icon">✓</span> 영역 회색 수</div>
+                <div class="rule-item" id="ruleConnectivity"><span class="rule-icon">✓</span> 회색 연결성</div>
+            </div>
             <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
                 <button class="tool-btn" onclick="undoEdit()" id="undoBtn">↩ 실행 취소</button>
                 <button class="tool-btn" onclick="findAndShowSolution()" style="background:#1a3a6e;color:#00d4aa;border-color:#00d4aa;">🔍 답찾기</button>
@@ -2461,11 +2496,112 @@ ${stateStr}
             currentSolution = sol;
             renderBoard(sol, currentPuzzle.areas, currentPuzzle.initialState);
             displayPuzzleData();
+            if (isTestMode) checkGameRules();
+        }
+
+        function checkGameRules() {
+            if (!currentPuzzle) return;
+            const board = currentPuzzle.initialState;
+            const size = currentPuzzle.size;
+            const areas = currentPuzzle.areas;
+
+            // 1. 4연속 검사
+            let has4Consecutive = false;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size - 3; c++) {
+                    const v = board[r][c];
+                    if (v === 0 || v === 1) {
+                        if (board[r][c+1] === v && board[r][c+2] === v && board[r][c+3] === v) {
+                            has4Consecutive = true; break;
+                        }
+                    }
+                }
+                if (has4Consecutive) break;
+            }
+            if (!has4Consecutive) {
+                for (let c = 0; c < size; c++) {
+                    for (let r = 0; r < size - 3; r++) {
+                        const v = board[r][c];
+                        if (v === 0 || v === 1) {
+                            if (board[r+1][c] === v && board[r+2][c] === v && board[r+3][c] === v) {
+                                has4Consecutive = true; break;
+                            }
+                        }
+                    }
+                    if (has4Consecutive) break;
+                }
+            }
+            updateRuleItem('rule4Consecutive', !has4Consecutive);
+
+            // 2. 영역 회색 수 검사
+            let areaViolation = false;
+            for (const area of areas) {
+                if (area.required < 0) continue;
+                const grayCount = area.cells.filter(([r, c]) => board[r][c] === 1).length;
+                const emptyCount = area.cells.filter(([r, c]) => board[r][c] === -1).length;
+                if (emptyCount === 0 && grayCount !== area.required) {
+                    areaViolation = true; break;
+                }
+                if (grayCount > area.required) {
+                    areaViolation = true; break;
+                }
+                if (grayCount + emptyCount < area.required) {
+                    areaViolation = true; break;
+                }
+            }
+            updateRuleItem('ruleAreaRequired', !areaViolation);
+
+            // 3. 회색 연결성 검사
+            const grayCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 1) grayCells.push([r, c]);
+                }
+            }
+            let connected = true;
+            if (grayCells.length > 1) {
+                const visited = new Set();
+                const queue = [grayCells[0]];
+                visited.add(`${grayCells[0][0]},${grayCells[0][1]}`);
+                const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                while (queue.length > 0) {
+                    const [r, c] = queue.shift();
+                    for (const [dr, dc] of dirs) {
+                        const nr = r + dr, nc = c + dc;
+                        const key = `${nr},${nc}`;
+                        if (nr >= 0 && nr < size && nc >= 0 && nc < size &&
+                            board[nr][nc] === 1 && !visited.has(key)) {
+                            visited.add(key);
+                            queue.push([nr, nc]);
+                        }
+                    }
+                }
+                connected = visited.size === grayCells.length;
+            }
+            updateRuleItem('ruleConnectivity', connected);
+        }
+
+        function updateRuleItem(id, ok) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.className = 'rule-item ' + (ok ? 'ok' : 'violation');
+            el.querySelector('.rule-icon').textContent = ok ? '✓' : '✗';
         }
 
         function onCellClick(r, c, e) {
-            if (!editModeActive || !currentPuzzle) return;
+            if (!currentPuzzle) return;
             e.stopPropagation();
+
+            if (isTestMode) {
+                // 게임 모드: 셀 클릭으로 0/1 전환 (검정 셀은 무시)
+                const cur = currentPuzzle.initialState[r][c];
+                if (cur === 2) return;
+                currentPuzzle.initialState[r][c] = cur === 1 ? 0 : 1;
+                reRenderBoard();
+                return;
+            }
+
+            if (!editModeActive) return;
             if (selectedAreaIdx === -1) { log('먼저 영역을 선택하세요', 'info'); return; }
             saveHistory();
 
@@ -2662,9 +2798,20 @@ ${stateStr}
         }
 
         function onCellRightClick(r, c, e) {
-            if (!editModeActive || !currentPuzzle) return;
+            if (!currentPuzzle) return;
             e.preventDefault();
             e.stopPropagation();
+
+            if (isTestMode) {
+                // 게임 모드: 우클릭으로 빈칸(-1) 리셋 (검정 셀은 무시)
+                const cur = currentPuzzle.initialState[r][c];
+                if (cur === 2) return;
+                currentPuzzle.initialState[r][c] = -1;
+                reRenderBoard();
+                return;
+            }
+
+            if (!editModeActive) return;
             saveHistory();
             const cur = currentPuzzle.initialState[r][c];
             currentPuzzle.initialState[r][c] = (cur === 2) ? 0 : 2;
@@ -2708,14 +2855,15 @@ ${stateStr}
         let isTestMode = false;
         function toggleTestMode() {
             isTestMode = !isTestMode;
-            document.body.classList.toggle('test-mode', isTestMode);
+            document.body.classList.toggle('game-mode', isTestMode);
             const btn = document.querySelector('.mode-toggle');
-            btn.textContent = isTestMode ? '생성 모드' : '테스트 모드';
+            btn.textContent = isTestMode ? '게임 모드' : '제작 모드';
             
             if (isTestMode) {
-                log('테스트 모드로 전환. 퍼즐 데이터를 입력하고 "미리보기 및 검증"을 누르세요.', 'info');
+                log('제작 모드로 전환. 퍼즐 데이터를 입력하고 "미리보기 및 검증"을 누르세요.', 'info');
+                if (currentPuzzle) checkGameRules();
             } else {
-                log('생성 모드로 전환', 'info');
+                log('게임 모드로 전환', 'info');
             }
         }
     </script>
