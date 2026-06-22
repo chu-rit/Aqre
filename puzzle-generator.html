@@ -388,10 +388,10 @@
         <div class="control-group">
             <label>미할당셀 %</label>
             <div class="spinner-wrap">
-                <button class="spinner-btn" onclick="spinVal('unassignedPercent',-5,0,80)">▼</button>
+                <button class="spinner-btn" onclick="spinVal('unassignedPercent',-5,0,100)">▼</button>
                 <span class="spinner-val" id="unassignedPercent-display">0</span>
                 <input type="hidden" id="unassignedPercent" value="0">
-                <button class="spinner-btn" onclick="spinVal('unassignedPercent',5,0,80)">▲</button>
+                <button class="spinner-btn" onclick="spinVal('unassignedPercent',5,0,100)">▲</button>
             </div>
         </div>
         <button id="generateBtn" onclick="generatePuzzle()">랜덤 생성</button>
@@ -422,7 +422,9 @@
             </div>
             <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <button class="tool-btn" onclick="undoEdit()" id="undoBtn">↩ 실행 취소</button>
-                <button class="tool-btn" onclick="findAndShowSolution()" style="background:#1a3a6e;color:#00d4aa;border-color:#00d4aa;">🔍 답찾기</button>
+                <button class="tool-btn" onclick="findAndShowSolution()" id="solveBtn" style="background:#1a3a6e;color:#00d4aa;border-color:#00d4aa;">🔍 답찾기</button>
+                <button class="tool-btn" onclick="findAndShowSolution2()" id="solveBtn2" style="background:#1a3a6e;color:#ffaa44;border-color:#ffaa44;">🧠 답찾기2</button>
+                <button class="tool-btn" onclick="cancelSolve()" id="cancelSolveBtn" style="display:none;background:#6e1a1a;color:#ff6b6b;border-color:#ff6b6b;">⏹ 중지</button>
                 <span id="solveProgress" style="font-size:11px;color:#888;min-height:14px;"></span>
             </div>
             <div class="stats" id="stats"></div>
@@ -451,6 +453,7 @@
         const API_URL = 'http://localhost:5000/api/solve';
 
         document.addEventListener('DOMContentLoaded', () => {
+            restoreSpinners();
             document.querySelectorAll('.spinner-wrap').forEach(wrap => {
                 wrap.addEventListener('wheel', e => {
                     e.preventDefault();
@@ -464,6 +467,8 @@
             });
         });
 
+        const SPINNER_KEYS = ['cols', 'rows', 'areaCount', 'blackCount', 'unassignedPercent'];
+
         function spinVal(id, delta, min, max) {
             const input = document.getElementById(id);
             const display = document.getElementById(id + '-display');
@@ -472,9 +477,27 @@
             if (id === 'blackCount' && cur <= -1) {
                 input.value = '';
                 display.textContent = '자동';
+                localStorage.setItem('pg_' + id, '');
             } else {
                 input.value = cur;
                 display.textContent = cur;
+                localStorage.setItem('pg_' + id, String(cur));
+            }
+        }
+
+        function restoreSpinners() {
+            for (const id of SPINNER_KEYS) {
+                const saved = localStorage.getItem('pg_' + id);
+                if (saved === null) continue;
+                const input = document.getElementById(id);
+                const display = document.getElementById(id + '-display');
+                if (id === 'blackCount' && saved === '') {
+                    input.value = '';
+                    display.textContent = '자동';
+                } else {
+                    input.value = saved;
+                    display.textContent = saved;
+                }
             }
         }
         let currentPuzzle = null;
@@ -543,8 +566,8 @@
             for (let attempt = 0; attempt < 20; attempt++) {
                 const s = strategies[attempt % strategies.length];
                 let sol;
-                try { sol = generateSolutionWithStrategy(size, s, null, targetBlackCount); } catch(e) { continue; }
-                if (!sol) continue;
+                try { sol = generateSolutionWithStrategy(size, s, null, targetBlackCount); } catch(e) { log(`시도 ${attempt+1}: 솔루션 생성 예외 - ${e.message}`, 'error'); continue; }
+                if (!sol) { log(`시도 ${attempt+1}: 솔루션 생성 실패 (전략: ${s})`, 'warn'); continue; }
                 // 영역 생성 전에 패딩 영역을 2로 표시 (rows/cols 범위 밖)
                 for (let r = 0; r < size; r++)
                     for (let c = 0; c < size; c++)
@@ -558,7 +581,9 @@
                         if (sol.board[r][c] === 1) sol.grayCells.push([r, c]);
                     }
                 const ar = generateAreasFromSolution(sol, areaCount);
-                if (ar.length >= 2) { solution = sol; areas = ar; break; }
+                const unassignedPercent = parseInt(document.getElementById('unassignedPercent').value) || 0;
+                if (ar.length >= 2 || unassignedPercent >= 100) { solution = sol; areas = ar; break; }
+                else { log(`시도 ${attempt+1}: 영역 생성 부족 (${ar.length}개, 목표 ${areaCount}개)`, 'warn'); }
             }
             if (!solution || !areas) {
                 log('생성 실패. 조건을 바꿔 다시 시도하세요.', 'error');
@@ -621,8 +646,8 @@
             const { board, blackCells } = solution;
             const size = board.length;
             
-            // 모든 셀을 빈칸(-1)으로 초기화
-            const emptyState = Array(size).fill(null).map(() => Array(size).fill(-1));
+            // 모든 셀을 흰색(0)으로 초기화
+            const emptyState = Array(size).fill(null).map(() => Array(size).fill(0));
             
             // 검정 셀만 표시
             for (const [r, c] of blackCells) {
@@ -1356,6 +1381,11 @@
             );
             const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
+            // 미할당 100%: 영역 생성 없이 반환
+            if (unassignedPercent >= 100) {
+                return areas;
+            }
+
             // 미할당셀 % 처리: 비검정 셀 중 해당 비율을 영역 할당에서 제외
             if (unassignedPercent > 0) {
                 const nonBlackCells = [];
@@ -1735,7 +1765,7 @@
             while (finalAreas.length < targetAreaCount) {
                 finalAreas.sort((a, b) => b.cells.length - a.cells.length);
                 const big = finalAreas.shift();
-                if (big.cells.length < 2) { finalAreas.push(big); break; }
+                if (!big || big.cells.length < 2) { if (big) finalAreas.push(big); break; }
                 const halves = splitCluster(big.cells, 2, size);
                 for (const half of halves) {
                     finalAreas.push({
@@ -2286,11 +2316,45 @@ ${stateStr}
             log('퍼즐 데이터가 클립보드에 복사되었습니다', 'success');
         }
 
-        async function findAndShowSolution() {
+        let isSolving = false;
+
+        async function cancelSolve() {
+            if (!isSolving) return;
+            try {
+                await fetch('http://localhost:5000/api/cancel', { method: 'POST' });
+            } catch(e) {}
+            isSolving = false;
+            const solveBtn = document.getElementById('solveBtn');
+            const solveBtn2 = document.getElementById('solveBtn2');
+            const cancelBtn = document.getElementById('cancelSolveBtn');
+            if (solveBtn) solveBtn.disabled = false;
+            if (solveBtn2) solveBtn2.disabled = false;
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            log('답 찾기 중지됨', 'warn');
+            updateValidationStatus('idle', '');
+            document.getElementById('solveProgress').textContent = '';
+        }
+
+        async function findAndShowSolution2() {
+            await findAndShowSolution(true);
+        }
+
+        async function findAndShowSolution(useReasoning = false) {
             if (!currentPuzzle) {
                 log('먼저 퍼즐을 생성하거나 로드하세요', 'error');
                 return;
             }
+            if (isSolving) {
+                log('이미 답을 찾는 중입니다...', 'warn');
+                return;
+            }
+            isSolving = true;
+            const solveBtn = document.getElementById('solveBtn');
+            const solveBtn2 = document.getElementById('solveBtn2');
+            const cancelBtn = document.getElementById('cancelSolveBtn');
+            if (solveBtn) solveBtn.disabled = true;
+            if (solveBtn2) solveBtn2.disabled = true;
+            if (cancelBtn) cancelBtn.style.display = '';
 
             log('답 찾기 시작...', 'info');
             updateValidationStatus('pending', '🔍 답 찾는 중...');
@@ -2303,7 +2367,7 @@ ${stateStr}
                     const pRes = await fetch('http://localhost:5000/api/progress');
                     const pData = await pRes.json();
                     if (pData.status === 'running') {
-                        const t = pData.elapsedTime.toFixed(1);
+                        const t = Math.floor(pData.elapsedTime);
                         const iter = pData.iterations.toLocaleString();
                         const depth = pData.currentDepth != null ? pData.currentDepth : '?';
                         const total = pData.emptyCellTotal != null ? pData.emptyCellTotal : '?';
@@ -2312,7 +2376,7 @@ ${stateStr}
                         progressEl.textContent = `⏱ ${t}초 | 반복 ${iter} | 깊이 ${depth}/${total} | 백트랙 ${bt} | 해답 ${sols}개`;
                     }
                 } catch(e) {}
-            }, 500);
+            }, 3000);
 
             const size = currentPuzzle.size;
             const strippedBoard = currentPuzzle.initialState.map(row =>
@@ -2332,17 +2396,19 @@ ${stateStr}
                 areas: currentPuzzle.areas.map(a => ({ cells: a.cells, required: a.required })),
                 initialBoard: strippedBoard,
                 blackCellBitmask,
-                maxSolutions: 5
+                maxSolutions: 5,
+                solverType: useReasoning ? 'reasoning' : undefined
             };
 
             let result;
+            let json = null;
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(request)
                 });
-                const json = await response.json();
+                json = await response.json();
                 if (json.solutions && json.solutions.length > 0) {
                     result = { success: true, unique: json.solutions.length === 1, solutions: json.solutions, difficultyLabel: json.difficultyLabel, difficultyScore: json.difficultyScore };
                 } else {
@@ -2354,6 +2420,10 @@ ${stateStr}
             }
 
             clearInterval(progressTimer);
+            isSolving = false;
+            if (solveBtn) solveBtn.disabled = false;
+            if (solveBtn2) solveBtn2.disabled = false;
+            if (cancelBtn) cancelBtn.style.display = 'none';
 
             if (result.success && result.solutions && result.solutions.length > 0) {
                 allFoundSolutions = result.solutions;
@@ -2362,8 +2432,9 @@ ${stateStr}
 
                 const uniqueText = result.unique ? '(유일해)' : `(${result.solutions.length}개 해답 발견)`;
                 const diffText = result.difficultyLabel ? ` - 난이도: ${result.difficultyLabel} (${result.difficultyScore})` : '';
-                updateValidationStatus(result.unique ? 'success' : 'warning', `✅ 해답 표시됨 ${uniqueText}${diffText}`);
-                log(`해답 표시 완료 ${uniqueText}${diffText}`, 'success');
+                const reasonText = json && json.reasoningScore != null ? ` - 추론점수: ${json.reasoningScore} (Lv${json.maxReasoningLevel})` : '';
+                updateValidationStatus(result.unique ? 'success' : 'warning', `✅ 해답 표시됨 ${uniqueText}${diffText}${reasonText}`);
+                log(`해답 표시 완료 ${uniqueText}${diffText}${reasonText}`, 'success');
                 renderSolutionNav();
             } else {
                 allFoundSolutions = [];
@@ -2631,6 +2702,10 @@ ${stateStr}
                 currentPuzzle.areas.forEach(a => {
                     a.cells = a.cells.filter(([cr, cc]) => !(cr === r && cc === c));
                 });
+            } else if (selectedAreaIdx >= currentPuzzle.areas.length) {
+                // 새 영역 생성
+                currentPuzzle.areas.push({ cells: [[r, c]], required: -1 });
+                selectedAreaIdx = currentPuzzle.areas.length - 1;
             } else {
                 const targetArea = currentPuzzle.areas[selectedAreaIdx];
                 const alreadyIn = targetArea.cells.some(([cr, cc]) => cr === r && cc === c);

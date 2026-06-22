@@ -47,6 +47,18 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Cancel solving
+    if (url === '/api/cancel' && method === 'POST') {
+        if (activeWorker) {
+            activeWorker.terminate();
+            activeWorker = null;
+        }
+        currentProgress = { status: 'idle' };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+        return;
+    }
+
     // Solve puzzle
     if (url === '/api/solve' && method === 'POST') {
         let body = '';

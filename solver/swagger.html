@@ -284,6 +284,14 @@
                 </select>
                 <button class="level-nav-btn" id="levelNextBtn" onclick="navigateLevel(1)" disabled>&#9650;</button>
             </div>
+            <div style="display:flex;gap:16px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                    <input type="radio" name="solverType" value="default" checked onchange="if(currentPuzzle) solveLevel()"> 기본 솔버
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                    <input type="radio" name="solverType" value="reasoning" onchange="if(currentPuzzle) solveLevel()"> 추론 솔버
+                </label>
+            </div>
             <button onclick="toggleManualInput()" style="margin-top: 12px; background: rgba(255,255,255,0.1); color: #aaa; border: 1px solid rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;">▼ 직접 퍼즐 데이터 검증</button>
             <div class="manual-input" id="manualInputSection" style="display:none;">
                 <p style="color: #aaa; font-size: 12px; margin: 5px 0;">제너레이터에서 생성한 퍼즐 데이터를 붙여넣어 검증하세요</p>
@@ -629,7 +637,8 @@
                 })),
                 initialBoard: puzzleData.initialState,
                 blackCellBitmask: blackCellBitmask,
-                maxSolutions: 5
+                maxSolutions: 5,
+                solverType: document.querySelector('input[name="solverType"]:checked')?.value === 'reasoning' ? 'reasoning' : undefined
             };
             
             // 빈 셀이 없는지 확인 (완성된 퍼즐인지)
@@ -668,10 +677,11 @@
                     const diffLabel = result.difficultyLabel || '-';
                     const diffScore = result.difficultyScore ?? '-';
                     const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
+                    const reasonText = result.reasoningScore != null ? `<br><span style="font-size:15px;font-weight:bold;color:#ffaa44;">추론점수: ${result.reasoningScore} (Lv${result.maxReasoningLevel})</span>` : '';
                     resultDiv.innerHTML = `<div class="verify-result success">
                         ✅ 유일한 해답 존재 (1개)<br>
                         <span style="font-size:13px;color:#ccc;">반복: ${(result.iterations||0).toLocaleString()} / 백트랙: ${(result.backtrackCount||0).toLocaleString()} / 빈칸: ${result.emptyCellCount||'-'} / 최대깊이: ${result.maxDepth||'-'}</span><br>
-                        <span style="font-size:15px;font-weight:bold;color:${diffColor};">난이도: ${diffLabel} (${diffScore})</span>
+                        <span style="font-size:15px;font-weight:bold;color:${diffColor};">난이도: ${diffLabel} (${diffScore})</span>${reasonText}
                     </div>`;
                     renderPuzzle(result.solutions[0], '검증된 해답');
                 } else {
@@ -858,10 +868,11 @@
             const diffLabel = data?.difficultyLabel || '-';
             const diffScore = data?.difficultyScore ?? '-';
             const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
+            const reasonText = data?.reasoningScore != null ? `<br><span style="font-weight:bold;color:#ffaa44;font-size:16px;">추론점수: ${data.reasoningScore} (Lv${data.maxReasoningLevel})</span>` : '';
             solutionCountDiv.innerHTML = `
                 총 ${solutions.length}개의 솔루션을 찾았습니다.<br>
                 경과 시간: ${elapsedTime.toFixed(3)}초 / 반복: ${iterations.toLocaleString()} / 백트랙: ${(data?.backtrackCount||0).toLocaleString()} / 빈칸: ${data?.emptyCellCount||'-'}<br>
-                <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>
+                <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>${reasonText}
             `;
             puzzleContainer.appendChild(solutionCountDiv);
             
@@ -991,7 +1002,8 @@
                 areas: processedAreas,
                 initialBoard: board,
                 blackCellBitmask: blackCellBitmask,
-                maxSolutions: 3
+                maxSolutions: 3,
+                solverType: document.querySelector('input[name="solverType"]:checked')?.value === 'reasoning' ? 'reasoning' : undefined
             };
             
             console.log('Request body:', JSON.stringify(requestBody, null, 2));
