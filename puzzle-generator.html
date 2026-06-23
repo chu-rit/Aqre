@@ -629,17 +629,11 @@
             
             // 데이터 표시
             displayPuzzleData();
-            updateValidationStatus('pending', `🔍 빈 퍼즐로 Solver 시도 중... (전략: ${strategy})`);
             
             document.getElementById('solveBtn').disabled = false;
             document.getElementById('exportBtn').disabled = false;
             
-            log('빈 퍼즐 생성 완료! Solver로 해답 검증 중...', 'success');
-            
-            // 자동 검증 시작 (빈 퍼즐로)
-            setTimeout(() => autoVerifyWithRetry(0, retryCount, { 
-                size, areaCount, strategy, targetBlackCount, solution, areas 
-            }), 100);
+            log('퍼즐 생성 완료!', 'success');
         }
         
         function generateEmptyState(solution) {
@@ -1975,7 +1969,7 @@
             const stats = document.getElementById('stats');
             const totalCells = size * size;
             const grayCount = solution.grayCells.length;
-            const presetCount = initialState.flat().filter(v => v !== -1).length;
+            const presetCount = initialState.flat().filter(v => v !== 2).length;
             
             stats.innerHTML = `
                 <div class="stat-box">
@@ -2587,6 +2581,7 @@ ${stateStr}
                 }
             currentSolution = sol;
             renderBoard(sol, currentPuzzle.areas, currentPuzzle.initialState);
+            updateStats(currentPuzzle.size, currentPuzzle.areas, currentPuzzle.initialState, sol);
             displayPuzzleData();
             if (isTestMode) checkGameRules();
         }
