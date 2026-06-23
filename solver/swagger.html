@@ -453,17 +453,7 @@
             }
         }
         
-        // 3. 2x2 회색 체크
-        for (let r = 0; r < size - 1; r++) {
-            for (let c = 0; c < size - 1; c++) {
-                if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
-                    initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
-                    violations.push(`2x2 회색 위반: (${r},${c})~(${r+1},${c+1})`);
-                }
-            }
-        }
-        
-        // 4. 회색 연결성 체크
+        // 3. 회색 연결성 체크
         const grayCells = [];
         for (let r = 0; r < size; r++) {
             for (let c = 0; c < size; c++) {
@@ -531,17 +521,7 @@
             }
         }
         
-        // 3. 2x2 회색 체크
-        for (let r = 0; r < size - 1; r++) {
-            for (let c = 0; c < size - 1; c++) {
-                if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
-                    initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
-                    violations.push(`2x2 회색 위반: (${r},${c})~(${r+1},${c+1})`);
-                }
-            }
-        }
-        
-        // 4. 회색 연결성 체크
+        // 3. 회색 연결성 체크
         const grayCells = [];
         for (let r = 0; r < size; r++) {
             for (let c = 0; c < size; c++) {
@@ -677,11 +657,10 @@
                     const diffLabel = result.difficultyLabel || '-';
                     const diffScore = result.difficultyScore ?? '-';
                     const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
-                    const reasonText = result.reasoningScore != null ? `<br><span style="font-size:15px;font-weight:bold;color:#ffaa44;">추론점수: ${result.reasoningScore} (Lv${result.maxReasoningLevel})</span>` : '';
                     resultDiv.innerHTML = `<div class="verify-result success">
                         ✅ 유일한 해답 존재 (1개)<br>
                         <span style="font-size:13px;color:#ccc;">반복: ${(result.iterations||0).toLocaleString()} / 백트랙: ${(result.backtrackCount||0).toLocaleString()} / 빈칸: ${result.emptyCellCount||'-'} / 최대깊이: ${result.maxDepth||'-'}</span><br>
-                        <span style="font-size:15px;font-weight:bold;color:${diffColor};">난이도: ${diffLabel} (${diffScore})</span>${reasonText}
+                        <span style="font-size:15px;font-weight:bold;color:${diffColor};">난이도: ${diffLabel} (${diffScore})</span>
                     </div>`;
                     renderPuzzle(result.solutions[0], '검증된 해답');
                 } else {
@@ -734,21 +713,7 @@
                     details.push(`• 4연속 위반: ${fourConsecutive.join(', ')}`);
                 }
                 
-                // 3. 2x2 회색 체크
-                const twoByTwo = [];
-                for (let r = 0; r < size - 1; r++) {
-                    for (let c = 0; c < size - 1; c++) {
-                        if (initialState[r][c] === 1 && initialState[r][c+1] === 1 &&
-                            initialState[r+1][c] === 1 && initialState[r+1][c+1] === 1) {
-                            twoByTwo.push(`(${r},${c})`);
-                        }
-                    }
-                }
-                if (twoByTwo.length > 0) {
-                    details.push(`• 2x2 회색 위반: ${twoByTwo.join(', ')}`);
-                }
-                
-                // 4. 회색 연결성 체크
+                // 3. 회색 연결성 체크
                 const grayCells = [];
                 for (let r = 0; r < size; r++) {
                     for (let c = 0; c < size; c++) {
@@ -868,13 +833,17 @@
             const diffLabel = data?.difficultyLabel || '-';
             const diffScore = data?.difficultyScore ?? '-';
             const diffColor = { Easy: '#4caf50', Normal: '#ff9800', Hard: '#f44336', Expert: '#9c27b0' }[diffLabel] || '#aaa';
-            const reasonText = data?.reasoningScore != null ? `<br><span style="font-weight:bold;color:#ffaa44;font-size:16px;">추론점수: ${data.reasoningScore} (Lv${data.maxReasoningLevel})</span>` : '';
             solutionCountDiv.innerHTML = `
                 총 ${solutions.length}개의 솔루션을 찾았습니다.<br>
                 경과 시간: ${elapsedTime.toFixed(3)}초 / 반복: ${iterations.toLocaleString()} / 백트랙: ${(data?.backtrackCount||0).toLocaleString()} / 빈칸: ${data?.emptyCellCount||'-'}<br>
-                <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>${reasonText}
+                <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>
             `;
             puzzleContainer.appendChild(solutionCountDiv);
+            
+            // 단계별 추론 맵 표시
+            if (data?.reasoningMap) {
+                renderReasoningMap(data.reasoningMap, data);
+            }
             
             solutions.forEach((solution, index) => {
                 renderPuzzle(solution, `솔루션 ${index + 1}`);
@@ -889,6 +858,52 @@
             
             console.log(`[${new Date().toLocaleTimeString()}] 퍼즐 해결 실패`);
         }
+    }
+
+    // 단계별 추론 맵 렌더링
+    function renderReasoningMap(map, data) {
+        const container = document.getElementById('puzzleContainer');
+        const title = document.createElement('div');
+        title.className = 'solution-count';
+        const lvColors = { 1: '#4caf50', 2: '#ff9800', 3: '#f44336', 4: '#9c27b0' };
+        const lvNames = { 1: 'Lv1(1점)', 2: 'Lv2(5점)', 3: 'Lv3(20점)', 4: 'Lv4(50점)' };
+        title.innerHTML = `
+            <b>단계별 추론 맵</b><br>
+            <span style="font-size:13px;">
+                Lv1: ${data?.lv1Count||0} / Lv2: ${data?.lv2Count||0} / Lv3: ${data?.lv3Count||0} / Lv4: ${data?.lv4Count||0}
+            </span>
+        `;
+        title.style.textAlign = 'center';
+        container.appendChild(title);
+
+        const table = document.createElement('table');
+        table.style.borderCollapse = 'collapse';
+        table.style.margin = '10px auto';
+        for (let r = 0; r < map.length; r++) {
+            const tr = document.createElement('tr');
+            for (let c = 0; c < map[r].length; c++) {
+                const v = map[r][c];
+                const td = document.createElement('td');
+                td.style.width = '28px';
+                td.style.height = '28px';
+                td.style.textAlign = 'center';
+                td.style.fontWeight = 'bold';
+                td.style.fontSize = '12px';
+                td.style.border = '1px solid #555';
+                if (v === 0) {
+                    td.style.background = '#222';
+                    td.style.color = '#666';
+                    td.textContent = '.';
+                } else {
+                    td.style.background = lvColors[v] || '#333';
+                    td.style.color = '#fff';
+                    td.textContent = v;
+                }
+                tr.appendChild(td);
+            }
+            table.appendChild(tr);
+        }
+        container.appendChild(table);
     }
 
     // 버퍼링 표시 함수
@@ -1005,8 +1020,6 @@
                 maxSolutions: 3,
                 solverType: document.querySelector('input[name="solverType"]:checked')?.value === 'reasoning' ? 'reasoning' : undefined
             };
-            
-            console.log('Request body:', JSON.stringify(requestBody, null, 2));
             
             const response = await fetch(`${API_BASE_URL}/solve`, {
                 method: 'POST',

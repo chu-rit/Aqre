@@ -25,6 +25,7 @@ class PuzzleSolver {
         this._progressInterval = 10000;
     }
 
+    // 메인 풀이 함수: 초기화, 전파, 백트래킹, 난이도 계산을 순서대로 수행
     solve(request) {
         const startTime = Date.now();
         this._size = request.size;
@@ -133,6 +134,7 @@ class PuzzleSolver {
         };
     }
 
+    // 영역 맵을 구성하고 초기 상태에서 각 영역의 회색/빈 셀 개수를 집계
     buildAreaMapAndStates() {
         for (let row = 0; row < this._size; row++) {
             for (let col = 0; col < this._size; col++) {
@@ -162,6 +164,7 @@ class PuzzleSolver {
         }
     }
 
+    // 재귀 백트래킹: 빈 셀을 하나씩 선택해 색을 시도하고, 전파/되돌리기를 반복
     backtrack(listIdx, depth) {
         while (listIdx < this._emptyCellList.length && this._board[this._emptyCellList[listIdx][0]][this._emptyCellList[listIdx][1]] !== -1) {
             listIdx++;
@@ -221,6 +224,7 @@ class PuzzleSolver {
         return false;
     }
 
+    // 지정한 셀에 색을 지정하고, 전파 후 다음 셀로 백트래킹을 진행
     tryColor(r, c, color, listIdx, depth) {
         if (!this.isValidColor(r, c, color)) return false;
         if (!this.checkAreaConstraints(r, c, color)) return false;
@@ -249,6 +253,7 @@ class PuzzleSolver {
         return false;
     }
 
+    // 유효성과 제약 조건을 검사한 뒤 셀을 강제로 확정하고 변경 목록에 기록
     _forceCell(forced, r, c, color) {
         if (this._board[r][c] === color) return true;
         if (this._board[r][c] !== -1) return false;
@@ -263,6 +268,7 @@ class PuzzleSolver {
         return true;
     }
 
+    // 전파로 확정된 셀들을 역순으로 되돌림
     _rollbackForced(forced) {
         for (let i = forced.length - 1; i >= 0; i--) {
             const [fr, fc, fcolor] = forced[i];
@@ -271,6 +277,7 @@ class PuzzleSolver {
         }
     }
 
+    // 영역 제약 전파: required에 따라 남은 셀을 흰색/회색으로 강제 확정
     applyAreaPropagation(forced) {
         let changed = false;
 
@@ -297,6 +304,7 @@ class PuzzleSolver {
         return changed;
     }
 
+    // 4연속 규칙 전파: 111?, ?111, 000?, ?000, 샌드위치 패턴을 감지해 강제 확정
     applyFourRulePropagation(forced) {
         let changed = false;
         const s = this._size;
@@ -360,6 +368,7 @@ class PuzzleSolver {
         return changed;
     }
 
+    // 영역 전파와 4연속 전파를 더 이상 변화가 없을 때까지 반복 적용
     forceCells() {
         const forced = [];
         let changed = true;
@@ -383,6 +392,7 @@ class PuzzleSolver {
         return forced;
     }
 
+    // 가로/세로로 같은 색이 4개 연속되는지 검사
     isValidColor(row, col, color) {
         // 가로 검사
         let count = 1;
@@ -417,6 +427,7 @@ class PuzzleSolver {
         return true;
     }
 
+    // 셀에 색을 지정했을 때 영역의 required 조건을 만족하는지 검사
     checkAreaConstraints(row, col, color) {
         const areaIndex = this._areaMap[row][col];
         if (areaIndex === -1) return true;
@@ -436,6 +447,7 @@ class PuzzleSolver {
         return true;
     }
 
+    // 셀 색상 변경에 따라 영역의 회색 개수와 빈 셀 개수를 갱신
     updateAreaState(row, col, color, delta) {
         if (row < 0 || row >= this._size || col < 0 || col >= this._size) return;
         const areaIndex = this._areaMap[row][col];
@@ -449,6 +461,7 @@ class PuzzleSolver {
         this._areaEmptyCount[areaIndex] -= delta;
     }
 
+    // 회색 셀을 지정할 때, 주변에 다른 회색/빈 셀이 있어 연결 가능한지 검사
     canConnectToGray(row, col) {
         if (this._totalGrayCount === 0) return true;
 
@@ -466,6 +479,7 @@ class PuzzleSolver {
         return hasEmptyNearby;
     }
 
+    // 셀을 흰색으로 가정했을 때 모든 회색 셀이 연결될 수 있는지 검사
     isStillConnectable(row, col) {
         this._board[row][col] = 0;
 
@@ -504,6 +518,7 @@ class PuzzleSolver {
         return reachableGray === totalGray;
     }
 
+    // 현재 보드에서 모든 회색 셀이 하나로 연결되어 있는지 검사
     checkGrayConnectivity() {
         const grayBitmaskSize = Math.ceil((this._size * this._size) / 32);
         const grayBitmask = new Array(grayBitmaskSize).fill(0);
@@ -540,6 +555,7 @@ class PuzzleSolver {
         return true;
     }
 
+    // 비트마스크 기반 DFS로 회색 셀의 연결성을 탐색
     dfsGray(row, col, visitedBitmask) {
         if (row < 0 || row >= this._size || col < 0 || col >= this._size) return;
 
@@ -557,7 +573,7 @@ class PuzzleSolver {
         this.dfsGray(row, col + 1, visitedBitmask);
     }
 
-    // 완성된 퍼즐 전체 검증
+    // 완성된 퍼즐에 대해 4연속, 영역, 회색 연결성을 종합 검증
     verifyFullPuzzle() {
         const violations = [];
         
@@ -596,17 +612,7 @@ class PuzzleSolver {
             }
         }
         
-        // 3. 2x2 회색 체크
-        for (let r = 0; r < this._size - 1; r++) {
-            for (let c = 0; c < this._size - 1; c++) {
-                if (this._board[r][c] === 1 && this._board[r][c+1] === 1 &&
-                    this._board[r+1][c] === 1 && this._board[r+1][c+1] === 1) {
-                    violations.push(`2x2 회색 위반: (${r},${c})~(${r+1},${c+1})`);
-                }
-            }
-        }
-        
-        // 4. 회색 연결성 체크
+        // 3. 회색 연결성 체크
         const grayCells = [];
         for (let r = 0; r < this._size; r++) {
             for (let c = 0; c < this._size; c++) {
