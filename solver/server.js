@@ -59,6 +59,19 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Restart server (kill process, start.js will relaunch)
+    if (url === '/api/restart' && method === 'POST') {
+        if (activeWorker) {
+            activeWorker.terminate();
+            activeWorker = null;
+        }
+        currentProgress = { status: 'idle' };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+        setTimeout(() => process.exit(0), 100);
+        return;
+    }
+
     // Solve puzzle
     if (url === '/api/solve' && method === 'POST') {
         let body = '';
