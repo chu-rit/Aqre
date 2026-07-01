@@ -352,19 +352,19 @@
         <div class="control-group">
             <label>가로 (Cols)</label>
             <div class="spinner-wrap">
-                <button class="spinner-btn" onclick="spinVal('cols',-1,4,8)">▼</button>
+                <button class="spinner-btn" onclick="spinVal('cols',-1)">▼</button>
                 <span class="spinner-val" id="cols-display">6</span>
                 <input type="hidden" id="cols" value="6">
-                <button class="spinner-btn" onclick="spinVal('cols',1,4,8)">▲</button>
+                <button class="spinner-btn" onclick="spinVal('cols',1)">▲</button>
             </div>
         </div>
         <div class="control-group">
             <label>세로 (Rows)</label>
             <div class="spinner-wrap">
-                <button class="spinner-btn" onclick="spinVal('rows',-1,4,8)">▼</button>
+                <button class="spinner-btn" onclick="spinVal('rows',-1)">▼</button>
                 <span class="spinner-val" id="rows-display">6</span>
                 <input type="hidden" id="rows" value="6">
-                <button class="spinner-btn" onclick="spinVal('rows',1,4,8)">▲</button>
+                <button class="spinner-btn" onclick="spinVal('rows',1)">▲</button>
             </div>
         </div>
         <div class="control-group">
@@ -474,7 +474,9 @@
             const input = document.getElementById(id);
             const display = document.getElementById(id + '-display');
             let cur = input.value === '' ? (id === 'blackCount' ? -1 : 0) : parseInt(input.value);
-            cur = Math.max(min, Math.min(max, cur + delta));
+            cur = cur + delta;
+            if (min !== undefined) cur = Math.max(min, cur);
+            if (max !== undefined) cur = Math.min(max, cur);
             if (id === 'blackCount' && cur <= -1) {
                 input.value = '';
                 display.textContent = '자동';
@@ -1457,7 +1459,7 @@
                     const validCells = areaCells.filter(([r, c]) => !assigned[r][c]);
                     if (validCells.length === 0) continue;
                     
-                    // required 계산: 영역 크기에 비례해서 높은 숫자가 높은 확률로
+                    // required 계산: 셀 개수의 절반에 가까운 값이 높은 확률로 배정
                     const grayCount = validCells.filter(([r, c]) => board[r][c] === 1).length;
                     const whiteCount = validCells.filter(([r, c]) => board[r][c] === 0).length;
                     const areaSize = validCells.length;
@@ -1468,21 +1470,28 @@
                     } else if (grayCount >= areaSize) {
                         required = areaSize - 1; // 최대값 제한
                     } else {
-                        // 회색 셀 수를 기준으로 하되, 영역 크기에 비례해서 높은 값이 나올 확률 증가
-                        const minRequired = Math.max(1, grayCount);
-                        const maxRequired = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
+                        // 절반에 가까운 값이 높은 확률로 나오도록 삼각분포 사용
+                        const lo = Math.max(1, grayCount);
+                        const hi = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
+                        const half = Math.floor(areaSize / 2);
+                        const center = Math.max(lo, Math.min(hi, half));
                         
-                        // 높은 숫자가 나올 확률을 높이기 위한 가중치
-                        // areaSize가 클수록 더 높은 값이 나올 확률 증가
-                        const sizeBonus = Math.floor(areaSize / 4); // 큰 영역 보너스
-                        const baseValue = Math.min(minRequired + sizeBonus, maxRequired);
-                        
-                        // baseValue ~ maxRequired 사이에서 랜덤 (높은 값에 가중치)
-                        const range = maxRequired - baseValue + 1;
-                        const randomOffset = Math.floor(Math.random() * range);
-                        required = Math.min(baseValue + randomOffset, maxRequired);
-                        
-                        // 최소 1 보장
+                        if (hi <= lo) {
+                            required = lo;
+                        } else {
+                            // center를 피크로 하는 삼각분포 (역CDF 방식)
+                            const centerRatio = (center - lo) / (hi - lo);
+                            const r = Math.random();
+                            let tri;
+                            if (r < centerRatio) {
+                                tri = Math.sqrt(r * centerRatio);
+                            } else {
+                                tri = 1 - Math.sqrt((1 - r) * (1 - centerRatio));
+                            }
+                            required = Math.round(lo + tri * (hi - lo));
+                            if (required < lo) required = lo;
+                            if (required > hi) required = hi;
+                        }
                         required = Math.max(1, required);
                     }
                     
@@ -2814,12 +2823,26 @@ ${stateStr}
                         } else if (grayCount >= areaSize) {
                             required = areaSize - 1;
                         } else {
-                            const minRequired = Math.max(1, grayCount);
-                            const maxRequired = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
-                            const sizeBonus = Math.floor(areaSize / 4);
-                            const baseValue = Math.min(minRequired + sizeBonus, maxRequired);
-                            const range = Math.max(1, maxRequired - baseValue + 1);
-                            required = Math.max(1, baseValue + Math.floor(Math.random() * range));
+                            const lo = Math.max(1, grayCount);
+                            const hi = Math.min(areaSize - 1, Math.ceil(areaSize * 0.8));
+                            const half = Math.floor(areaSize / 2);
+                            const center = Math.max(lo, Math.min(hi, half));
+                            if (hi <= lo) {
+                                required = lo;
+                            } else {
+                                const centerRatio = (center - lo) / (hi - lo);
+                                const r = Math.random();
+                                let tri;
+                                if (r < centerRatio) {
+                                    tri = Math.sqrt(r * centerRatio);
+                                } else {
+                                    tri = 1 - Math.sqrt((1 - r) * (1 - centerRatio));
+                                }
+                                required = Math.round(lo + tri * (hi - lo));
+                                if (required < lo) required = lo;
+                                if (required > hi) required = hi;
+                            }
+                            required = Math.max(1, required);
                         }
                         rawAreas.push({ cells: areaCells, required });
                     }
