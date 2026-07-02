@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  FlatList,
   Platform,
   StyleSheet,
   Animated,
@@ -16,83 +17,35 @@ import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import { playTap } from '../utils/sound';
+import { Image } from 'react-native';
 
-const LEVELS_PER_ROW = 5;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CARD_PADDING = 12 * 2;
-const SCROLL_PADDING = 16 * 2;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const LEVELS_PER_ROW = 5;
+const PAGE_PADDING = 16 * 2;       // page horizontal padding
+const CARD_PADDING = 16 * 2;       // card horizontal padding
 const BTN_MARGIN = 5 * 2;
-const LEVEL_BTN_SIZE = Math.min(62, Math.floor((SCREEN_WIDTH - SCROLL_PADDING - CARD_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
+const LEVEL_BTN_SIZE = Math.min(64, Math.floor((SCREEN_WIDTH - PAGE_PADDING - CARD_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
 
-function CollapsibleSection({ label, badgeStyle, children, collapsed, onToggle }) {
-  const animHeight = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
-  const measuredHeight = useRef(0);
-  const [ready, setReady] = useState(false);
-  const collapsedRef = useRef(collapsed);
-
-  useEffect(() => {
-    if (!ready) return;
-    Animated.timing(animHeight, {
-      toValue: collapsed ? 0 : 1,
-      duration: 280,
-      useNativeDriver: false,
-    }).start();
-  }, [collapsed, ready]);
-
-  const heightStyle = ready
-    ? { height: animHeight.interpolate({ inputRange: [0, 1], outputRange: [0, measuredHeight.current] }) }
-    : (collapsedRef.current ? { height: 0 } : {});
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionCard}>
-        <TouchableOpacity
-          style={styles.sectionHeader}
-          onPress={onToggle}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.sectionBadge, badgeStyle]}>
-            <Text style={styles.sectionBadgeText} numberOfLines={1}>{label}</Text>
-          </View>
-          <View style={styles.sectionHeaderLine} />
-          <Ionicons
-            name={collapsed ? 'chevron-forward' : 'chevron-down'}
-            size={16}
-            color="#9aa5b0"
-          />
-        </TouchableOpacity>
-        <Animated.View style={[styles.sectionCardWrapper, heightStyle]}>
-          <View
-            style={{ paddingTop: 12 }}
-            onLayout={(e) => {
-              const h = e.nativeEvent.layout.height;
-              if (h > 0 && measuredHeight.current === 0) {
-                measuredHeight.current = h;
-                animHeight.setValue(collapsedRef.current ? 0 : 1);
-                setReady(true);
-              }
-            }}
-          >
-            {children}
-          </View>
-        </Animated.View>
-      </View>
-    </View>
-  );
-}
+const SERIES_INFO = [
+  { series: 0, label: 'TUTORIAL',  color: '#8e9aaf', icon: 'school-outline' },
+  { series: 1, label: 'EASY',      color: '#5ba4cf', icon: 'sunny-outline' },
+  { series: 2, label: 'NORMAL 1',  color: '#e8914a', icon: 'flame-outline' },
+  { series: 3, label: 'NORMAL 2',  color: '#e8914a', icon: 'flame-outline' },
+  { series: 4, label: 'HARD',      color: '#4a6fa5', icon: 'skull-outline' },
+];
 
 export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
-  const [collapsedSections, setCollapsedSections] = useState({});
   const [loaded, setLoaded] = useState(false);
-
-  const toggleSection = (key) => {
-    setCollapsedSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [currentPage, setCurrentPage] = useState(0);
+  const [listHeight, setListHeight] = useState(0);
+  const flatListRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
   const overlayAnim = useRef(new Animated.Value(1)).current;
+  const scrollAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(overlayAnim, {
@@ -112,20 +65,81 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         if (!alreadyPlayed && level0Steps.length > 0) {
           setShowTutorial(true);
         }
-        const sectionMap = { TUTORIAL: 0, EASY: 1, NORMAL: 2 };
-        const updates = {};
-        for (const [label, diff] of Object.entries(sectionMap)) {
-          const puzzles = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === diff);
-          if (puzzles.length > 0 && puzzles.every(p => cleared.includes(p.id))) {
-            updates[label] = true;
-          }
-        }
-        setCollapsedSections(prev => ({ ...prev, ...updates }));
       } catch (e) {}
       setLoaded(true);
     };
     load();
   }, []);
+
+  const getGroupData = useCallback(() => {
+    if (selectedChapter !== 1) return [];
+    const chapterPuzzles = PUZZLE_MAPS.filter(p => p.chapter === 1);
+    const d0 = chapterPuzzles.filter(p => p.difficulty === 0);
+    const d1 = chapterPuzzles.filter(p => p.difficulty === 1);
+    const d2 = chapterPuzzles.filter(p => p.difficulty === 2);
+    const d3 = chapterPuzzles.filter(p => p.difficulty === 3);
+    const easyLocked = d0.length > 0 && !d0.every(p => clearedPuzzles.includes(p.id));
+    const clearedEasy = d1.filter(p => clearedPuzzles.includes(p.id)).length;
+    const clearedNormal = d2.filter(p => clearedPuzzles.includes(p.id)).length;
+    const normalLocked = easyLocked || clearedEasy < 10;
+    const clearedNormal1 = chapterPuzzles.filter(p => p.series === 2 && clearedPuzzles.includes(p.id)).length;
+    const normal2Locked = normalLocked || clearedNormal1 < 5;
+    const hardLocked = normalLocked || clearedNormal < 10;
+
+    const lockMap = {
+      0: false,
+      1: easyLocked,
+      2: normalLocked,
+      3: normal2Locked,
+      4: hardLocked,
+    };
+    const unlockHints = {
+      1: '튜토리얼을 완료하면 잠금 해제됩니다.',
+      2: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
+      3: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
+      4: 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
+    };
+
+    const seriesNumbers = [...new Set(chapterPuzzles.map(p => p.series))].sort((a, b) => a - b);
+
+    const allGroups = seriesNumbers.map(s => {
+      const info = SERIES_INFO.find(si => si.series === s) || { label: `SERIES ${s}`, color: '#888', icon: 'puzzle' };
+      const puzzles = chapterPuzzles.filter(p => p.series === s);
+      const locked = lockMap[s] || false;
+      const unlockHint = locked ? (unlockHints[s] || null) : null;
+      return {
+        key: `series_${s}`,
+        label: info.label,
+        color: info.color,
+        icon: info.icon,
+        series: s,
+        diff: puzzles[0]?.difficulty ?? 0,
+        puzzles,
+        locked,
+        unlockHint,
+      };
+    });
+
+    const firstLockedIndex = allGroups.findIndex(g => g.locked);
+    if (firstLockedIndex === -1) return allGroups;
+    return allGroups.slice(0, firstLockedIndex + 1);
+  }, [selectedChapter, clearedPuzzles]);
+
+  const groupData = loaded ? getGroupData() : [];
+
+  const handlePageChange = useCallback((index) => {
+    if (index < 0 || index >= groupData.length) return;
+    setCurrentPage(index);
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+  }, [groupData.length]);
+
+  const onScroll = useCallback((e) => {
+    const offset = e.nativeEvent.contentOffset.x;
+    const index = Math.round(offset / SCREEN_WIDTH);
+    if (index !== currentPage && index >= 0 && index < groupData.length) {
+      setCurrentPage(index);
+    }
+  }, [currentPage, groupData.length]);
 
   const getRows = (puzzles) => {
     const rows = [];
@@ -135,7 +149,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     return rows;
   };
 
-  const renderPuzzleRows = (puzzles) => {
+  const renderPuzzleGrid = (puzzles) => {
     const rows = getRows(puzzles);
     let idx = 0;
     return rows.map((row, rowIndex) => (
@@ -188,25 +202,88 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     ));
   };
 
-  const renderSection = (label, badgeStyle, puzzles, sectionLocked = false, unlockHint = null) => {
-    const collapsed = collapsedSections[label] ?? false;
+  const renderPage = ({ item, index }) => {
+    const clearedCount = item.puzzles.filter(p => clearedPuzzles.includes(p.id)).length;
+    const totalCount = item.puzzles.length;
+
     return (
-      <CollapsibleSection
-        key={label}
-        label={label}
-        badgeStyle={badgeStyle}
-        collapsed={collapsed}
-        onToggle={() => { playTap(); toggleSection(label); }}
-      >
-        {sectionLocked ? (
-          <View style={[styles.lockedSection, !unlockHint && styles.lockedSectionCompact]}>
-            <Ionicons name="lock-closed" size={36} color="#9aa5b0" />
-            {unlockHint && <Text style={styles.unlockHint}>{unlockHint}</Text>}
-          </View>
-        ) : (
-          renderPuzzleRows(puzzles)
-        )}
-      </CollapsibleSection>
+      <View style={[styles.page, { height: listHeight }]}>
+        <View style={styles.card}>
+          {item.locked ? (
+            <View style={styles.lockedPage}>
+              <View style={styles.pageHeader}>
+                <View style={[styles.pageBadge, { backgroundColor: item.color }]}>
+                  <Text style={styles.pageBadgeText}>{item.label}</Text>
+                </View>
+              </View>
+              <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
+              <Text style={styles.unlockHintText}>{item.unlockHint}</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.cardImageSection}>
+                {item.series === 0 ? (
+                  <Image
+                    source={require('../assets/GRP1.png')}
+                    style={styles.groupImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.groupImagePlaceholder, { backgroundColor: item.color + '18' }]}>
+                    <View style={[styles.placeholderIconCircle, { backgroundColor: item.color + '25' }]}>
+                      <Ionicons name={item.icon} size={40} color={item.color} />
+                    </View>
+                  </View>
+                )}
+              </View>
+              <View style={styles.cardContentSection}>
+                <View style={styles.pageHeader}>
+                  <View style={[styles.pageBadge, { backgroundColor: item.color }]}>
+                    <Text style={styles.pageBadgeText}>{item.label}</Text>
+                  </View>
+                  <Text style={styles.pageProgress}>
+                    {clearedCount} / {totalCount}
+                  </Text>
+                </View>
+                <ScrollView
+                  contentContainerStyle={styles.gridContent}
+                  showsVerticalScrollIndicator={false}
+                  style={{ flex: 1 }}
+                >
+                  {renderPuzzleGrid(item.puzzles)}
+                </ScrollView>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderPageIndicator = () => {
+    if (groupData.length <= 1) return null;
+    return (
+      <View style={styles.indicatorBar}>
+        {groupData.map((g, i) => (
+          <TouchableOpacity
+            key={g.key}
+            style={styles.indicatorDotWrap}
+            onPress={() => { playTap(); handlePageChange(i); }}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.indicatorDot,
+                i === currentPage && styles.indicatorDotActive,
+                { backgroundColor: i === currentPage ? g.color : '#c5cdd6' },
+              ]}
+            />
+            {i === currentPage && (
+              <Text style={[styles.indicatorLabel, { color: g.color }]}>{g.label}</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
     );
   };
 
@@ -224,58 +301,35 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.chapterContainer}>
-        <View style={styles.chapterTabs}>
-          <TouchableOpacity
-            style={[styles.chapterTab, selectedChapter === 1 && styles.chapterTabActive]}
-            onPress={() => { playTap(); setSelectedChapter(1); }}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.tabIndicator, selectedChapter === 1 && styles.tabIndicatorActive]} />
-            <Text style={[styles.chapterTabText, selectedChapter === 1 && styles.chapterTabTextActive]}>
-              Chapter 1
-            </Text>
-            {selectedChapter === 1 && <View style={styles.activeDot} />}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chapterTab, selectedChapter === 2 && styles.chapterTabActive]}
-            onPress={() => { playTap(); setSelectedChapter(2); }}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.tabIndicator, selectedChapter === 2 && styles.tabIndicatorActive]} />
-            <Text style={[styles.chapterTabText, selectedChapter === 2 && styles.chapterTabTextActive]}>
-              Chapter 2
-            </Text>
-            {selectedChapter === 2 && <View style={styles.activeDot} />}
-          </TouchableOpacity>
-        </View>
-        <View style={styles.tabDivider}>
-          <View style={[styles.activeDivider, selectedChapter === 1 ? styles.activeDividerLeft : styles.activeDividerRight]} />
-        </View>
-      </View>
-
       {selectedChapter === 1 ? (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {loaded && (() => {
-            const d0 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 0);
-            const d1 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 1);
-            const d2 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 2);
-            const d3 = PUZZLE_MAPS.filter(p => p.chapter === 1 && p.difficulty === 3);
-            const easyLocked = !d0.every(p => clearedPuzzles.includes(p.id));
-            const clearedEasy = d1.filter(p => clearedPuzzles.includes(p.id)).length;
-            const clearedNormal = d2.filter(p => clearedPuzzles.includes(p.id)).length;
-            const normalLocked = easyLocked || clearedEasy < 10;
-            const hardLocked = normalLocked || clearedNormal < 10;
-            return (
-              <>
-                {d0.length > 0 && renderSection('TUTORIAL', styles.badgeTutorial, d0)}
-                {d1.length > 0 && renderSection('EASY', styles.badgeEasy, d1, easyLocked, easyLocked ? '튜토리얼을 완료하면 잠금 해제됩니다.' : null)}
-                {d2.length > 0 && renderSection('NORMAL', styles.badgeNormal, d2, normalLocked, normalLocked && !easyLocked ? 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
-                {d3.length > 0 && renderSection('HARD', styles.badgeHard, d3, hardLocked, hardLocked && !normalLocked ? 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.' : null)}
-              </>
-            );
-          })()}
-        </ScrollView>
+        loaded && groupData.length > 0 ? (
+          <>
+            {renderPageIndicator()}
+            <FlatList
+              ref={flatListRef}
+              data={groupData}
+              renderItem={renderPage}
+              keyExtractor={(item) => item.key}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onScrollToIndexFailed={() => {}}
+              getItemLayout={(data, index) => ({
+                length: SCREEN_WIDTH,
+                offset: SCREEN_WIDTH * index,
+                index,
+              })}
+              style={{ flex: 1 }}
+              onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+            />
+          </>
+        ) : (
+          <View style={styles.comingSoonContainer}>
+            <Text style={styles.comingSoonSubtext}>로딩 중...</Text>
+          </View>
+        )
       ) : (
         <View style={styles.comingSoonContainer}>
           <Ionicons name="time-outline" size={64} color="#6b7c93" />
@@ -283,6 +337,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           <Text style={styles.comingSoonSubtext}>Chapter 2 is under development</Text>
         </View>
       )}
+
       {showTutorial && (
         <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <TutorialScreen
@@ -344,56 +399,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#2c3e50',
     letterSpacing: 1.5,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 40,
-  },
-  section: {
-    marginTop: 16,
-  },
-  sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 5,
-    gap: 8,
-  },
-  sectionHeaderLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e4eaf0',
-  },
-  sectionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  sectionBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  badgeTutorial: { backgroundColor: '#8e9aaf' },
-  badgeEasy:    { backgroundColor: '#5ba4cf' },
-  badgeNormal:  { backgroundColor: '#e8914a' },
-  badgeHard:    { backgroundColor: '#4a6fa5' },
-  sectionCardWrapper: {
-    overflow: 'hidden',
   },
   chapterContainer: {
     paddingHorizontal: 20,
@@ -469,69 +474,165 @@ const styles = StyleSheet.create({
   },
   activeDividerLeft: { left: 0 },
   activeDividerRight: { right: 0 },
-  comingSoonContainer: {
+  // 페이지
+  page: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  card: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    marginTop: 8,
+    marginBottom: 4,
+    flexDirection: 'column',
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
+      android: { elevation: 4 },
+    }),
+  },
+  pageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 14,
+    paddingHorizontal: 4,
+  },
+  groupImage: {
+    width: '100%',
+    height: '100%',
+  },
+  groupImagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardImageSection: {
+    flex: 2,
+    overflow: 'hidden',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 16,
+  },
+  cardContentSection: {
+    flex: 3,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+  },
+  placeholderIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    gap: 6,
+  },
+  pageBadgeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  pageProgress: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#8a9aaa',
+  },
+  gridContent: {
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
+  lockedPage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  unlockHintText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#9aa5b0',
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  // 인디케이터
+  indicatorBar: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingVertical: 10,
+    paddingBottom: 16,
+    gap: 20,
   },
-  comingSoonText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#4a5a6b',
-    marginTop: 16,
+  indicatorDotWrap: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  indicatorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#c5cdd6',
+  },
+  indicatorDotActive: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  indicatorLabel: {
+    fontSize: 9,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
-  comingSoonSubtext: {
-    fontSize: 14,
-    color: '#7a8a9b',
-    marginTop: 8,
-  },
+  // 퍼즐 그리드
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 10,
+    marginTop: 4,
   },
   levelButton: {
     width: LEVEL_BTN_SIZE,
     height: LEVEL_BTN_SIZE,
-    borderRadius: Math.round(LEVEL_BTN_SIZE * 0.29),
-    backgroundColor: '#90b4d0',
+    borderRadius: Math.round(LEVEL_BTN_SIZE * 0.32),
+    backgroundColor: '#e8eef5',
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 5,
+    borderWidth: 1.5,
+    borderColor: '#d0dae6',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 6 },
-      android: { elevation: 3 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
+      android: { elevation: 2 },
     }),
   },
   clearedButton: {
-    backgroundColor: '#c8d8e8',
-  },
-  lockedButton: {
-    backgroundColor: '#b0bcc8',
-  },
-  lockedSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-  },
-  lockedSectionCompact: {
-    paddingVertical: 10,
-  },
-  unlockHint: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#9aa5b0',
-    fontWeight: '500',
+    backgroundColor: '#d4e6f4',
+    borderColor: '#b8d0e8',
   },
   levelText: {
-    fontSize: Math.round(LEVEL_BTN_SIZE * 0.35),
-    color: '#3a5a7a',
-    fontWeight: '700',
+    fontSize: Math.round(LEVEL_BTN_SIZE * 0.36),
+    color: '#5a7a9a',
+    fontWeight: '800',
   },
   clearedText: {
-    color: '#1a3a5a',
+    color: '#2a5a8a',
   },
   checkmark: {
     position: 'absolute',
@@ -549,5 +650,23 @@ const styles = StyleSheet.create({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
       android: { elevation: 3 },
     }),
+  },
+  comingSoonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  comingSoonText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4a5a6b',
+    marginTop: 16,
+    letterSpacing: 0.5,
+  },
+  comingSoonSubtext: {
+    fontSize: 14,
+    color: '#7a8a9b',
+    marginTop: 8,
   },
 });

@@ -7,6 +7,7 @@ export const PUZZLE_MAPS = [
         id: 26000001,
         chapter: 1,
         difficulty: 0,
+        series: 0,
         size: 5,
         areas: [
             {
@@ -30,6 +31,7 @@ export const PUZZLE_MAPS = [
         id: 26000002,
         chapter: 1,
         difficulty: 0,
+        series: 0,
         size: 5,
         areas: [
             {
@@ -53,6 +55,7 @@ export const PUZZLE_MAPS = [
         id: 26000003,
         chapter: 1,
         difficulty: 0,
+        series: 0,
         size: 4,
         areas: [
             {
@@ -83,6 +86,7 @@ export const PUZZLE_MAPS = [
         id: 26000004,
         chapter: 1,
         difficulty: 0,
+        series: 0,
         size: 5,
         areas: [
             {
@@ -123,6 +127,7 @@ export const PUZZLE_MAPS = [
         id: 26000005,
         chapter: 1,
         difficulty: 0,
+        series: 0,
         size: 4,
         areas: [
             {
@@ -156,6 +161,7 @@ export const PUZZLE_MAPS = [
         id: 26000006,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 4,
         areas: [
             {
@@ -186,6 +192,7 @@ export const PUZZLE_MAPS = [
         id: 26000007,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 4,
         areas: [
             {
@@ -216,6 +223,7 @@ export const PUZZLE_MAPS = [
         id: 2606152,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 4,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [0,3], [1,0], [1,1], [1,2], [1,3]], required: 3 },
@@ -233,6 +241,7 @@ export const PUZZLE_MAPS = [
         id: 26061511,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 4,
         areas: [
             { cells: [[0,2], [1,2], [0,3], [1,1]], required: 3 },
@@ -250,6 +259,7 @@ export const PUZZLE_MAPS = [
         id: 26000008,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 4,
         areas: [
             {
@@ -293,6 +303,7 @@ export const PUZZLE_MAPS = [
         id: 26000009,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {   
@@ -328,6 +339,7 @@ export const PUZZLE_MAPS = [
         id: 26000011,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {
@@ -366,6 +378,7 @@ export const PUZZLE_MAPS = [
         id: 26061614,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             { cells: [[2,2], [3,1], [3,2], [3,3], [4,0], [4,1], [4,2], [4,3]], required: 7 },
@@ -384,6 +397,7 @@ export const PUZZLE_MAPS = [
         id: 26000010,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {
@@ -419,6 +433,7 @@ export const PUZZLE_MAPS = [
         id: 26061621,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             { cells: [[1,0], [2,0], [3,0], [3,1], [4,0], [4,1]], required: 5 },
@@ -439,6 +454,7 @@ export const PUZZLE_MAPS = [
         id: 26000012,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 6,
         areas: [
             {
@@ -480,6 +496,7 @@ export const PUZZLE_MAPS = [
         id: 26000014,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {
@@ -533,6 +550,7 @@ export const PUZZLE_MAPS = [
         id: 26000017,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 6,
         areas: [
             { 
@@ -581,6 +599,7 @@ export const PUZZLE_MAPS = [
         id: 26000016,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {
@@ -631,6 +650,7 @@ export const PUZZLE_MAPS = [
         id: 26000015,
         chapter: 1,
         difficulty: 1,
+        series: 1,
         size: 5,
         areas: [
             {
@@ -687,6 +707,7 @@ export const PUZZLE_MAPS = [
         id: 26061606,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[1,0], [1,1], [1,2], [1,3], [1,4], [1,5], [2,1], [3,1]], required: 7 },
@@ -708,6 +729,7 @@ export const PUZZLE_MAPS = [
         id: 26061608,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,1], [1,1], [2,1], [3,1], [4,1]], required: 2 },
@@ -728,6 +750,7 @@ export const PUZZLE_MAPS = [
         id: 26000013,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             {
@@ -772,6 +795,7 @@ export const PUZZLE_MAPS = [
         id: 26061707,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,0], [1,0], [1,1], [2,0]], required: 2 },
@@ -795,6 +819,7 @@ export const PUZZLE_MAPS = [
         id: 26000018,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,0], [0,1], [1,0]], required: 1 },
@@ -819,6 +844,7 @@ export const PUZZLE_MAPS = [
         id: 260615,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,0], [1,0], [0,1]], required: 3 },
@@ -842,6 +868,7 @@ export const PUZZLE_MAPS = [
         id: 26000019,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [0,3]], required: 2 },
@@ -866,6 +893,7 @@ export const PUZZLE_MAPS = [
         id: 26062315,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 7,
         areas: [
             { cells: [[1,3], [2,2], [2,3], [2,4], [3,3]], required: 4 },
@@ -891,6 +919,7 @@ export const PUZZLE_MAPS = [
         id: 26061705,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[2,2], [2,3], [3,2], [3,3]], required: 1 },
@@ -912,6 +941,7 @@ export const PUZZLE_MAPS = [
         id: 26061821,
         chapter: 1,
         difficulty: 2,
+        series: 2,
         size: 6,
         areas: [
             { cells: [[0,3], [1,2], [1,3], [1,4], [2,3]], required: 4 },
@@ -933,6 +963,7 @@ export const PUZZLE_MAPS = [
         id: 26062314,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[2,0], [2,1], [3,0], [3,1]], required: 2 },
@@ -955,6 +986,7 @@ export const PUZZLE_MAPS = [
         id: 26062301,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 8,
         areas: [
             { cells: [[1,1], [1,2], [2,2], [2,3], [3,3], [3,4], [4,4], [4,5], [5,5], [5,6]], required: 4 },
@@ -980,6 +1012,7 @@ export const PUZZLE_MAPS = [
         id: 26000022,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             {
@@ -1031,6 +1064,7 @@ export const PUZZLE_MAPS = [
         id: 26062310,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[0,3], [1,2], [1,3], [1,4], [2,3]], required: 3 },
@@ -1056,6 +1090,7 @@ export const PUZZLE_MAPS = [
         id: 26000023,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             {
@@ -1173,6 +1208,7 @@ export const PUZZLE_MAPS = [
         id: 26062201,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[2,2], [2,3], [2,4], [3,2], [4,2], [4,3], [4,4]], required: 2 },
@@ -1195,6 +1231,7 @@ export const PUZZLE_MAPS = [
         id: 26062313,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[0,0], [0,1], [1,0], [1,1], [1,2], [2,1]], required: 2 },
@@ -1219,6 +1256,7 @@ export const PUZZLE_MAPS = [
         id: 26062309,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [0,6]], required: 3 },
@@ -1243,6 +1281,7 @@ export const PUZZLE_MAPS = [
         id: 26062413,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[0,2], [0,3], [1,1], [1,2], [1,3], [2,0], [2,1], [2,2]], required: 6 },
@@ -1268,6 +1307,7 @@ export const PUZZLE_MAPS = [
         id: 26062304,
         chapter: 1,
         difficulty: 2,
+        series: 3,
         size: 7,
         areas: [
             { cells: [[0,5], [0,6], [1,4], [1,5], [1,6], [2,3], [2,4], [2,5], [2,6], [3,4], [3,5], [3,6], [4,5], [4,6]], required: 5 },
@@ -1291,6 +1331,7 @@ export const PUZZLE_MAPS = [
         id: 26000024,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             {
@@ -1345,6 +1386,7 @@ export const PUZZLE_MAPS = [
         id: 26000025,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { 
@@ -1428,6 +1470,7 @@ export const PUZZLE_MAPS = [
         id: 26062401,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { cells: [[3,7], [4,6], [4,7], [5,5], [5,6], [5,7], [6,6], [6,7], [7,7]], required: 7 },
@@ -1452,6 +1495,7 @@ export const PUZZLE_MAPS = [
         id: 26070135,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [1,0], [2,0]], required: 2 },
@@ -1478,6 +1522,7 @@ export const PUZZLE_MAPS = [
         id: 26070102,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [0,3], [0,4], [0,5], [0,6], [0,7], [1,0], [1,7], [2,0], [2,7], [3,0], [3,7], [4,0], [4,7], [5,0], [5,7], [6,0], [6,7], [7,0], [7,1], [7,2], [7,3], [7,4], [7,5], [7,6], [7,7]], required: 10 },
@@ -1501,6 +1546,7 @@ export const PUZZLE_MAPS = [
         id: 26070105,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { cells: [[0,0], [1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0]], required: 2 },
@@ -1531,6 +1577,7 @@ export const PUZZLE_MAPS = [
         id: 26070106,
         chapter: 1,
         difficulty: 3,
+        series: 4,
         size: 8,
         areas: [
             { cells: [[0,0], [0,1], [0,2], [1,0], [2,0]], required: 1 },
