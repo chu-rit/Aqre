@@ -228,6 +228,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                     style={styles.groupImage}
                     resizeMode="cover"
                   />
+                ) : item.series === 1 ? (
+                  <Image
+                    source={require('../assets/GRP2.png')}
+                    style={styles.groupImage}
+                    resizeMode="cover"
+                  />
                 ) : (
                   <View style={[styles.groupImagePlaceholder, { backgroundColor: item.color + '18' }]}>
                     <View style={[styles.placeholderIconCircle, { backgroundColor: item.color + '25' }]}>
@@ -245,13 +251,9 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                     {clearedCount} / {totalCount}
                   </Text>
                 </View>
-                <ScrollView
-                  contentContainerStyle={styles.gridContent}
-                  showsVerticalScrollIndicator={false}
-                  style={{ flex: 1 }}
-                >
+                <View style={styles.gridContent}>
                   {renderPuzzleGrid(item.puzzles)}
-                </ScrollView>
+                </View>
               </View>
             </>
           )}
@@ -480,9 +482,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 4,
+    justifyContent: 'center',
   },
   card: {
-    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 24,
     marginTop: 8,
@@ -504,23 +506,21 @@ const styles = StyleSheet.create({
   groupImage: {
     width: '100%',
     height: '100%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   groupImagePlaceholder: {
-    flex: 1,
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardImageSection: {
-    flex: 2,
+    aspectRatio: 1.5,
     overflow: 'hidden',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginHorizontal: 10,
     marginTop: 10,
-    borderRadius: 16,
+    marginHorizontal: 10,
   },
   cardContentSection: {
-    flex: 3,
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 14,
@@ -554,7 +554,6 @@ const styles = StyleSheet.create({
   gridContent: {
     paddingHorizontal: 8,
     paddingTop: 6,
-    flexGrow: 1,
     justifyContent: 'flex-start',
   },
   lockedPage: {
@@ -562,6 +561,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   unlockHintText: {
     marginTop: 16,
