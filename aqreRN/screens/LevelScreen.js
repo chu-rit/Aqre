@@ -303,6 +303,23 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.chapterContainer}>
+        <View style={styles.chapterTabs}>
+          {[1, 2].map(ch => (
+            <TouchableOpacity
+              key={ch}
+              style={[styles.chapterTab, selectedChapter === ch && styles.chapterTabActive]}
+              onPress={() => { playTap(); setSelectedChapter(ch); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.chapterTabText, selectedChapter === ch && styles.chapterTabTextActive]}>
+                Chapter {ch}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       {selectedChapter === 1 ? (
         loaded && groupData.length > 0 ? (
           <>
