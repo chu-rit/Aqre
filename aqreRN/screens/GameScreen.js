@@ -146,7 +146,7 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, areaMap, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
   const lockAnim = useRef(new Animated.Value(0)).current;
 
@@ -224,7 +224,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-            <Ionicons name="lock-closed" size={40} color="#1e3a5f" />
+            <Ionicons name="lock-closed" size={Math.round(cellSize * 0.5)} color="#1e3a5f" />
           </View>
         </Animated.View>
       )}
@@ -247,7 +247,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
           <Text style={{
             color: '#1e3a5f',
             fontWeight: 'bold',
-            fontSize: 21,
+            fontSize: Math.min(Math.round(cellSize * 0.4), 24),
             textShadowColor: '#fff',
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 3,
@@ -394,7 +394,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
         </View>
 
         <View style={styles.boardWrapper}>
-          {board.map((row, rIdx) => (
+          {(() => {
+            const cellSize = (BOARD_SIZE - GAP * (size - 1)) / size;
+            return board.map((row, rIdx) => (
             <View key={rIdx} style={{ flexDirection: 'row', flex: 1, minHeight: 0 }}>
               {row.map((cell, cIdx) => (
                 <BoardCell
@@ -403,6 +405,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   colIdx={cIdx}
                   cell={cell}
                   size={size}
+                  cellSize={cellSize}
                   areaMap={areaMap}
                   isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
                   onPress={() => toggleCell(rIdx, cIdx)}
@@ -414,7 +417,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                 />
               ))}
             </View>
-          ))}
+          ));
+          })()}
         </View>
 
 {(() => {

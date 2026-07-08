@@ -342,6 +342,26 @@
             transition: background 0.1s;
         }
         .req-btn:hover { background: #00d4aa; opacity: 1; }
+        .req-lock-btn {
+            width: 16px;
+            height: 14px;
+            font-size: 10px;
+            padding: 0;
+            line-height: 1;
+            background: rgba(100,100,100,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s;
+        }
+        .req-lock-btn:hover { background: rgba(100,100,100,0.9); }
+        .req-lock-btn.locked { background: rgba(220,180,0,0.85); color: #1a1a2e; }
+        .req-num.locked { color: #ffd700; }
     </style>
 </head>
 <body>
@@ -1930,7 +1950,12 @@
 
                         const numSpan = document.createElement('span');
                         numSpan.className = 'req-num';
+                        if (lockedAreas.has(areaForLabelIdx)) numSpan.classList.add('locked');
                         numSpan.textContent = areaForLabel.required > 0 ? areaForLabel.required : (editModeActive ? '0' : '');
+                        if (editModeActive) {
+                            numSpan.style.cursor = 'pointer';
+                            numSpan.addEventListener('click', (e) => { e.stopPropagation(); toggleAreaLock(areaForLabelIdx); });
+                        }
                         if (!editModeActive && areaForLabel.required <= 0) {
                             // 편집 모드 아닐 때 0은 원래대로 숨김
                         } else {
@@ -2877,7 +2902,10 @@ ${stateStr}
                 log(`반복시도 ${attempt}/30...`, 'info');
                 // required 랜덤 변경
                 saveHistory();
-                currentPuzzle.areas = originalAreas.map(a => {
+                currentPuzzle.areas = originalAreas.map((a, i) => {
+                    if (lockedAreas.has(i)) {
+                        return { ...a, cells: a.cells.map(c => [...c]), required: a.required };
+                    }
                     if (a.cells.length === 1) {
                         return { ...a, cells: a.cells.map(c => [...c]), required: Math.floor(Math.random() * 2) };
                     }
@@ -2958,12 +2986,21 @@ ${stateStr}
 
         function changeRequired(areaIdx, delta) {
             if (!currentPuzzle) return;
+            if (lockedAreas.has(areaIdx)) return;
             const area = currentPuzzle.areas[areaIdx];
             saveHistory();
             area.required = Math.max(0, Math.min(area.cells.length, (area.required || 0) + delta));
             reRenderBoard();
             refreshAreaPalette();
             displayPuzzleData();
+        }
+
+        const lockedAreas = new Set();
+        function toggleAreaLock(areaIdx) {
+            if (lockedAreas.has(areaIdx)) lockedAreas.delete(areaIdx);
+            else lockedAreas.add(areaIdx);
+            reRenderBoard();
+            refreshAreaPalette();
         }
 
         function addNewArea() {
