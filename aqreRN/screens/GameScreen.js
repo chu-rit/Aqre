@@ -146,8 +146,17 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, areaMap, isViolation, onPress, puzzle, cellRef, dotResetKey }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, areaMap, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
+  const lockAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(lockAnim, {
+      toValue: isLocked ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [isLocked]);
   const loopRef = useRef(null);
   useEffect(() => {
     dotAnim.stopAnimation();
@@ -196,9 +205,29 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ar
         alignItems: 'center',
         ...borders,
       }]}
-      onPress={onPress}
+      onPress={isLocked ? undefined : onPress}
+      onLongPress={onLongPress}
+      delayLongPress={1000}
       activeOpacity={0.7}
     >
+      {isLocked && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          opacity: lockAnim,
+          zIndex: 20,
+        }}>
+          <View style={{
+            width: '100%', height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <Ionicons name="lock-closed" size={40} color="#1e3a5f" />
+          </View>
+        </Animated.View>
+      )}
       {isViolation && (
         <Animated.View style={{
           position: 'absolute', top: '50%', left: '50%',
@@ -243,6 +272,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [showTutorial, setShowTutorial] = useState(false);
 
   const [dotResetKey, setDotResetKey] = useState(0);
+  const [lockedCells, setLockedCells] = useState({});
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -282,6 +312,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearVisible(false);
     setHighlightedCells([]);
     setSelectedViolation(null);
+    setLockedCells({});
     const steps = getTutorialStepsByLevel(puzzle.id);
     if (steps.length > 0) setShowTutorial(true);
   }, [puzzle]);
@@ -319,6 +350,16 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setMoveCount(n => n + 1);
   }, []);
 
+  const toggleLock = useCallback((r, c) => {
+    const key = `${r}-${c}`;
+    setLockedCells(prev => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = true;
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
     setBoard(puzzle.initialState.map(r => [...r]));
     setMoveCount(0);
@@ -327,6 +368,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearVisible(false);
     setHighlightedCells([]);
     setSelectedViolation(null);
+    setLockedCells({});
   }, [puzzle]);
 
   const elapsed = clearTime && startTime ? Math.floor((clearTime - startTime) / 1000) : 0;
@@ -364,6 +406,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   areaMap={areaMap}
                   isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
                   onPress={() => toggleCell(rIdx, cIdx)}
+                  onLongPress={() => toggleLock(rIdx, cIdx)}
+                  isLocked={!!lockedCells[`${rIdx}-${cIdx}`]}
                   puzzle={puzzle}
                   cellRef={cellRefs.current[rIdx][cIdx]}
                   dotResetKey={dotResetKey}

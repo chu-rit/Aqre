@@ -249,6 +249,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                     style={styles.groupImage}
                     resizeMode="cover"
                   />
+                ) : item.series === 2 ? (
+                  <Image
+                    source={require('../assets/GRP3.png')}
+                    style={styles.groupImage}
+                    resizeMode="cover"
+                  />
                 ) : (
                   <View style={[styles.groupImagePlaceholder, { backgroundColor: item.color + '18' }]}>
                     <View style={[styles.placeholderIconCircle, { backgroundColor: item.color + '25' }]}>
