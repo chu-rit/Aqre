@@ -65,6 +65,13 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         if (!alreadyPlayed && level0Steps.length > 0) {
           setShowTutorial(true);
         }
+        const savedPage = await AsyncStorage.getItem('levelCurrentPage');
+        if (savedPage !== null) {
+          const pageIdx = parseInt(savedPage);
+          if (!isNaN(pageIdx) && pageIdx >= 0) {
+            setCurrentPage(pageIdx);
+          }
+        }
       } catch (e) {}
       setLoaded(true);
     };
@@ -127,9 +134,16 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
   const groupData = loaded ? getGroupData() : [];
 
+  useEffect(() => {
+    if (loaded && groupData.length > 0 && currentPage > 0 && currentPage < groupData.length) {
+      flatListRef.current?.scrollToIndex({ index: currentPage, animated: false });
+    }
+  }, [loaded, groupData.length]);
+
   const handlePageChange = useCallback((index) => {
     if (index < 0 || index >= groupData.length) return;
     setCurrentPage(index);
+    AsyncStorage.setItem('levelCurrentPage', String(index));
     flatListRef.current?.scrollToIndex({ index, animated: true });
   }, [groupData.length]);
 
@@ -138,6 +152,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     const index = Math.round(offset / SCREEN_WIDTH);
     if (index !== currentPage && index >= 0 && index < groupData.length) {
       setCurrentPage(index);
+      AsyncStorage.setItem('levelCurrentPage', String(index));
     }
   }, [currentPage, groupData.length]);
 
@@ -280,9 +295,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 { backgroundColor: i === currentPage ? g.color : '#c5cdd6' },
               ]}
             />
-            {i === currentPage && (
-              <Text style={[styles.indicatorLabel, { color: g.color }]}>{g.label}</Text>
-            )}
+            <Text style={[styles.indicatorLabel, { color: i === currentPage ? g.color : 'transparent' }]}>{g.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -323,26 +336,28 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       {selectedChapter === 1 ? (
         loaded && groupData.length > 0 ? (
           <>
-            {renderPageIndicator()}
-            <FlatList
-              ref={flatListRef}
-              data={groupData}
-              renderItem={renderPage}
-              keyExtractor={(item) => item.key}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              onScrollToIndexFailed={() => {}}
-              getItemLayout={(data, index) => ({
-                length: SCREEN_WIDTH,
-                offset: SCREEN_WIDTH * index,
-                index,
-              })}
-              style={{ flex: 1 }}
-              onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
-            />
+            <View style={{ flex: 1 }}>
+              <FlatList
+                ref={flatListRef}
+                data={groupData}
+                renderItem={renderPage}
+                keyExtractor={(item) => item.key}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                onScrollToIndexFailed={() => {}}
+                getItemLayout={(data, index) => ({
+                  length: SCREEN_WIDTH,
+                  offset: SCREEN_WIDTH * index,
+                  index,
+                })}
+                style={{ flex: 1 }}
+                onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+              />
+              {renderPageIndicator()}
+            </View>
           </>
         ) : (
           <View style={styles.comingSoonContainer}>
@@ -596,6 +611,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingBottom: 16,
     gap: 20,
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   indicatorDotWrap: {
     alignItems: 'center',
