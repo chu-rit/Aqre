@@ -445,7 +445,7 @@
                 <button class="tool-btn" onclick="findAndShowSolution()" id="solveBtn" style="background:#1a3a6e;color:#00d4aa;border-color:#00d4aa;">🔍 답찾기</button>
                 <button class="tool-btn" onclick="findAndShowSolution2()" id="solveBtn2" style="background:#1a3a6e;color:#ffaa44;border-color:#ffaa44;">🧠 답찾기2</button>
                 <button class="tool-btn" onclick="cancelSolve()" id="cancelSolveBtn" style="display:none;background:#6e1a1a;color:#ff6b6b;border-color:#ff6b6b;">⏹ 중지</button>
-                <button class="tool-btn" onclick="restartServer()" id="restartBtn" style="background:#3a1a1a;color:#ff6b6b;border-color:#ff6b6b;font-size:11px;">🔄 서버재시작</button>
+                <button class="tool-btn" onclick="cancelAutoTry()" id="cancelAutoTryBtn" style="display:none;background:#6e1a1a;color:#ff6b6b;border-color:#ff6b6b;">⏹ 반복시도 중단</button>
                 <span id="solveProgress" style="font-size:11px;color:#888;min-height:14px;"></span>
             </div>
             <div class="stats" id="stats"></div>
@@ -2889,16 +2889,36 @@ ${stateStr}
             }
         }
 
+        let autoTryCancelled = false;
+        function cancelAutoTry() {
+            autoTryCancelled = true;
+            try {
+                fetch('http://localhost:5000/api/cancel', { method: 'POST' });
+            } catch(e) {}
+            log('반복시도 중단 요청됨 - 서버에 취소 전송', 'info');
+        }
+
         async function autoTryRequired() {
             if (!currentPuzzle) { log('먼저 퍼즐을 생성하세요', 'error'); return; }
             const btn = document.getElementById('autoTryBtn');
+            const cancelBtn = document.getElementById('cancelAutoTryBtn');
             btn.disabled = true;
             btn.textContent = '⏳ 시도 중...';
+            cancelBtn.style.display = '';
+            autoTryCancelled = false;
 
             const size = currentPuzzle.size;
             const originalAreas = currentPuzzle.areas.map(a => ({ ...a, cells: a.cells.map(c => [...c]) }));
 
             for (let attempt = 1; attempt <= 30; attempt++) {
+                if (autoTryCancelled) {
+                    log('반복시도가 중단되었습니다.', 'warning');
+                    updateValidationStatus('warning', '⏹ 반복시도 중단됨');
+                    btn.disabled = false;
+                    btn.textContent = '🔄 반복시도';
+                    cancelBtn.style.display = 'none';
+                    return;
+                }
                 log(`반복시도 ${attempt}/30...`, 'info');
                 // required 랜덤 변경
                 saveHistory();
@@ -2936,11 +2956,43 @@ ${stateStr}
                         }
 
                 let result;
+                let pollInterval = null;
+                let lastPollIter = -1;
+                let lastPollTime = Date.now();
                 try {
-                    const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+                    const fetchPromise = fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+
+                    pollInterval = setInterval(async () => {
+                        try {
+                            const pres = await fetch('http://localhost:5000/api/progress');
+                            const pdata = await pres.json();
+                            if (pdata.status === 'running') {
+                                if (pdata.iterations !== lastPollIter) {
+                                    lastPollIter = pdata.iterations;
+                                    lastPollTime = Date.now();
+                                    log(`  진행 중... iter=${pdata.iterations} backtracks=${pdata.backtracks} depth=${pdata.currentDepth}/${pdata.maxDepth} ${pdata.elapsedTime.toFixed(1)}s`, 'info');
+                                } else if (Date.now() - lastPollTime > 120000) {
+                                    log(`  ⚠️ 120초간 진행 없음 - 응답이 멈춘 것 같습니다`, 'warning');
+                                }
+                            }
+                        } catch(e) {}
+                    }, 60000);
+
+                    const response = await fetchPromise;
+                    if (!response.ok) throw new Error('Server error');
                     const json = await response.json();
                     result = json.solutions?.length > 0 ? json : null;
-                } catch(e) { result = null; }
+                } catch(e) {
+                    if (pollInterval) clearInterval(pollInterval);
+                    log(`서버 연결 실패 - 반복시도 중단: ${e.message}`, 'error');
+                    updateValidationStatus('error', '❌ 서버 연결 실패 - 반복시도 중단됨');
+                    btn.disabled = false;
+                    btn.textContent = '🔄 반복시도';
+                    cancelBtn.style.display = 'none';
+                    return;
+                }
+
+                if (pollInterval) clearInterval(pollInterval);
 
                 if (result?.solutions?.length === 1) {
                     allFoundSolutions = result.solutions;
@@ -2953,6 +3005,7 @@ ${stateStr}
                     log(`유일해 발견! (${attempt}번째 시도) - 난이도: ${diffLabel} (${diffScore})`, 'success');
                     btn.disabled = false;
                     btn.textContent = '🔄 반복시도';
+                    cancelBtn.style.display = 'none';
                     return;
                 }
             }
@@ -2961,6 +3014,7 @@ ${stateStr}
             updateValidationStatus('warning', '⚠️ 유일해 미발견 (30회 시도)');
             btn.disabled = false;
             btn.textContent = '🔄 반복시도';
+            cancelBtn.style.display = 'none';
         }
 
         function onCellRightClick(r, c, e) {

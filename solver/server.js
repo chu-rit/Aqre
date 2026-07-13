@@ -8,7 +8,7 @@ const { PuzzleSolver } = require('./solver');
 
 const PORT = 5000;
 let currentProgress = { status: 'idle' };
-let activeWorker = null;
+let activeWorkers = new Set();
 
 function parseJSON(body) {
     try {
@@ -49,10 +49,10 @@ const server = http.createServer((req, res) => {
 
     // Cancel solving
     if (url === '/api/cancel' && method === 'POST') {
-        if (activeWorker) {
-            activeWorker.terminate();
-            activeWorker = null;
+        for (const w of activeWorkers) {
+            w.terminate();
         }
+        activeWorkers.clear();
         currentProgress = { status: 'idle' };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -61,10 +61,10 @@ const server = http.createServer((req, res) => {
 
     // Restart server (kill process, start.js will relaunch)
     if (url === '/api/restart' && method === 'POST') {
-        if (activeWorker) {
-            activeWorker.terminate();
-            activeWorker = null;
+        for (const w of activeWorkers) {
+            w.terminate();
         }
+        activeWorkers.clear();
         currentProgress = { status: 'idle' };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -87,7 +87,25 @@ const server = http.createServer((req, res) => {
             currentProgress = { status: 'running', iterations: 0, elapsedTime: 0 };
 
             const worker = new Worker(__dirname + '/solver-worker.js', { workerData: request });
-            activeWorker = worker;
+            activeWorkers.add(worker);
+
+            let lastIterationCount = 0;
+            let lastProgressTime = Date.now();
+
+            const stallChecker = setInterval(() => {
+                if (currentProgress.status !== 'running') return;
+                if (currentProgress.iterations !== lastIterationCount) {
+                    lastIterationCount = currentProgress.iterations;
+                    lastProgressTime = Date.now();
+                } else if (Date.now() - lastProgressTime > 120000) {
+                    worker.terminate();
+                    activeWorkers.delete(worker);
+                    currentProgress = { status: 'idle' };
+                    clearInterval(stallChecker);
+                    res.writeHead(408, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Solver stalled - no progress for 120s' }));
+                }
+            }, 5000);
 
             worker.on('message', (msg) => {
                 if (msg.type === 'progress') {
@@ -102,25 +120,28 @@ const server = http.createServer((req, res) => {
                         solutionsFound: msg.solutionsFound
                     };
                 } else if (msg.type === 'done') {
+                    clearInterval(stallChecker);
                     currentProgress = { status: 'idle' };
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify(msg.result));
                     worker.terminate();
-                    activeWorker = null;
+                    activeWorkers.delete(worker);
                 } else if (msg.type === 'error') {
+                    clearInterval(stallChecker);
                     currentProgress = { status: 'idle' };
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: msg.error }));
                     worker.terminate();
-                    activeWorker = null;
+                    activeWorkers.delete(worker);
                 }
             });
 
             worker.on('error', (err) => {
+                clearInterval(stallChecker);
                 currentProgress = { status: 'idle' };
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: err.message }));
-                activeWorker = null;
+                activeWorkers.delete(worker);
             });
         });
         return;
