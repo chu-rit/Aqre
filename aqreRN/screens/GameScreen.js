@@ -9,7 +9,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
-import { Svg, Path } from 'react-native-svg';
+import { Svg, Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,6 +31,8 @@ function getPuzzleTitle(puzzle) {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 32, 480);
+const LOCK_HOLD_DURATION = 1000;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 function checkGameRules(board, puzzle) {
   const size = puzzle.size;
@@ -146,9 +148,12 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
   const lockAnim = useRef(new Animated.Value(0)).current;
+  const holdAnim = useRef(new Animated.Value(0)).current;
+  const holdGaugeTimer = useRef(null);
+  const [isHolding, setIsHolding] = useState(false);
 
   useEffect(() => {
     Animated.timing(lockAnim, {
@@ -172,6 +177,30 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
     return () => { loop.stop(); dotAnim.stopAnimation(); loopRef.current = null; };
   }, [isViolation, dotResetKey]);
 
+  const startHoldProgress = () => {
+    holdAnim.stopAnimation();
+    holdAnim.setValue(0);
+    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
+    holdGaugeTimer.current = setTimeout(() => setIsHolding(true), 500);
+    Animated.timing(holdAnim, {
+      toValue: 1,
+      duration: LOCK_HOLD_DURATION,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const stopHoldProgress = () => {
+    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
+    holdGaugeTimer.current = null;
+    holdAnim.stopAnimation();
+    holdAnim.setValue(0);
+    setIsHolding(false);
+  };
+
+  useEffect(() => () => {
+    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
+  }, []);
+
   const areaIdx = areaMap[rowIdx][colIdx];
   const borders = { borderTopColor: 'transparent', borderTopWidth: 4, borderBottomColor: 'transparent', borderBottomWidth: 4, borderLeftColor: 'transparent', borderLeftWidth: 4, borderRightColor: 'transparent', borderRightWidth: 4 };
   if (areaIdx !== -1) {
@@ -191,6 +220,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
     if (area.required === 'J') return false;
     return area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx;
   })();
+  const areaSatisfied = showLabel && areaFilledCounts[areaIdx] === Number(puzzle.areas[areaIdx].required);
 
   return (
     <TouchableOpacity
@@ -206,10 +236,45 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
         ...borders,
       }]}
       onPress={isLocked ? undefined : onPress}
+      onPressIn={startHoldProgress}
+      onPressOut={stopHoldProgress}
       onLongPress={onLongPress}
-      delayLongPress={1000}
+      delayLongPress={LOCK_HOLD_DURATION}
       activeOpacity={0.7}
     >
+      {isHolding && (
+        <Svg
+          pointerEvents="none"
+          width={Math.round(cellSize * 0.72)}
+          height={Math.round(cellSize * 0.72)}
+          style={{ position: 'absolute', zIndex: 15 }}
+        >
+          <Circle
+            cx={Math.round(cellSize * 0.36)}
+            cy={Math.round(cellSize * 0.36)}
+            r={Math.round(cellSize * 0.29)}
+            stroke="rgba(30, 58, 95, 0.22)"
+            strokeWidth={3}
+            fill="none"
+          />
+          <AnimatedCircle
+            cx={Math.round(cellSize * 0.36)}
+            cy={Math.round(cellSize * 0.36)}
+            r={Math.round(cellSize * 0.29)}
+            stroke="#3b82c4"
+            strokeWidth={3}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * Math.round(cellSize * 0.29)}
+            strokeDashoffset={holdAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [2 * Math.PI * Math.round(cellSize * 0.29), 0],
+            })}
+            rotation="-90"
+            origin={`${Math.round(cellSize * 0.36)}, ${Math.round(cellSize * 0.36)}`}
+          />
+        </Svg>
+      )}
       {isLocked && (
         <Animated.View style={{
           position: 'absolute',
@@ -245,7 +310,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
           style={{ position: 'absolute', left: 2, top: 2, zIndex: 10 }}
         >
           <Text style={{
-            color: '#1e3a5f',
+            color: areaSatisfied ? '#3b9edb' : '#1e3a5f',
             fontWeight: 'bold',
             fontSize: Math.min(Math.round(cellSize * 0.4), 24),
             textShadowColor: '#fff',
@@ -273,6 +338,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
+  const screenEnterAnim = useRef(new Animated.Value(0)).current;
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -297,7 +363,19 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     if (tutorialSteps.length > 0) setShowTutorial(true);
   }, [puzzle.id]);
 
+  useEffect(() => {
+    screenEnterAnim.setValue(0);
+    Animated.timing(screenEnterAnim, {
+      toValue: 1,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  }, [puzzle.id, screenEnterAnim]);
+
   const size = puzzle.size;
+  const areaFilledCounts = React.useMemo(() => puzzle.areas.map(area => (
+    area.cells.reduce((count, [row, col]) => count + (board[row][col] === 1 ? 1 : 0), 0)
+  )), [board, puzzle.areas]);
   const areaMap = React.useMemo(() => {
     const m = Array.from({ length: size }, () => Array(size).fill(-1));
     puzzle.areas.forEach((area, idx) => area.cells.forEach(([r, c]) => { m[r][c] = idx; }));
@@ -375,7 +453,14 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: screenEnterAnim,
+          transform: [{ translateY: screenEnterAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+        }}
+      >
+        <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
             <BackButton />
@@ -407,6 +492,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   size={size}
                   cellSize={cellSize}
                   areaMap={areaMap}
+                  areaFilledCounts={areaFilledCounts}
                   isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
                   onPress={() => toggleCell(rIdx, cIdx)}
                   onLongPress={() => toggleLock(rIdx, cIdx)}
@@ -490,7 +576,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             </View>
           </View>
         )}
-      </SafeAreaView>
+        </SafeAreaView>
+      </Animated.View>
       <Toast />
       {showTutorial && (
         <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>

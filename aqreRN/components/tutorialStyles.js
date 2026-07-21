@@ -51,30 +51,30 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end', // 하단 정렬로 변경
   },
   avatarContainer: {
-    marginRight: 0, // 오른쪽 여백 제거
-    marginBottom: 4, // 하단 여백 추가
-    marginTop: 0, // 상단 여백 제거
+    flex: 3,
+    marginRight: 0,
+    marginBottom: 4,
+    marginTop: 0,
+    alignItems: 'center',
   },
   avatar: {
-    width: 96, // 크기 증가
-    height: 96, // 크기 증가
+    width: 100,
+    height: 100,
     borderRadius: 16,
   },
   textContainer: {
-    flex: 1,
+    flex: 7,
     marginTop: 16,
     marginBottom: 16,
     marginLeft: 8,
-    width: '100%', // 가로 길이 증가
   },
   speechBubble: {
     backgroundColor: '#f0f8ff',
     borderRadius: 20,
-    padding: 15, // 패딩 15로 조정
+    padding: 15,
     position: 'relative',
     marginLeft: 10,
-    minWidth: '90%', // 가로 길이 증가
-    minHeight: 80, // 최소 높이 유지
+    minHeight: 80,
     ...Platform.select({
       ios: {
         shadowColor: '#000',

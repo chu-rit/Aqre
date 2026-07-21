@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  FlatList,
   Platform,
   StyleSheet,
   Animated,
@@ -15,17 +14,26 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
-import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
+import { getTutorialStepsByLevel, tutorialSteps } from '../src/logic/tutorialSteps';
 import { playTap } from '../utils/sound';
-import { Image } from 'react-native';
+import { Image, ImageBackground } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import Carousel from 'react-native-reanimated-carousel';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const LEVELS_PER_ROW = 5;
-const PAGE_PADDING = 16 * 2;       // page horizontal padding
-const CARD_PADDING = 16 * 2;       // card horizontal padding
+const PAGE_PADDING = 20 * 2;
+const CARD_PADDING = 16 * 2;
+const GRID_PADDING = 0;
 const BTN_MARGIN = 5 * 2;
-const LEVEL_BTN_SIZE = Math.min(64, Math.floor((SCREEN_WIDTH - PAGE_PADDING - CARD_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
+const CARD_WIDTH = SCREEN_WIDTH - PAGE_PADDING;
+const LEVEL_BTN_SIZE = Math.min(64, Math.floor((CARD_WIDTH - CARD_PADDING - GRID_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
+const TUTORIAL_SKIP_SIZE = 84;
+const TUTORIAL_SKIP_STROKE = 5;
+const TUTORIAL_SKIP_RADIUS = (TUTORIAL_SKIP_SIZE - TUTORIAL_SKIP_STROKE) / 2;
+const TUTORIAL_SKIP_CIRCUMFERENCE = 2 * Math.PI * TUTORIAL_SKIP_RADIUS;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const SERIES_INFO = [
   { series: 0, label: 'TUTORIAL',  color: '#8e9aaf', icon: 'school-outline' },
@@ -41,10 +49,13 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [carouselProgress, setCarouselProgress] = useState(0);
+  const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
-  const flatListRef = useRef(null);
+  const carouselRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
   const overlayAnim = useRef(new Animated.Value(1)).current;
+  const tutorialSkipProgress = useRef(new Animated.Value(0)).current;
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -136,7 +147,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
   useEffect(() => {
     if (loaded && groupData.length > 0 && currentPage > 0 && currentPage < groupData.length) {
-      flatListRef.current?.scrollToIndex({ index: currentPage, animated: false });
+      carouselRef.current?.scrollTo({ index: currentPage, animated: false });
     }
   }, [loaded, groupData.length]);
 
@@ -144,17 +155,59 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     if (index < 0 || index >= groupData.length) return;
     setCurrentPage(index);
     AsyncStorage.setItem('levelCurrentPage', String(index));
-    flatListRef.current?.scrollToIndex({ index, animated: true });
+    carouselRef.current?.scrollTo({ index, animated: true });
   }, [groupData.length]);
 
-  const onScroll = useCallback((e) => {
-    const offset = e.nativeEvent.contentOffset.x;
-    const index = Math.round(offset / SCREEN_WIDTH);
-    if (index !== currentPage && index >= 0 && index < groupData.length) {
+  const handleSnapToItem = useCallback((index) => {
+    setCarouselProgress(index);
+    if (index !== currentPage) {
       setCurrentPage(index);
       AsyncStorage.setItem('levelCurrentPage', String(index));
     }
-  }, [currentPage, groupData.length]);
+  }, [currentPage]);
+
+  const handleProgressChange = useCallback((_, absoluteProgress) => {
+    setCarouselProgress(Math.max(0, Math.min(groupData.length - 1, absoluteProgress)));
+  }, [groupData.length]);
+
+  const completeTutorialSkip = useCallback(async () => {
+    const tutorialPuzzleIds = PUZZLE_MAPS
+      .filter(puzzle => puzzle.chapter === 1 && puzzle.difficulty === 0)
+      .map(puzzle => puzzle.id);
+    const updatedClearedPuzzles = [...new Set([...clearedPuzzles, ...tutorialPuzzleIds])];
+    const completedTutorials = Object.keys(tutorialSteps).reduce((completed, key) => {
+      completed[key] = true;
+      return completed;
+    }, {});
+
+    await Promise.all([
+      AsyncStorage.setItem('clearedPuzzles', JSON.stringify(updatedClearedPuzzles)),
+      AsyncStorage.setItem('completedTutorials', JSON.stringify(completedTutorials)),
+    ]);
+    setClearedPuzzles(updatedClearedPuzzles);
+    setShowTutorial(false);
+  }, [clearedPuzzles]);
+
+  const startTutorialSkip = useCallback(() => {
+    tutorialSkipProgress.stopAnimation();
+    tutorialSkipProgress.setValue(0);
+    setIsTutorialSkipHolding(true);
+    Animated.timing(tutorialSkipProgress, {
+      toValue: 1,
+      duration: 2000,
+      useNativeDriver: false,
+    }).start(async ({ finished }) => {
+      if (!finished) return;
+      await completeTutorialSkip();
+      setIsTutorialSkipHolding(false);
+    });
+  }, [completeTutorialSkip, tutorialSkipProgress]);
+
+  const cancelTutorialSkip = useCallback(() => {
+    tutorialSkipProgress.stopAnimation();
+    tutorialSkipProgress.setValue(0);
+    setIsTutorialSkipHolding(false);
+  }, [tutorialSkipProgress]);
 
   const getRows = (puzzles) => {
     const rows = [];
@@ -231,8 +284,48 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                   <Text style={styles.pageBadgeText}>{item.label}</Text>
                 </View>
               </View>
-              <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
+              {item.series === 1 ? (
+                <TouchableOpacity
+                  style={styles.tutorialSkipControl}
+                  onPressIn={startTutorialSkip}
+                  onPressOut={cancelTutorialSkip}
+                  activeOpacity={1}
+                >
+                  {isTutorialSkipHolding && (
+                    <Svg width={TUTORIAL_SKIP_SIZE} height={TUTORIAL_SKIP_SIZE} style={styles.tutorialSkipGauge}>
+                      <Circle
+                        cx={TUTORIAL_SKIP_SIZE / 2}
+                        cy={TUTORIAL_SKIP_SIZE / 2}
+                        r={TUTORIAL_SKIP_RADIUS}
+                        stroke="rgba(91, 164, 207, 0.2)"
+                        strokeWidth={TUTORIAL_SKIP_STROKE}
+                        fill="none"
+                      />
+                      <AnimatedCircle
+                        cx={TUTORIAL_SKIP_SIZE / 2}
+                        cy={TUTORIAL_SKIP_SIZE / 2}
+                        r={TUTORIAL_SKIP_RADIUS}
+                        stroke="#5ba4cf"
+                        strokeWidth={TUTORIAL_SKIP_STROKE}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray={TUTORIAL_SKIP_CIRCUMFERENCE}
+                        strokeDashoffset={tutorialSkipProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [TUTORIAL_SKIP_CIRCUMFERENCE, 0],
+                        })}
+                        rotation="-90"
+                        origin={`${TUTORIAL_SKIP_SIZE / 2}, ${TUTORIAL_SKIP_SIZE / 2}`}
+                      />
+                    </Svg>
+                  )}
+                  <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
+              )}
               <Text style={styles.unlockHintText}>{item.unlockHint}</Text>
+              {item.series === 1 && <Text style={styles.tutorialSkipHint}>튜토리얼을 스킵할려면 자물쇠를 꾸욱 눌러주세요.</Text>}
             </View>
           ) : (
             <>
@@ -287,34 +380,41 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     if (groupData.length <= 1) return null;
     return (
       <View style={styles.indicatorBar}>
-        {groupData.map((g, i) => (
-          <TouchableOpacity
-            key={g.key}
-            style={styles.indicatorDotWrap}
-            onPress={() => { playTap(); handlePageChange(i); }}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.indicatorDot,
-                i === currentPage && styles.indicatorDotActive,
-                { backgroundColor: i === currentPage ? g.color : '#c5cdd6' },
-              ]}
-            />
-            <Text style={[styles.indicatorLabel, { color: i === currentPage ? g.color : 'transparent' }]}>{g.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {groupData.map((g, i) => {
+          const emphasis = Math.max(0, 1 - Math.abs(carouselProgress - i));
+          const dotSize = 7 + emphasis * 4;
+          return (
+            <TouchableOpacity
+              key={g.key}
+              style={styles.indicatorDotWrap}
+              onPress={() => { playTap(); handlePageChange(i); }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.indicatorDot,
+                  {
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotSize / 2,
+                    backgroundColor: emphasis > 0 ? g.color : '#c5cdd6',
+                    opacity: 0.35 + emphasis * 0.65,
+                  },
+                ]}
+              />
+              <Text style={[styles.indicatorLabel, { color: g.color, opacity: emphasis }]}>{g.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     );
   };
 
   return (
+    <ImageBackground source={require('../assets/bg1.png')} style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} resizeMode="cover">
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); onBack(); }} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color="#2c3e50" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
+        <View pointerEvents="none" style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Level Select</Text>
         </View>
         <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); onOptions(); }} activeOpacity={0.7}>
@@ -343,25 +443,30 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         loaded && groupData.length > 0 ? (
           <>
             <View style={{ flex: 1 }}>
-              <FlatList
-                ref={flatListRef}
-                data={groupData}
-                renderItem={renderPage}
-                keyExtractor={(item) => item.key}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={onScroll}
-                scrollEventThrottle={16}
-                onScrollToIndexFailed={() => {}}
-                getItemLayout={(data, index) => ({
-                  length: SCREEN_WIDTH,
-                  offset: SCREEN_WIDTH * index,
-                  index,
-                })}
-                style={{ flex: 1 }}
-                onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
-              />
+              <View style={{ flex: 1 }} onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}>
+                {listHeight > 0 && (
+                  <Carousel
+                    ref={carouselRef}
+                    width={SCREEN_WIDTH}
+                    height={listHeight}
+                    data={groupData}
+                    renderItem={renderPage}
+                    defaultIndex={currentPage}
+                    mode="parallax"
+                    modeConfig={{
+                      parallaxScrollingScale: 0.94,
+                      parallaxAdjacentItemScale: 0.8,
+                      parallaxScrollingOffset: 64,
+                    }}
+                    loop={false}
+                    pagingEnabled
+                    snapEnabled
+                    overscrollEnabled={false}
+                    onProgressChange={handleProgressChange}
+                    onSnapToItem={handleSnapToItem}
+                  />
+                )}
+              </View>
               {renderPageIndicator()}
             </View>
           </>
@@ -401,13 +506,14 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         style={[styles.fadeOverlay, { opacity: overlayAnim }]}
       />
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#dde4ed',
+    backgroundColor: 'transparent',
   },
   fadeOverlay: {
     position: 'absolute',
@@ -431,7 +537,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerCenter: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
   },
   headerTitle: {
@@ -517,7 +625,7 @@ const styles = StyleSheet.create({
   // 페이지
   page: {
     width: SCREEN_WIDTH,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 4,
     justifyContent: 'center',
@@ -553,10 +661,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardImageSection: {
-    aspectRatio: 1.5,
-    overflow: 'hidden',
-    marginTop: 10,
-    marginHorizontal: 10,
+    display: 'none',
   },
   cardContentSection: {
     paddingHorizontal: 16,
@@ -590,8 +695,6 @@ const styles = StyleSheet.create({
     color: '#8a9aaa',
   },
   gridContent: {
-    paddingHorizontal: 8,
-    paddingTop: 6,
     justifyContent: 'flex-start',
   },
   lockedPage: {
@@ -601,6 +704,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
+  tutorialSkipControl: {
+    width: TUTORIAL_SKIP_SIZE,
+    height: TUTORIAL_SKIP_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tutorialSkipGauge: {
+    position: 'absolute',
+  },
   unlockHintText: {
     marginTop: 16,
     fontSize: 14,
@@ -608,6 +720,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  tutorialSkipHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#8a9aaa',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   // 인디케이터
   indicatorBar: {
@@ -647,8 +766,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 10,
-    marginTop: 4,
+    marginBottom: 6,
   },
   levelButton: {
     width: LEVEL_BTN_SIZE,

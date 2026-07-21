@@ -804,7 +804,7 @@ const TutorialScreen = ({
               </TouchableOpacity>
               <View style={styles.tooltipContent}>
                 <View style={styles.avatarContainer}>
-                  <Image source={require('../assets/nurse.png')} style={styles.avatar} resizeMode="contain" />
+                  <Image source={require('../assets/robot1.png')} style={styles.avatar} resizeMode="contain" />
                 </View>
                 <View style={styles.textContainer}>
                   <View style={styles.speechBubble}>
