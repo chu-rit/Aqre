@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Switch, TouchableOpacity,
-  SafeAreaView, Alert, Platform, StyleSheet, PanResponder, Animated,
+  SafeAreaView, Alert, Platform, StyleSheet, PanResponder, Animated, NativeModules,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,15 @@ const STEP_WIDTH = 18;
 const STEP_GAP = 8;
 const NUM_BARS = VOLUME_STEPS.length - 1;
 const TOTAL_WIDTH = NUM_BARS * STEP_WIDTH + (NUM_BARS - 1) * STEP_GAP;
+
+function getDeviceLanguage() {
+  const locale = Platform.OS === 'web'
+    ? navigator.language
+    : NativeModules.SettingsManager?.settings?.AppleLocale
+      || NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
+      || NativeModules.I18nManager?.localeIdentifier;
+  return String(locale || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+}
 
 function VolumeSlider({ value, onChange }) {
   const containerRef = useRef(null);
@@ -73,6 +82,8 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [language, setLanguage] = useState('ko');
+  const isEnglish = language === 'en';
   const overlayAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -92,6 +103,17 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           if (typeof p.soundVolumeStep === 'number') setSoundVolumeState(p.soundVolumeStep);
           if (typeof p.bgmVolumeStep === 'number') setBgmVolumeState(p.bgmVolumeStep);
           if (typeof p.vibrationEnabled === 'boolean') setVibrationEnabled(p.vibrationEnabled);
+          if (p.language === 'ko' || p.language === 'en') {
+            setLanguage(p.language);
+          } else {
+            const deviceLanguage = getDeviceLanguage();
+            setLanguage(deviceLanguage);
+            await AsyncStorage.setItem('options', JSON.stringify({ ...p, language: deviceLanguage }));
+          }
+        } else {
+          const deviceLanguage = getDeviceLanguage();
+          setLanguage(deviceLanguage);
+          await AsyncStorage.setItem('options', JSON.stringify({ language: deviceLanguage }));
         }
       } catch {}
     };
@@ -111,19 +133,19 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
       try {
         await AsyncStorage.removeItem('clearedPuzzles');
         await AsyncStorage.removeItem('completedTutorials');
-        showToast('성공적으로 초기화되었습니다');
+        showToast(isEnglish ? 'Clear data has been reset.' : '성공적으로 초기화되었습니다');
         if (onClose) setTimeout(onClose, 1200);
       } catch (e) {
-        showToast('초기화 실패: ' + (e?.message || '오류'));
+        showToast((isEnglish ? 'Reset failed: ' : '초기화 실패: ') + (e?.message || (isEnglish ? 'Error' : '오류')));
       }
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('게임 클리어 데이터를 정말로 지우시겠습니까?')) doDelete();
+      if (window.confirm(isEnglish ? 'Do you want to reset all clear data?' : '게임 클리어 데이터를 정말로 지우시겠습니까?')) doDelete();
     } else {
-      Alert.alert('데이터 초기화', '게임 클리어 데이터를 정말로 지우시겠습니까?', [
-        { text: '취소', style: 'cancel' },
-        { text: '초기화', style: 'destructive', onPress: doDelete },
+      Alert.alert(isEnglish ? 'Reset Data' : '데이터 초기화', isEnglish ? 'Do you want to reset all clear data?' : '게임 클리어 데이터를 정말로 지우시겠습니까?', [
+        { text: isEnglish ? 'Cancel' : '취소', style: 'cancel' },
+        { text: isEnglish ? 'Reset' : '초기화', style: 'destructive', onPress: doDelete },
       ]);
     }
   };
@@ -141,7 +163,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
 
         <View style={styles.section}>
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel}>효과음</Text>
+            <Text style={styles.rowLabel}>{isEnglish ? 'Sound Effects' : '효과음'}</Text>
             <VolumeSlider
               value={soundVolume}
               onChange={(i) => {
@@ -155,7 +177,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel}>배경음</Text>
+            <Text style={styles.rowLabel}>{isEnglish ? 'Background Music' : '배경음'}</Text>
             <VolumeSlider
               value={bgmVolume}
               onChange={(i) => {
@@ -171,7 +193,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>진동</Text>
+            <Text style={styles.rowLabel}>{isEnglish ? 'Vibration' : '진동'}</Text>
             <Switch
               value={vibrationEnabled}
               onValueChange={v => { playTap(); setVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
@@ -179,11 +201,31 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
               thumbColor="#fff"
             />
           </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>{isEnglish ? 'Language' : '언어'}</Text>
+            <View style={styles.languageSelector}>
+              <TouchableOpacity
+                style={[styles.languageButton, language === 'ko' && styles.languageButtonActive]}
+                onPress={() => { playTap(); setLanguage('ko'); saveMultiple({ language: 'ko' }); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.languageButtonText, language === 'ko' && styles.languageButtonTextActive]}>{isEnglish ? 'Korean' : '한국어'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
+                onPress={() => { playTap(); setLanguage('en'); saveMultiple({ language: 'en' }); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>English</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
           <TouchableOpacity style={styles.dangerBtn} onPress={() => { playTap(); clearAllData(); }}>
-            <Text style={styles.dangerBtnText}>클리어 데이터 초기화</Text>
+            <Text style={styles.dangerBtnText}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
           </TouchableOpacity>
         </View>
         <Animated.View
@@ -262,6 +304,28 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1, backgroundColor: 'rgba(0,0,0,0.07)', marginHorizontal: 16,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 10,
+    backgroundColor: '#d9e5f1',
+  },
+  languageButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  languageButtonActive: {
+    backgroundColor: '#3b82c4',
+  },
+  languageButtonText: {
+    color: '#58708a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  languageButtonTextActive: {
+    color: '#fff',
   },
   dangerBtn: {
     paddingVertical: 15,

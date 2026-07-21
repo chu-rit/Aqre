@@ -50,6 +50,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [loaded, setLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [carouselProgress, setCarouselProgress] = useState(0);
+  const [hoveredIndicatorIndex, setHoveredIndicatorIndex] = useState(null);
   const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
   const carouselRef = useRef(null);
@@ -382,12 +383,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       <View style={styles.indicatorBar}>
         {groupData.map((g, i) => {
           const emphasis = Math.max(0, 1 - Math.abs(carouselProgress - i));
-          const dotSize = 7 + emphasis * 4;
+          const isHovered = hoveredIndicatorIndex === i;
+          const dotSize = 7 + emphasis * 4 + (isHovered ? 2 : 0);
           return (
             <TouchableOpacity
               key={g.key}
-              style={styles.indicatorDotWrap}
+              style={[styles.indicatorDotWrap, isHovered && styles.indicatorDotWrapHovered]}
               onPress={() => { playTap(); handlePageChange(i); }}
+              onHoverIn={() => setHoveredIndicatorIndex(i)}
+              onHoverOut={() => setHoveredIndicatorIndex(null)}
               activeOpacity={0.7}
             >
               <View
@@ -397,8 +401,8 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                     width: dotSize,
                     height: dotSize,
                     borderRadius: dotSize / 2,
-                    backgroundColor: emphasis > 0 ? g.color : '#c5cdd6',
-                    opacity: 0.35 + emphasis * 0.65,
+                    backgroundColor: '#1f2937',
+                    opacity: isHovered ? 1 : 0.35 + emphasis * 0.65,
                   },
                 ]}
               />
@@ -745,6 +749,12 @@ const styles = StyleSheet.create({
   indicatorDotWrap: {
     alignItems: 'center',
     gap: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    cursor: 'pointer',
+  },
+  indicatorDotWrapHovered: {
+    transform: [{ scale: 1.12 }],
   },
   indicatorDot: {
     width: 7,

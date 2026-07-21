@@ -330,6 +330,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [moveCount, setMoveCount] = useState(0);
   const [startTime] = useState(Date.now());
   const [clearTime, setClearTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [violations, setViolations] = useState([]);
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [selectedViolation, setSelectedViolation] = useState(null);
@@ -449,7 +450,16 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setLockedCells({});
   }, [puzzle]);
 
-  const elapsed = clearTime && startTime ? Math.floor((clearTime - startTime) / 1000) : 0;
+  useEffect(() => {
+    if (clearTime) return undefined;
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [clearTime, startTime]);
+
+  const elapsed = clearTime && startTime ? Math.floor((clearTime - startTime) / 1000) : elapsedSeconds;
+  const formattedElapsed = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
 
   return (
     <>
@@ -476,6 +486,24 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
               <SettingsButton />
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.stopwatch}>
+          <View style={styles.stopwatchIcon}>
+            <Ionicons name="time-outline" size={20} color="#fff" />
+          </View>
+          <View style={styles.stopwatchCopy}>
+            <Text style={styles.stopwatchLabel}>TIME</Text>
+            <Text style={styles.stopwatchValue}>{formattedElapsed}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.hintButton}
+            onPress={() => showToast('현재 사용할 수 있는 힌트가 없습니다.')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="bulb-outline" size={15} color="#fff" />
+            <Text style={styles.hintButtonText}>HINT: 0</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.boardWrapper}>
@@ -630,6 +658,70 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#2c3e50', letterSpacing: 0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
+  stopwatch: {
+    width: BOARD_SIZE,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 16,
+    marginBottom: 10,
+    borderRadius: 14,
+    backgroundColor: '#243b53',
+    shadowColor: '#162b42',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  stopwatchIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3b82c4',
+    marginRight: 10,
+  },
+  stopwatchCopy: {
+    flex: 1,
+  },
+  stopwatchLabel: {
+    color: '#a9c4de',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
+  stopwatchValue: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 1,
+  },
+  hintButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#3b82c4',
+    borderWidth: 1,
+    borderColor: '#6fb1e5',
+    shadowColor: '#102b45',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  hintButtonText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+  },
   boardWrapper: {
     backgroundColor: '#2c3e50',
     padding: 6,

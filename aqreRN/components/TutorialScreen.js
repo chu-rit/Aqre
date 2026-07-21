@@ -104,6 +104,7 @@ const TutorialScreen = ({
   board,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [language, setLanguage] = useState('ko');
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -185,6 +186,17 @@ const TutorialScreen = ({
     ? steps
     : (getTutorialStepsByLevel(levelId) || []);
   const currentStepData = currentLevelSteps[currentStep] || {};
+
+  useEffect(() => {
+    const loadLanguage = async () => {
+      try {
+        const json = await AsyncStorage.getItem('options');
+        const options = json ? JSON.parse(json) : {};
+        setLanguage(options.language === 'en' ? 'en' : 'ko');
+      } catch {}
+    };
+    loadLanguage();
+  }, []);
 
   // 스텝 변경/표시 상태 변경 시, 스텝 진입과 동시에 차단/버튼 노출 상태를 반영
   // (텍스트 타이핑 완료를 기다리지 않고 즉시 적용)
@@ -810,7 +822,9 @@ const TutorialScreen = ({
                   <View style={styles.speechBubble}>
                     <View style={styles.speechBubbleTriangle} />
                     <TypeWriterText
-                      text={currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.'}
+                      text={language === 'en'
+                        ? (currentStepData.textEn || currentStepData.text || "Hello, Doctor. I'm Aqre, your assistant nurse.")
+                        : (currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.')}
                       style={styles.tooltipText}
                       onTypingDone={() => setShowNextButton(!!currentStepData.showNextButton)}
                     />
@@ -827,7 +841,7 @@ const TutorialScreen = ({
                 )}
                 {showNextButton && (
                   <TouchableOpacity style={styles.nextButton} onPress={nextStep} activeOpacity={0.8}>
-                    <Text style={styles.nextButtonText}>다음</Text>
+                    <Text style={styles.nextButtonText}>{language === 'en' ? 'NEXT' : '다음'}</Text>
                   </TouchableOpacity>
                 )}
               </View>
