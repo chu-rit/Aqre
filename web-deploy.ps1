@@ -68,10 +68,30 @@ if (Test-Path "docs\metadata.json") {
     (Get-Content "docs\metadata.json") -replace 'assets\\node_modules\\@expo\\vector-icons\\build\\vendor\\react-native-vector-icons\\Fonts\\', 'assets\\' | Set-Content "docs\metadata.json"
 }
 
-# 6. Fix index.html (add /Aqre prefix)
+Copy-Item "aqreRN\assets\icon.png" "docs\icon.png" -Force
+@'
+{
+  "name": "AQRE",
+  "short_name": "AQRE",
+  "start_url": "/Aqre/",
+  "scope": "/Aqre/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/Aqre/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+'@ | Set-Content "docs\manifest.webmanifest"
+
 Write-Host "Fixing index.html..." -ForegroundColor Yellow
 if (Test-Path "docs\index.html") {
-    (Get-Content "docs\index.html") -replace '/favicon.ico', '/Aqre/favicon.ico' | Set-Content "docs\index.html"
+    (Get-Content "docs\index.html") -replace '<link rel="icon" href="/favicon.ico" />', '<link rel="icon" href="/Aqre/icon.png" /><link rel="apple-touch-icon" href="/Aqre/icon.png" /><link rel="manifest" href="/Aqre/manifest.webmanifest" />' | Set-Content "docs\index.html"
     (Get-Content "docs\index.html") -replace '/_expo/', '/Aqre/_expo/' | Set-Content "docs\index.html"
 }
 
