@@ -12,21 +12,21 @@ export const tutorialSteps = {
   // 레벨 0 튜토리얼
   'level0': [
     {
-      text: '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라라고 합니다.',
-      textEn: "Hello, Doctor. I'm Aqre, your assistant nurse.",
+      text: '안녕하세요. 저는 퍼즐을 푸는 것을 도울 AI 로봇 아크입니다.',
+      textEn: "Hello! I'm Arc, an AI robot here to help you solve puzzles.",
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      text: '고객들의 기억을 복원하기 위해 AQRE 시스템의 사용법을 말씀드리겠습니다.',
-      textEn: "To restore our clients' memories, I'll guide you through the AQRE system.",
+      text: 'AQRE(Ay-kurr)라고 불리는 이 퍼즐은 세 가지 규칙을 통해 색칠해 나가야 합니다.',
+      textEn: 'This puzzle, known as AQRE (Ay-kurr), is solved by coloring cells according to three rules.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      text: '레벨1부터 시작해보실까요?',
+      text: '먼저 레벨 1부터 시작해 보실까요?',
       textEn: 'Shall we begin with Level 1?',
       highlight: {
         selectors: ["data-testid=level-26000001"]
@@ -39,17 +39,42 @@ export const tutorialSteps = {
   // 레벨 1 튜토리얼
   'level26000001': [
     {
-      text: '위에 보이는 뉴런 패턴을 조작해 기억을 되살릴 수 있습니다.',
-      textEn: 'You can restore memories by adjusting the neural pattern above.',
+      text: '첫 번째 규칙은 영역에 따른 규칙입니다.',
+      textEn: 'The first rule is the area rule.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      text: '표시된 뉴런을 클릭해 해보세요.',
-      textEn: 'Tap the highlighted neuron.',
+      text: '룰 체크에 표시된 영역 규칙을 선택해 보세요.',
+      textEn: 'Select the highlighted area rule in Rule Check.',
       highlight: {
-        cells: [{row: 2, col: 1}]
+        selectors: ['data-testid=rule-card-area'],
+      },
+      condition: {
+        rule: 'area'
+      },
+      showNextButton: false
+    },
+    {
+      text: '표시된 영역에는 숫자 3이 쓰여 있지만, 두 칸만 색칠되어 있습니다.',
+      textEn: 'This area is labeled 3, but only two cells are colored.',
+      highlight: {
+        cells: [
+          {row: 1, col: 1},
+          {row: 2, col: 1},
+          {row: 3, col: 1}
+        ]
+      },
+      showNextButton: true
+    },
+    {
+      text: '표시된 칸을 색칠해 숫자 3을 맞춰 보세요.',
+      textEn: 'Color the highlighted cell to make the total 3.',
+      highlight: {
+        cells: [
+          {row: 2, col: 1}
+        ]
       },
       condition: {
         row: 2,
@@ -59,10 +84,24 @@ export const tutorialSteps = {
       showNextButton: false
     },
     {
-      text: '정상적으로 활성화 되었습니다! <br>이번에는 우측의 뉴런을 클릭해서 다시 비활성화해보세요.',
-      textEn: 'It has been activated successfully! <br>Now tap the neuron on the right to deactivate it again.',
+      text: '좋습니다! <br>오른쪽 영역에는 숫자 0이 쓰여 있지만, 한 칸이 색칠되어 있습니다.',
+      textEn: 'Great! <br>The area on the right is labeled 0, but one cell is colored.',
       highlight: {
-        cells: [{row: 2, col: 3}]
+        cells: [
+          {row: 1, col: 3},
+          {row: 2, col: 3},
+          {row: 3, col: 3}
+        ]
+      },
+      showNextButton: true
+    },
+   {
+      text: '표시된 칸을 탭해 색칠을 지워 보세요.',
+      textEn: 'Tap the highlighted cell to erase its color.',
+      highlight: {
+        cells: [
+          {row: 2, col: 3}
+        ]
       },
       condition: {
         row: 2,
@@ -70,157 +109,18 @@ export const tutorialSteps = {
         expectedState: 0
       },
       showNextButton: false
-    }
+    } 
   ],
   
   // 레벨 2 튜토리얼
   'level26000002': [
     {
-      text: '뉴런은 특정 규칙에 맞게 조작해야 합니다.',
-      textEn: 'Neurons must follow specific rules.',
-      highlight: null,
-      condition: null,
+      text: '두 번째 규칙은 연결성 규칙입니다.',
+      textEn: 'The second rule is the connectivity rule.',
       showNextButton: true
     },
     {
-      step: 1,
-      text: '보시다시피, 이 영역에서는 세로로 4개의 뉴런이 같은 상태를 유지하고 있습니다.',
-      textEn: 'As you can see, four neurons in this area are vertically in the same state.',
-      highlight: {
-        cells: [
-          {row: 0, col: 0},
-          {row: 1, col: 0},
-          {row: 2, col: 0},
-          {row: 3, col: 0}
-        ]
-      },
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 2,
-      text: '이렇게 한 방향으로 4개 이상의 뉴런이 활성화 되면 안됩니다. <br>이 뉴런을 조작해 연결을 끊어주세요.',
-      textEn: 'Four or more neurons in a row in one direction are not allowed. <br>Adjust this neuron to break the sequence.',
-      highlight: {
-        cells: [{row: 3, col: 0}]
-      },
-      condition: {
-        row: 3,
-        col: 0,
-        expectedState: 0
-      },
-      showNextButton: false
-    },
-    {
-      step: 3,
-      text: '훌륭합니다! 이 규칙은 비활성 뉴런(흰색)에도 적용됩니다.',
-      textEn: 'Excellent! This rule also applies to inactive (white) neurons.',
-      highlight: {
-        cells: [
-          {row: 0, col: 1},
-          {row: 0, col: 2},
-          {row: 0, col: 3},
-          {row: 0, col: 4}
-        ]
-      },
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 4,
-      text: '이번에는 표시된 흰색 뉴런을 활성화하여 4개의 뉴런이 연속되지 않도록 해주세요.',
-      textEn: 'Now activate the highlighted white neuron so that four neurons do not form a sequence.',
-      highlight: {
-        cells: [{row: 0, col: 1}]
-      },
-      condition: {
-        row: 0,
-        col: 1,
-        expectedState: 1
-      },
-      showNextButton: false
-    }
-  ],
-  
-  // 레벨 3 튜토리얼
-  'level26000003': [
-    {
-      step: 0,
-      text: '각 영역은 지정된 수의 활성 뉴런만 있어야 합니다.',
-      textEn: 'Each area must contain exactly the specified number of active neurons.',
-      highlight: null,
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 1,
-      text: '그 영역은 이 경계선을 통해 알 수 있습니다.',
-      textEn: 'You can identify an area by its boundary lines.',
-      highlight: {
-        cells: [
-          {row: 1, col: 2},
-          {row: 2, col: 2},
-          {row: 3, col: 2}
-        ]
-      },
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 2,
-      text: '또 영역에 표시된 숫자는 그 영역에서 활성화되어야 할 정확한 뉴런의 수입니다.',
-      textEn: 'The number shown in an area is the exact number of neurons that must be active there.',
-      highlight: {
-        // RN Web: testID => data-testid
-        selectors: ['[data-testid="area-1-2"]'],
-        padding: 10
-      },
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 3,
-      text: '이제 표시된 숫자만큼 이 영역의 뉴런을 활성화해보세요.',
-      textEn: 'Now activate the required number of neurons in this area.',
-      highlight: {
-        cells: [
-          {row: 1, col: 2},
-          {row: 2, col: 2},
-          {row: 3, col: 2}
-        ]
-      },
-      condition: {
-        conditions: [
-          { row: 1, col: 2, expectedState: 1 },
-          { row: 2, col: 2, expectedState: 1 },
-          { row: 3, col: 2, expectedState: 1 }
-        ]
-      },
-      showNextButton: false
-    },
-    {
-      step: 4,
-      text: '완벽합니다! 이제 나머지 영역도 같은 방법으로 조정해보세요. <br>앞에서 배웠던 규칙도 함께 지켜야 합니다.',
-      textEn: 'Perfect! Adjust the remaining areas the same way. <br>Remember to follow the rules you learned earlier as well.',
-      highlight: null,
-      condition: null,
-      showNextButton: true
-    }
-  ],
-  
-  // 레벨 4 튜토리얼
-  'level26000004': [
-    {
-      step: 0,
-      text: '마지막으로 활성화된 뉴런은 하나의 영역을 이루고 있어야 됩니다.',
-      textEn: 'Finally, all active neurons must form a single connected area.',
-      highlight: null,
-      condition: null,
-      showNextButton: true
-    },
-    {
-      step: 1,
-      text: '현재 화면을 보시면, 활성화된 뉴런(회색)이 세 군데로 분리되어 있습니다.',
+      text: '퍼즐판을 보시면, 색칠된 칸이 연결되어 있지 않고 서로 떨어져 있습니다.',
       textEn: 'As you can see, the active (gray) neurons are split into three separate groups.',
       highlight: {
         cells: [
@@ -239,9 +139,8 @@ export const tutorialSteps = {
       showNextButton: true
     },
     {
-      step: 2,
-      text: '이 뉴런을 활성화하여 분리된 뉴런를 연결하세요.',
-      textEn: 'Activate this neuron to connect the separated groups.',
+      text: '색칠된 칸들은 연결되어야 하므로, 표시된 칸을 색칠해 연결해 보세요.',
+      textEn: 'Colored cells must be connected, so color the highlighted cell to connect them.',
       highlight: {
         cells: [
             {row: 2, col: 1}
@@ -255,9 +154,19 @@ export const tutorialSteps = {
       showNextButton: false
     },
     {
-      step: 4,
-      text: '좋아요! 아직 우측에 고립된 뉴런도 영역의 숫자에 유의해서 연결해주세요.',
-      textEn: 'Great! Connect the isolated neurons on the right too, while keeping the area number in mind.',
+      text: '연결되었습니다. 이제 룰 체크에서 연결 규칙을 눌러서 확인해 볼까요?',
+      textEn: 'They are connected. Now select the connectivity rule in Rule Check.',
+      highlight: {
+        selectors: ['data-testid=rule-card-connect'],
+      },
+      condition: {
+        rule: 'connect'
+      },
+      showNextButton: false
+    },
+    {
+      text: '이런! 오른쪽에도 색칠된 칸들이 고립되어 있네요.',
+      textEn: 'Uh-oh! There are isolated colored cells on the right too.',
       highlight: {
         cells: [
             {row: 0, col: 4},
@@ -266,44 +175,184 @@ export const tutorialSteps = {
         },
       condition: null,
       showNextButton: true
+    },
+    {
+      text: '여기도 색칠해 연결해 볼까요?',
+      textEn: 'Let’s color these cells to connect them too.',
+      highlight: {
+        cells: [
+            {row: 1, col: 2},
+            {row: 1, col: 3}
+          ]
+        },
+      condition: {
+        conditions: [
+          { row: 1, col: 2, expectedState: 1 },
+          { row: 1, col: 3, expectedState: 1 }
+        ]
+      },
+      showNextButton: false
     }
   ],
+  
+  // 레벨 3 튜토리얼
+  'level26000003': [
+    {
+      text: '마지막 세 번째 규칙은 4연속 금지 규칙입니다. 룰 체크에서 4연속 규칙을 눌러 볼까요?',
+      textEn: 'The final third rule prohibits four consecutive cells. Select the 4-in-a-row rule in Rule Check.',
+      highlight: {
+        selectors: ['data-testid=rule-card-seq'],
+      },
+      condition: {
+        rule: 'seq'
+      },
+      showNextButton: false
+    },
+    {
+      text: '여기 흰색 칸 네 개가 가로로 이어져 있다고 표시되고 있습니다.',
+      textEn: 'Four white cells in a row are highlighted here.',
+      highlight: {
+        cells: [
+          {row: 0, col: 1},
+          {row: 0, col: 2},
+          {row: 0, col: 3},
+          {row: 0, col: 4}
+        ]
+      },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '가로든 세로든 연속된 네 칸이 같은 색상이 되지 않도록 한 칸을 색칠해야 합니다.',
+      textEn: 'Color one cell so that four consecutive cells do not share the same color.',
+      highlight: {
+        cells: [
+          {row: 0, col: 1},
+          {row: 0, col: 2},
+          {row: 0, col: 3},
+          {row: 0, col: 4}
+        ]
+      },      
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '또한 이미 색칠된 칸들과 연결되어야 하므로, 표시된 칸을 색칠해 볼까요?',
+      textEn: 'It must also remain connected to the colored cells, so color the highlighted cell.',
+      highlight: {
+        cells: [
+            {row: 0, col: 1}
+        ]
+      },
+      condition: {
+        conditions: [
+          { row: 0, col: 1, expectedState: 1 }
+        ]
+      },
+      showNextButton: false
+    },
+    {
+      text: '해결되었네요! 하지만 색칠된 칸도 세로로 네 칸이 연속되어 있습니다.',
+      textEn: 'Solved! But four colored cells are also consecutive vertically.',
+      highlight: {
+        cells: [
+          {row: 0, col: 0},
+          {row: 1, col: 0},
+          {row: 2, col: 0},
+          {row: 3, col: 0}
+        ]
+      },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '연결이 끊어지지 않도록 문제를 해결해 보세요.',
+      textEn: 'Solve the problem without breaking the connection.',
+      highlight: {
+        cells: [
+          {row: 0, col: 0},
+          {row: 1, col: 0},
+          {row: 2, col: 0},
+          {row: 3, col: 0}
+        ]
+      },
+      condition: {
+        conditions: [
+          { row: 3, col: 0, expectedState: 0 }
+        ]
+      },
+      showNextButton: false
+    } 
+  ],
+  
+  // 레벨 4 튜토리얼
+  'level26000004': [
+    {
+      text: '축하합니다! 이렇게 모든 규칙을 익히셨습니다.',
+      textEn: 'Congratulations! You have now learned all the rules.',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '본 게임에 앞서 규칙을 응용할 수 있는 퍼즐을 준비하였습니다.',
+      textEn: 'Before the main game, we have prepared a puzzle where you can apply the rules.',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '상단의 초기화 버튼을 통해 퍼즐을 처음 상태로 되돌릴 수 있으며,',
+      textEn: 'You can use the reset button at the top to return the puzzle to its initial state,',
+      highlight: {
+        selectors: ['data-testid=reset-level']
+      },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '아래 룰 체크 박스를 잘 사용하여 모든 규칙에 맞는 하나의 답을 찾아보시기 바랍니다.',
+      textEn: 'Use the Rule Check box below to find a solution that follows all the rules.',
+      highlight: {
+        selectors: ['[data-testid="rule-card-area"]', '[data-testid="rule-card-connect"]', '[data-testid="rule-card-seq"]']
+      },
+      condition: null,
+      showNextButton: true
+    },
+  ],
 
+  
   // 레벨 5 튜토리얼
   'level26000005': [
     {
-      step: 0,
-      text: '훌륭합니다. 모든 규칙을 이해하셨습니다.',
+      text: '드디어 마지막 튜토리얼입니다.',
       textEn: 'Excellent. You now understand all the rules.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      step: 1,
-      text: '앞으로는 작업 중에 문제가 생기면, 우측 상단의 초기화 버튼을 사용하여 처음으로 되돌릴 수 있습니다.',
+      text: '이제 점점 더 어려워지는 퍼즐에 대응할 수 있도록 힌트에 대해 알아볼 것입니다.',
       textEn: 'If you run into trouble, use the reset button at the top right to start over.',
-      highlight: {
-        selectors: ['[data-testid="reset-level"]']
-      },
+      highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      step: 2,
-      text: '또 아래의 규칙 위반 항목을 선택하면 문제가 있는 뉴런을 시각적으로 표시해줍니다.',
+      text: '임시로 힌트 버튼을 열어드릴테니 눌러보실까요?',
       textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
       highlight: {
-        selectors: ['[data-testid="rule-card-area"]', '[data-testid="rule-card-connect"]', '[data-testid="rule-card-seq"]'],
-        padding: 6
+        selectors: ['[data-testid="hint"]']
       },
       condition: null,
       showNextButton: true
     },
     {
-      step: 3,
-      text: '이제 열심히 고객들의 기억을 복원해 보실까요?',
-      textEn: "Now, shall we get to work restoring our clients' memories?",
+      requiresCompletedTutorialsWithoutSkipping: true,
+      hintPoints: 5,
+      hintRewardKey: 'tutorials-completion-reward',
+      text: '마지막으로 응원하는 마음을 담아 힌트 포인트를 선물로 드리겠습니다.',
+      textEn: "Now, shall we get to work restoring our clients' memories",
       highlight: null,
       condition: null,
       showNextButton: true

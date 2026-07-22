@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Circle, Path } from 'react-native-svg';
 import styles from './tutorialStyles';
 
 const { width, height } = Dimensions.get('window');
@@ -74,8 +75,14 @@ const handleSkipTutorial = async (levelId, onSkip, onClose) => {
     }
     const completedTutorials = await AsyncStorage.getItem('completedTutorials') || '{}';
     const completed = JSON.parse(completedTutorials);
+    const skippedTutorials = await AsyncStorage.getItem('skippedTutorials') || '{}';
+    const skipped = JSON.parse(skippedTutorials);
     completed[levelKey] = true;
-    await AsyncStorage.setItem('completedTutorials', JSON.stringify(completed));
+    skipped[levelKey] = true;
+    await Promise.all([
+      AsyncStorage.setItem('completedTutorials', JSON.stringify(completed)),
+      AsyncStorage.setItem('skippedTutorials', JSON.stringify(skipped)),
+    ]);
     if (onSkip) {
       onSkip();
     } else if (onClose) {
@@ -102,6 +109,9 @@ const TutorialScreen = ({
   children,
   getCellRect,
   board,
+  selectedRule = null,
+  hasCompletedTutorialsWithoutSkipping = false,
+  onGrantHintPoints,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [language, setLanguage] = useState('ko');
@@ -111,7 +121,10 @@ const TutorialScreen = ({
   const [highlightRect, setHighlightRect] = useState(null);
   const [highlightRects, setHighlightRects] = useState([]);
   const [boardRect, setBoardRect] = useState(null);
+  const [measurementVersion, setMeasurementVersion] = useState(0);
+  const overlayRef = useRef(null);
   const autoAdvancedRef = useRef(false);
+  const grantedHintStepsRef = useRef(new Set());
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   // 모든 하이라이트와 클론 요소를 제거하는 함수
@@ -182,9 +195,12 @@ const TutorialScreen = ({
   }, []);
 
   // 단계 소스: 전달된 steps prop 우선, 없으면 levelId로 조회
-  const currentLevelSteps = (Array.isArray(steps) && steps.length > 0)
+  const sourceSteps = (Array.isArray(steps) && steps.length > 0)
     ? steps
     : (getTutorialStepsByLevel(levelId) || []);
+  const currentLevelSteps = sourceSteps.filter(step => (
+    !step.requiresCompletedTutorialsWithoutSkipping || hasCompletedTutorialsWithoutSkipping
+  ));
   const currentStepData = currentLevelSteps[currentStep] || {};
 
   useEffect(() => {
@@ -203,6 +219,14 @@ const TutorialScreen = ({
   useEffect(() => {
     setShowNextButton(!!currentStepData.showNextButton);
   }, [currentStep, isVisible, currentStepData.showNextButton]);
+
+  useEffect(() => {
+    const amount = Number(currentStepData.hintPoints);
+    const rewardKey = currentStepData.hintRewardKey || `tutorial-${levelId}-step-${currentStep}`;
+    if (!isVisible || !onGrantHintPoints || !Number.isFinite(amount) || amount <= 0 || grantedHintStepsRef.current.has(rewardKey)) return;
+    grantedHintStepsRef.current.add(rewardKey);
+    onGrantHintPoints(amount, rewardKey);
+  }, [currentStep, currentStepData.hintPoints, currentStepData.hintRewardKey, isVisible, levelId, onGrantHintPoints]);
 
   // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
   const skipTutorial = useCallback(async () => {
@@ -271,6 +295,7 @@ const TutorialScreen = ({
     if (typeof document !== 'undefined' && (currentStepData.highlight?.selectors || currentStepData.highlight?.selectorGroups)) {
       try {
         const boxes = [];
+        const overlayRect = overlayRef.current?.getBoundingClientRect?.() || { left: 0, top: 0 };
         const padding = Number(currentStepData.highlight?.padding ?? 4);
         const useMultiple = !!currentStepData.highlight?.multipleBoxes;
         const blockAll = !!currentStepData.showNextButton; // showNextButton=true이면 모든 클릭 차단
@@ -295,16 +320,17 @@ const TutorialScreen = ({
 
           const nodeList = document.querySelectorAll(query);
           nodeList.forEach((el) => {
+            if (el.classList.contains('tutorial-clone-element')) return;
             const r = el.getBoundingClientRect();
             // 무효 rect 제외
             if (r && r.width > 0 && r.height > 0) {
               // RN Web의 오버레이 컨테이너는 뷰포트 기준 절대 위치이므로
               // getBoundingClientRect()의 뷰포트 좌표를 그대로 사용한다.
               boxes.push({
-                left: r.left,
-                top: r.top,
-                right: r.left + r.width,
-                bottom: r.top + r.height,
+                left: r.left - overlayRect.left,
+                top: r.top - overlayRect.top,
+                right: r.left - overlayRect.left + r.width,
+                bottom: r.top - overlayRect.top + r.height,
               });
 
               // --- 버튼(타겟 요소) 클론 생성 및 배치 ---
@@ -322,6 +348,7 @@ const TutorialScreen = ({
                   // id 충돌 방지
                   if (clone.id) clone.id = `${clone.id}__tutorial_clone`;
                   clone.classList.add('tutorial-clone-element');
+                  clone.removeAttribute('data-testid');
                   clone.setAttribute('data-target-id', targetId);
                   // 클릭을 원본으로 위임 (blockAll=false일 때만 허용)
                   if (!blockAll) {
@@ -341,10 +368,10 @@ const TutorialScreen = ({
                 style.position = 'fixed';
                 style.left = '0px';
                 style.top = '0px';
-                const rw = Math.round(r.width);
-                const rh = Math.round(r.height);
-                const rx = Math.round(r.left);
-                const ry = Math.round(r.top);
+                const rw = r.width;
+                const rh = r.height;
+                const rx = r.left;
+                const ry = r.top;
                 style.width = `${rw}px`;
                 style.height = `${rh}px`;
                 style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
@@ -352,10 +379,19 @@ const TutorialScreen = ({
                 style.willChange = 'transform';
                 style.zIndex = '2003'; // 하이라이트 박스(2002)보다 위
                 // showNextButton=true이면 클릭 비활성화
-                style.pointerEvents = blockAll ? 'none' : 'auto';
+                style.visibility = 'hidden';
+                style.pointerEvents = 'none';
                 style.overflow = 'visible';
                 style.boxSizing = 'border-box';
                 style.margin = '0';
+                requestAnimationFrame(() => {
+                  const cloneRect = clone.getBoundingClientRect();
+                  const offsetX = r.left - cloneRect.left;
+                  const offsetY = r.top - cloneRect.top;
+                  if (offsetX || offsetY) {
+                    style.transform = `translate3d(${rx + offsetX}px, ${ry + offsetY}px, 0)`;
+                  }
+                });
 
                 // 스크롤/리사이즈 시 위치 업데이트 핸들러
                 if (!el._tutorialUpdatePosition) {
@@ -365,13 +401,21 @@ const TutorialScreen = ({
                       const c = document.querySelector(`.tutorial-clone-element[data-target-id="${targetId}"]`);
                       if (!c) return;
                       const cs = c.style;
-                      const rw2 = Math.round(rr.width);
-                      const rh2 = Math.round(rr.height);
-                      const rx2 = Math.round(rr.left);
-                      const ry2 = Math.round(rr.top);
+                      const rw2 = rr.width;
+                      const rh2 = rr.height;
+                      const rx2 = rr.left;
+                      const ry2 = rr.top;
                       cs.width = `${rw2}px`;
                       cs.height = `${rh2}px`;
                       cs.transform = `translate3d(${rx2}px, ${ry2}px, 0)`;
+                      requestAnimationFrame(() => {
+                        const cloneRect = c.getBoundingClientRect();
+                        const offsetX = rr.left - cloneRect.left;
+                        const offsetY = rr.top - cloneRect.top;
+                        if (offsetX || offsetY) {
+                          cs.transform = `translate3d(${rx2 + offsetX}px, ${ry2 + offsetY}px, 0)`;
+                        }
+                      });
                     } catch {}
                   };
                   window.addEventListener('scroll', el._tutorialUpdatePosition, true);
@@ -462,7 +506,15 @@ const TutorialScreen = ({
         setHighlightRects([]);
       }
     }
-  }, [currentStep, currentStepData.highlight, isVisible]);
+  }, [currentStep, currentStepData.highlight, isVisible, measurementVersion]);
+
+  useEffect(() => {
+    if (!isVisible || Platform.OS !== 'web') return undefined;
+    const firstFrame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMeasurementVersion(version => version + 1));
+    });
+    return () => cancelAnimationFrame(firstFrame);
+  }, [currentStep, isVisible]);
 
   useEffect(() => {
     if (isVisible) {
@@ -485,13 +537,8 @@ const TutorialScreen = ({
       ]).start();
       
       return () => {
-        // 컴포넌트 언마운트 시 하이라이트 제거 (웹 한정)
-        if (typeof document === 'undefined') return;
-        const highlighted = document.querySelectorAll('.tutorial-highlight');
-        highlighted.forEach(el => {
-          el.classList.remove('tutorial-highlight');
-          el.style.zIndex = '';
-        });
+        // 컴포넌트 언마운트/숨김 시 하이라이트와 클론 요소 모두 제거
+        cleanupAllHighlights();
       };
     }
   }, [isVisible, fadeAnim, slideAnim]);
@@ -584,6 +631,7 @@ const TutorialScreen = ({
     if (!cond) return; // 조건이 없는 스텝은 수동 진행(버튼)
 
     const evalCell = (b, c) => {
+      if (c.rule !== undefined) return selectedRule === c.rule;
       if (!b || !Array.isArray(b) || b[c.row] == null || b[c.row][c.col] == null) return false;
       return b[c.row][c.col] === c.expectedState;
     };
@@ -600,7 +648,7 @@ const TutorialScreen = ({
       // 조건 스텝은 자동으로 다음 단계로 이동
       nextStep();
     }
-  }, [isVisible, currentStepData, board, nextStep]);
+  }, [isVisible, currentStepData, board, selectedRule, nextStep]);
 
   // RN: 셀 좌표 기반 하이라이트 박스 계산 (cells: 1D 또는 2D 배열 지원)
   const updateHighlightPosition = useCallback(async () => {
@@ -692,9 +740,11 @@ const TutorialScreen = ({
   const isSingleHighlight = rectsToRender.length === 1;
   const isSelectorBased = Array.isArray(currentStepData?.highlight?.selectors) && currentStepData.highlight.selectors.length > 0;
   const allowOnlyHighlight = !showNextButton && isSingleHighlight;
+  const tooltipAtTop = isSingleHighlight && (rectsToRender[0].top + rectsToRender[0].height / 2) > height * 0.75;
 
   return (
     <View
+      ref={overlayRef}
       style={[
         styles.container,
         isVisible ? styles.absoluteFill : null,
@@ -711,34 +761,17 @@ const TutorialScreen = ({
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           >
             {/* 딤드 배경 렌더링 정책 */}
-            {hasHighlight && isSingleHighlight && isSelectorBased ? (
-              // 단일 하이라이트일 때: 해당 영역을 제외하고 상/하/좌/우로 나눠 딤을 깔아 홀을 만든다
+            {hasHighlight && isSingleHighlight ? (
+              // 단일 하이라이트: SVG로 하나의 딤 오버레이에 구멍을 뚫어 틈/겹침 방지
               (() => {
                 const r = rectsToRender[0];
+                const d = `M0,0 H${width} V${height} H0 Z M${r.left},${r.top} h${r.width} v${r.height} h-${r.width} Z`;
                 return (
-                  <>
-                    {/* 상단 딤 */}
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: 0, height: r.top, zIndex: 1000 }]} />
-                    {/* 하단 딤 */}
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: r.top + r.height, bottom: 0, zIndex: 1000 }]} />
-                    {/* 좌측 딤 (하이라이트 수직 범위에 한정) */}
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, top: r.top, width: r.left, height: r.height, zIndex: 1000 }]} />
-                    {/* 우측 딤 (하이라이트 수직 범위에 한정) */}
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: r.left + r.width, right: 0, top: r.top, height: r.height, zIndex: 1000 }]} />
-                  </>
-                );
-              })()
-            ) : hasHighlight && isSingleHighlight ? (
-              // 셀 기반 단일 하이라이트: 하이라이트 영역 안쪽만 밝게
-              (() => {
-                const r = rectsToRender[0];
-                return (
-                  <>
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: 0, height: r.top, zIndex: 1000 }]} />
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, right: 0, top: r.top + r.height, bottom: 0, zIndex: 1000 }]} />
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: 0, top: r.top, width: r.left, height: r.height, zIndex: 1000 }]} />
-                    <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', left: r.left + r.width, right: 0, top: r.top, height: r.height, zIndex: 1000 }]} />
-                  </>
+                  <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1000 }}>
+                    <Svg width={width} height={height}>
+                      <Path d={d} fill="rgba(0,0,0,0.6)" fillRule="evenodd" />
+                    </Svg>
+                  </View>
                 );
               })()
             ) : hasHighlight ? (
@@ -802,15 +835,24 @@ const TutorialScreen = ({
             ))}
           </View>
 
-          {/* 2) 인터랙티브 툴팁 레이어 (하단 고정) */}
+          {/* 2) 인터랙티브 툴팁 레이어 (하이라이트 위치에 따라 상/하단 배치) */}
           <Animated.View
             pointerEvents="none"
             style={[
               styles.tooltipWrapper,
-              { zIndex: 2000, position: 'absolute', left: 0, right: 0, bottom: 0 }
+              {
+                zIndex: 2000,
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                [tooltipAtTop ? 'top' : 'bottom']: 0,
+                justifyContent: tooltipAtTop ? 'flex-start' : 'flex-end',
+                paddingTop: tooltipAtTop ? 60 : 0,
+                paddingBottom: tooltipAtTop ? 0 : 40,
+              }
             ]}
           >
-            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]} pointerEvents="auto">
+            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginTop: tooltipAtTop ? 0 : 40 }]} pointerEvents="auto">
               <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
                 <Text style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>

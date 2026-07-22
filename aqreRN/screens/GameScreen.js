@@ -17,6 +17,7 @@ import Toast, { showToast } from '../components/Toast';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import { playTap, playClear, setSoundEnabled } from '../utils/sound';
+import { showTestRewardedAd } from '../utils/ads';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 
 const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
@@ -24,7 +25,7 @@ const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
 function getPuzzleTitle(puzzle) {
   const groupName = DIFFICULTY_NAMES[puzzle.difficulty] ?? `Lv${puzzle.difficulty}`;
   const sameDiff = PUZZLE_MAPS.filter(p => p.difficulty === puzzle.difficulty);
-  const idx = sameDiff.findIndex(p => p.id === puzzle.id);
+  const idx = sameDiff.indexOf(puzzle);
   const num = idx >= 0 ? idx + 1 : '?';
   return `${groupName} ${num}`;
 }
@@ -210,7 +211,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
     if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) borders.borderRightColor = '#acd4f5';
   }
 
-  const bgColor = cell === 0 ? '#fff' : cell === 1 ? '#8a8a8a' : '#3a6b9c';
+  const bgColor = cell === 0 ? '#f8f9fb' : cell === 1 ? '#3a6b9c' : '#34495e';
   const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
   const dotOpacity = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
 
@@ -307,15 +308,15 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
       {showLabel && (
         <View
           testID={`area-${rowIdx}-${colIdx}`}
-          style={{ position: 'absolute', left: 2, top: 2, zIndex: 10 }}
+          style={{ position: 'absolute', left: 2, top: 2, zIndex: 10, justifyContent: 'center', alignItems: 'center' }}
         >
           <Text style={{
-            color: areaSatisfied ? '#3b9edb' : '#1e3a5f',
+            color: '#1e3a5f',
             fontWeight: 'bold',
             fontSize: Math.min(Math.round(cellSize * 0.4), 24),
-            textShadowColor: '#fff',
+            textShadowColor: areaSatisfied ? '#10b981' : '#fff',
             textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 3,
+            textShadowRadius: areaSatisfied ? 4 : 3,
           }}>
             {puzzle.areas[areaIdx]?.required}
           </Text>
@@ -334,8 +335,17 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [violations, setViolations] = useState([]);
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [selectedViolation, setSelectedViolation] = useState(null);
+  const selectedRule = React.useMemo(() => {
+    if (!selectedViolation) return null;
+    if (['영역 회색 칸 초과', '영역 회색 칸 부족'].includes(selectedViolation.type)) return 'area';
+    if (['회색 칸 연결성 위반'].includes(selectedViolation.type)) return 'connect';
+    if (['가로 연속 색상 위반', '세로 연속 색상 위반'].includes(selectedViolation.type)) return 'seq';
+    return null;
+  }, [selectedViolation]);
   const [clearVisible, setClearVisible] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
+  const [hintPoints, setHintPoints] = useState(0);
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
@@ -349,6 +359,24 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     );
   }
 
+  const addHintPoints = useCallback(async (amount, rewardKey) => {
+    const pointsToAdd = Number(amount);
+    if (!Number.isFinite(pointsToAdd) || pointsToAdd <= 0) return;
+    const [pointsJson, rewardsJson] = await Promise.all([
+      AsyncStorage.getItem('hintPoints'),
+      AsyncStorage.getItem('claimedHintRewards'),
+    ]);
+    const claimedRewards = JSON.parse(rewardsJson || '{}');
+    if (rewardKey && claimedRewards[rewardKey]) return;
+    const nextPoints = (Number(pointsJson) || 0) + pointsToAdd;
+    if (rewardKey) claimedRewards[rewardKey] = true;
+    await Promise.all([
+      AsyncStorage.setItem('hintPoints', String(nextPoints)),
+      AsyncStorage.setItem('claimedHintRewards', JSON.stringify(claimedRewards)),
+    ]);
+    setHintPoints(nextPoints);
+  }, []);
+
   const getCellRect = useCallback((row, col) => {
     return new Promise((resolve, reject) => {
       const ref = cellRefs.current?.[row]?.[col];
@@ -361,8 +389,35 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   }, []);
 
   useEffect(() => {
-    if (tutorialSteps.length > 0) setShowTutorial(true);
+    let cancelled = false;
+    const loadTutorialCompletionState = async () => {
+      const [completedJson, skippedJson] = await Promise.all([
+        AsyncStorage.getItem('completedTutorials'),
+        AsyncStorage.getItem('skippedTutorials'),
+      ]);
+      const completed = JSON.parse(completedJson || '{}');
+      const skipped = JSON.parse(skippedJson || '{}');
+      const requiredLevelKeys = ['level26000001', 'level26000002', 'level26000003', 'level26000004'];
+      const isEligible = requiredLevelKeys.every(key => completed[key] && !skipped[key]);
+      if (!cancelled) setHasCompletedTutorialsWithoutSkipping(isEligible);
+    };
+    loadTutorialCompletionState();
+    return () => {
+      cancelled = true;
+    };
   }, [puzzle.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHintPoints = async () => {
+      const points = Number(await AsyncStorage.getItem('hintPoints')) || 0;
+      if (!cancelled) setHintPoints(points);
+    };
+    loadHintPoints();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     screenEnterAnim.setValue(0);
@@ -392,8 +447,14 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
+    setShowTutorial(false);
     const steps = getTutorialStepsByLevel(puzzle.id);
-    if (steps.length > 0) setShowTutorial(true);
+    const tutorialTimer = steps.length > 0
+      ? setTimeout(() => setShowTutorial(true), 500)
+      : null;
+    return () => {
+      if (tutorialTimer) clearTimeout(tutorialTimer);
+    };
   }, [puzzle]);
 
   useEffect(() => {
@@ -498,11 +559,11 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           </View>
           <TouchableOpacity
             style={styles.hintButton}
-            onPress={() => showToast('현재 사용할 수 있는 힌트가 없습니다.')}
+            onPress={() => showTestRewardedAd(() => addHintPoints(1))}
             activeOpacity={0.7}
           >
             <Ionicons name="bulb-outline" size={15} color="#fff" />
-            <Text style={styles.hintButtonText}>HINT: 0</Text>
+            <Text style={styles.hintButtonText}>HINT: {hintPoints}</Text>
           </TouchableOpacity>
         </View>
 
@@ -537,9 +598,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
 {(() => {
           const ALL_RULES = [
-            { key: 'area',    title: '영역 규칙', types: ['영역 회색 칸 초과', '영역 회색 칸 부족'], icon: 'apps',        okColor: '#3b82c4' },
-            { key: 'connect', title: '연결 규칙', types: ['회색 칸 연결성 위반'],                     icon: 'git-network', okColor: '#9b59b6' },
-            { key: 'seq',     title: '4연속 규칙', types: ['가로 연속 색상 위반', '세로 연속 색상 위반'], icon: 'warning',   okColor: '#e8a33d' },
+            { key: 'area',    title: '영역', types: ['영역 회색 칸 초과', '영역 회색 칸 부족'], icon: 'apps',        okColor: '#3b82c4' },
+            { key: 'connect', title: '연결', types: ['회색 칸 연결성 위반'],                     icon: 'git-network', okColor: '#9b59b6' },
+            { key: 'seq',     title: '4연속', types: ['가로 연속 색상 위반', '세로 연속 색상 위반'], icon: 'warning',   okColor: '#e8a33d' },
           ];
           return (
             <View style={styles.violationSection}>
@@ -578,8 +639,10 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                       size={22}
                       color={isViolated ? '#ef4444' : '#10b981'}
                     />
-                    <Text style={[styles.violationCardText, isViolated && styles.violationCardTextError]}>
-                      {rule.title}
+                    <Text
+                      style={[styles.violationCardText, isViolated && styles.violationCardTextError]}
+                    >
+                      {rule.title}{' 규\u2060칙'}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -593,13 +656,27 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           <View style={styles.overlay}>
             <View style={styles.clearCard}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setClearVisible(false)}>
-                <Text style={{ fontSize: 20, color: '#999' }}>✕</Text>
+                <Ionicons name="close" size={20} color="#8a96a3" />
               </TouchableOpacity>
-              <Text style={styles.clearTitle}>클리어!</Text>
-              <Text style={styles.clearStat}>조작 횟수: {moveCount}회</Text>
-              <Text style={styles.clearStat}>걸린 시간: {elapsed}초</Text>
-              <TouchableOpacity style={styles.clearBtn} onPress={onBack}>
-                <Text style={styles.clearBtnText}>리스트로</Text>
+              <View style={styles.clearIconWrap}>
+                <Ionicons name="checkmark" size={36} color="#fff" />
+              </View>
+              <Text style={styles.clearEyebrow}>PUZZLE COMPLETE</Text>
+              <Text style={styles.clearTitle}>COMPLETE!</Text>
+              <View style={styles.clearStats}>
+                <View style={styles.clearStatCard}>
+                  <Ionicons name="hand-left-outline" size={18} color="#4a90d9" />
+                  <Text style={styles.clearStatValue}>{moveCount}</Text>
+                </View>
+                <View style={styles.clearStatDivider} />
+                <View style={styles.clearStatCard}>
+                  <Ionicons name="time-outline" size={18} color="#4a90d9" />
+                  <Text style={styles.clearStatValue}>{formattedElapsed}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.clearBtn} onPress={onBack} activeOpacity={0.8}>
+                <Text style={styles.clearBtnText}>LEVELS</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -623,6 +700,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             levelId={puzzle.id}
             steps={tutorialSteps}
             board={board}
+            selectedRule={selectedRule}
+            hasCompletedTutorialsWithoutSkipping={hasCompletedTutorialsWithoutSkipping}
+            onGrantHintPoints={addHintPoints}
             getCellRect={getCellRect}
           />
         </View>
@@ -802,7 +882,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#2c3e50',
+    flex: 1,
     flexShrink: 1,
+    wordBreak: 'keep-all',
   },
   violationCardTextError: {
     color: '#dc2626',
@@ -840,21 +922,40 @@ const styles = StyleSheet.create({
   violationDesc: { color: '#8a96a3', fontSize: 13, fontWeight: '500' },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(27, 42, 58, 0.52)',
     justifyContent: 'center', alignItems: 'center', zIndex: 100,
+    padding: 24,
   },
   clearCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 28,
-    alignItems: 'center', borderWidth: 2, borderColor: '#90caf9',
-    minWidth: 250, position: 'relative',
-    shadowColor: '#1976d2', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 16, elevation: 8,
+    width: '100%', maxWidth: 360, backgroundColor: '#fff', borderRadius: 24,
+    paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24, alignItems: 'center',
+    borderWidth: 1, borderColor: '#dbe7f3', position: 'relative',
+    shadowColor: '#1b2a3a', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 12,
   },
-  closeBtn: { position: 'absolute', top: 10, right: 10, padding: 5 },
-  clearTitle: { fontSize: 28, fontWeight: 'bold', color: '#2a7', marginBottom: 16 },
-  clearStat: { color: '#1976d2', fontWeight: 'bold', fontSize: 17, marginTop: 4 },
+  closeBtn: {
+    position: 'absolute', top: 12, right: 12, width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f8fc',
+  },
+  clearIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: '#10b981',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    shadowColor: '#10b981', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 5,
+  },
+  clearEyebrow: { color: '#10b981', fontSize: 12, fontWeight: '800', letterSpacing: 1.4, marginBottom: 4 },
+  clearTitle: { fontSize: 30, fontWeight: '800', color: '#2c3e50', marginBottom: 6 },
+  clearSubtitle: { color: '#8a96a3', fontSize: 14, fontWeight: '600', marginBottom: 22 },
+  clearStats: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f9fd',
+    borderRadius: 16, borderWidth: 1, borderColor: '#e0eaf4', paddingVertical: 14, marginBottom: 20,
+  },
+  clearStatCard: { flex: 1, alignItems: 'center', gap: 3 },
+  clearStatDivider: { width: 1, height: 46, backgroundColor: '#d8e3ee' },
+  clearStatLabel: { color: '#8a96a3', fontSize: 12, fontWeight: '700' },
+  clearStatValue: { color: '#2c3e50', fontSize: 20, fontWeight: '800' },
   clearBtn: {
-    marginTop: 20, backgroundColor: '#1976d2', borderRadius: 12,
-    paddingVertical: 12, paddingHorizontal: 44,
+    width: '100%', backgroundColor: '#4a90d9', borderRadius: 14, paddingVertical: 15,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    shadowColor: '#4a90d9', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.24, shadowRadius: 9, elevation: 4,
   },
-  clearBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 18, letterSpacing: 1 },
+  clearBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
 });

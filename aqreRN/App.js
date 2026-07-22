@@ -4,6 +4,7 @@ import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
 import OptionsScreen from './screens/OptionsScreen';
 import { loadSoundSettings, initBGM, setBGMEnabled } from './utils/sound';
+import { initializeAds, showTestInterstitialAd } from './utils/ads';
 
 export default function App() {
   const [screen, setScreen] = useState('start');
@@ -12,6 +13,7 @@ export default function App() {
 
   useEffect(() => {
     loadSoundSettings();
+    initializeAds();
   }, []);
 
   const goOptions = (from) => { setPrevScreen(from); setScreen('options'); };
@@ -27,7 +29,10 @@ export default function App() {
     case 'level':
       return (
         <LevelScreen
-          onSelectPuzzle={(puzzle) => { setSelectedPuzzle(puzzle); setScreen('game'); }}
+          onSelectPuzzle={(puzzle) => showTestInterstitialAd(() => {
+            setSelectedPuzzle(puzzle);
+            setScreen('game');
+          })}
           onBack={() => setScreen('start')}
           onOptions={() => goOptions('level')}
         />

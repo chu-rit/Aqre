@@ -136,13 +136,14 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         puzzles,
         locked,
         unlockHint,
+        _showTutorial: showTutorial,
       };
     });
 
     const firstLockedIndex = allGroups.findIndex(g => g.locked);
     if (firstLockedIndex === -1) return allGroups;
     return allGroups.slice(0, firstLockedIndex + 1);
-  }, [selectedChapter, clearedPuzzles]);
+  }, [selectedChapter, clearedPuzzles, showTutorial]);
 
   const groupData = loaded ? getGroupData() : [];
 
@@ -180,10 +181,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       completed[key] = true;
       return completed;
     }, {});
+    const skippedTutorials = Object.keys(tutorialSteps).reduce((skipped, key) => {
+      skipped[key] = true;
+      return skipped;
+    }, {});
 
     await Promise.all([
       AsyncStorage.setItem('clearedPuzzles', JSON.stringify(updatedClearedPuzzles)),
       AsyncStorage.setItem('completedTutorials', JSON.stringify(completedTutorials)),
+      AsyncStorage.setItem('skippedTutorials', JSON.stringify(skippedTutorials)),
     ]);
     setClearedPuzzles(updatedClearedPuzzles);
     setShowTutorial(false);
@@ -274,10 +280,11 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const renderPage = ({ item, index }) => {
     const clearedCount = item.puzzles.filter(p => clearedPuzzles.includes(p.id)).length;
     const totalCount = item.puzzles.length;
+    const isTutorialPage = item._showTutorial;
 
     return (
-      <View style={[styles.page, { height: listHeight }]}>
-        <View style={styles.card}>
+      <View style={[styles.page, { height: listHeight }, isTutorialPage && styles.pageTutorial]}>
+        <View style={[styles.card, isTutorialPage && styles.cardTutorial]}>
           {item.locked ? (
             <View style={styles.lockedPage}>
               <View style={styles.pageHeader}>
@@ -418,6 +425,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     <ImageBackground source={require('../assets/bg1.png')} style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} resizeMode="cover">
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <View style={{ width: 44 }} />
         <View pointerEvents="none" style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Level Select</Text>
         </View>
@@ -634,6 +642,9 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     justifyContent: 'center',
   },
+  pageTutorial: {
+    justifyContent: 'center',
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -645,6 +656,9 @@ const styles = StyleSheet.create({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
       android: { elevation: 4 },
     }),
+  },
+  cardTutorial: {
+    transform: [{ translateY: -50 }],
   },
   pageHeader: {
     flexDirection: 'row',
