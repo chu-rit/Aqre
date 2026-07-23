@@ -358,6 +358,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   }, [selectedViolation]);
   const [clearVisible, setClearVisible] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
   const [hintPoints, setHintPoints] = useState(0);
   const [hintMode, setHintMode] = useState(false);
@@ -559,7 +560,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
         return next;
       });
       setMoveCount(n => n + 1);
-      addHintPoints(-1);
+      if (!(showTutorial && puzzle.id === 26000005 && tutorialStep === 2)) {
+        addHintPoints(-1);
+      }
       setHintMode(false);
       setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
       showToast(`힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);
@@ -567,7 +570,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
       showToast('힌트를 불러오지 못했습니다.');
       setHintMode(false);
     }
-  }, [board, puzzle.id, addHintPoints]);
+  }, [board, puzzle.id, addHintPoints, showTutorial, tutorialStep]);
 
   const reset = useCallback(() => {
     setBoard(puzzle.initialState.map(r => [...r]));
@@ -629,15 +632,41 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           </View>
           <TouchableOpacity
             style={[styles.hintButton, hintMode && styles.hintButtonActive]}
-            onPress={useHint}
+            onPress={showTutorial && puzzle.id === 26000005 && tutorialStep === 2 ? () => setHintMode(prev => !prev) : useHint}
             activeOpacity={0.7}
+            testID="hint"
           >
             <Ionicons name={hintMode ? 'bulb' : 'bulb-outline'} size={15} color="#fff" />
             <Text style={styles.hintButtonText}>HINT: {hintPoints}</Text>
           </TouchableOpacity>
+          {showTutorial && puzzle.id === 26000005 && tutorialStep === 2 && (
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                right: 0,
+                marginBottom: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: '#f59e0b',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                zIndex: 1100,
+              }}
+              onPress={() => setHintMode(prev => !prev)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="bulb" size={15} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+                {hintMode ? '힌트 선택 취소' : '힌트 사용(체험용)'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <View style={styles.boardWrapper}>
+        <View style={styles.boardWrapper} testID="board">
           {(() => {
             const cellSize = (BOARD_SIZE - GAP * (size - 1)) / size;
             return board.map((row, rIdx) => (
@@ -655,7 +684,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
                   onPress={hintMode ? () => applyHintCell(rIdx, cIdx) : () => toggleCell(rIdx, cIdx)}
                   onLongPress={hintMode ? undefined : () => toggleLock(rIdx, cIdx)}
-                  isLocked={hintMode ? false : !!lockedCells[`${rIdx}-${cIdx}`]}
+                  isLocked={!!lockedCells[`${rIdx}-${cIdx}`]}
                   hintMode={hintMode}
                   puzzle={puzzle}
                   cellRef={cellRefs.current[rIdx][cIdx]}
@@ -774,6 +803,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             selectedRule={selectedRule}
             hasCompletedTutorialsWithoutSkipping={hasCompletedTutorialsWithoutSkipping}
             onGrantHintPoints={addHintPoints}
+            onStepChange={setTutorialStep}
+            hintMode={hintMode}
             getCellRect={getCellRect}
           />
         </View>

@@ -112,6 +112,8 @@ const TutorialScreen = ({
   selectedRule = null,
   hasCompletedTutorialsWithoutSkipping = false,
   onGrantHintPoints,
+  onStepChange,
+  hintMode = false,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [language, setLanguage] = useState('ko');
@@ -235,6 +237,10 @@ const TutorialScreen = ({
     grantedHintStepsRef.current.add(rewardKey);
     onGrantHintPoints(amount, rewardKey);
   }, [currentStep, currentStepData.hintPoints, currentStepData.hintRewardKey, isVisible, levelId, onGrantHintPoints]);
+
+  useEffect(() => {
+    if (onStepChange) onStepChange(currentStep);
+  }, [currentStep, onStepChange]);
 
   // 스킵 버튼 핸들러 - 단순하게 onSkip 호출만 처리
   const skipTutorial = useCallback(async () => {
@@ -639,6 +645,7 @@ const TutorialScreen = ({
     if (!cond) return; // 조건이 없는 스텝은 수동 진행(버튼)
 
     const evalCell = (b, c) => {
+      if (c.hintMode !== undefined) return hintMode === c.hintMode;
       if (c.rule !== undefined) return selectedRule === c.rule;
       if (!b || !Array.isArray(b) || b[c.row] == null || b[c.row][c.col] == null) return false;
       return b[c.row][c.col] === c.expectedState;
@@ -656,7 +663,7 @@ const TutorialScreen = ({
       // 조건 스텝은 자동으로 다음 단계로 이동
       nextStep();
     }
-  }, [isVisible, currentStepData, board, selectedRule, nextStep]);
+  }, [isVisible, currentStepData, board, selectedRule, hintMode, nextStep]);
 
   // RN: 셀 좌표 기반 하이라이트 박스 계산 (cells: 1D 또는 2D 배열 지원)
   const updateHighlightPosition = useCallback(async () => {
@@ -748,7 +755,7 @@ const TutorialScreen = ({
   const isSingleHighlight = rectsToRender.length === 1;
   const isSelectorBased = Array.isArray(currentStepData?.highlight?.selectors) && currentStepData.highlight.selectors.length > 0;
   const allowOnlyHighlight = !showNextButton && isSingleHighlight;
-  const tooltipAtTop = isSingleHighlight && (rectsToRender[0].top + rectsToRender[0].height / 2) > height * 0.75;
+  const tooltipAtTop = isSingleHighlight && (rectsToRender[0].top + rectsToRender[0].height / 2) > height * 0.70;
 
   return (
     <View

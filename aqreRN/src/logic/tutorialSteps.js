@@ -339,10 +339,37 @@ export const tutorialSteps = {
       showNextButton: true
     },
     {
-      text: '임시로 힌트 버튼을 열어드릴테니 눌러보실까요?',
+      text: '임시로 힌트를 열어드릴테니 눌러보실까요?',
       textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
       highlight: {
         selectors: ['[data-testid="hint"]']
+      },
+      condition: { hintMode: true },
+      showNextButton: false
+    },
+    {
+      text: '힌트 모드가 활성화 되었습니다. 답을 알고 싶은 셀을 선택하세요.',
+      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      highlight: {
+        selectors: ['[data-testid="board"]']
+      },
+      condition: { hintMode: false },
+      showNextButton: false
+    },
+    {
+      text: '해당 칸의 답이 표시되고 잠금처리 되었습니다. 칸을 오래눌러도 잠금처리 할 수 있습니다.',
+      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      highlight: {
+        selectors: ['[data-testid="board"]']
+      },
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '다시 오래 누르면 잠금을 해제할 수 있습니다. 힌트 포인트는 광고보기를 통해 추가할 수 있습니다.',
+      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      highlight: {
+        selectors: ['[data-testid="board"]']
       },
       condition: null,
       showNextButton: true
@@ -353,6 +380,13 @@ export const tutorialSteps = {
       hintRewardKey: 'tutorials-completion-reward',
       text: '마지막으로 응원하는 마음을 담아 힌트 포인트를 선물로 드리겠습니다.',
       textEn: "Now, shall we get to work restoring our clients' memories",
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      text: '이제 즐거운 마음으로 퍼즐을 즐겨주시기 바랍니다.',
+      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
       highlight: null,
       condition: null,
       showNextButton: true
