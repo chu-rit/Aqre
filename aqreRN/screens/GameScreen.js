@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
+import { hasSolution, getSolutionCell } from '../src/logic/hints';
 import { playTap, playClear, setSoundEnabled } from '../utils/sound';
 import { showTestRewardedAd } from '../utils/ads';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
@@ -149,7 +150,7 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey, hintMode }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
   const lockAnim = useRef(new Animated.Value(0)).current;
   const holdAnim = useRef(new Animated.Value(0)).current;
@@ -237,8 +238,8 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
         ...borders,
       }]}
       onPress={isLocked ? undefined : onPress}
-      onPressIn={startHoldProgress}
-      onPressOut={stopHoldProgress}
+      onPressIn={hintMode ? undefined : startHoldProgress}
+      onPressOut={hintMode ? undefined : stopHoldProgress}
       onLongPress={onLongPress}
       delayLongPress={LOCK_HOLD_DURATION}
       activeOpacity={0.7}
@@ -305,6 +306,19 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
           backgroundColor: 'rgba(46,204,113,1)', opacity: dotOpacity,
         }} />
       )}
+      {hintMode && cell !== 2 && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 2, left: 2, right: 2, bottom: 2,
+            borderRadius: 4,
+            borderWidth: 2,
+            borderColor: 'rgba(255, 215, 0, 0.7)',
+            zIndex: 5,
+          }}
+        />
+      )}
       {showLabel && (
         <View
           testID={`area-${rowIdx}-${colIdx}`}
@@ -346,6 +360,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
   const [hintPoints, setHintPoints] = useState(0);
+  const [hintMode, setHintMode] = useState(false);
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
@@ -361,14 +376,14 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
   const addHintPoints = useCallback(async (amount, rewardKey) => {
     const pointsToAdd = Number(amount);
-    if (!Number.isFinite(pointsToAdd) || pointsToAdd <= 0) return;
+    if (!Number.isFinite(pointsToAdd) || pointsToAdd === 0) return;
     const [pointsJson, rewardsJson] = await Promise.all([
       AsyncStorage.getItem('hintPoints'),
       AsyncStorage.getItem('claimedHintRewards'),
     ]);
     const claimedRewards = JSON.parse(rewardsJson || '{}');
     if (rewardKey && claimedRewards[rewardKey]) return;
-    const nextPoints = (Number(pointsJson) || 0) + pointsToAdd;
+    const nextPoints = Math.max(0, (Number(pointsJson) || 0) + pointsToAdd);
     if (rewardKey) claimedRewards[rewardKey] = true;
     await Promise.all([
       AsyncStorage.setItem('hintPoints', String(nextPoints)),
@@ -448,6 +463,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setSelectedViolation(null);
     setLockedCells({});
     setShowTutorial(false);
+    setHintMode(false);
     const steps = getTutorialStepsByLevel(puzzle.id);
     const tutorialTimer = steps.length > 0
       ? setTimeout(() => setShowTutorial(true), 500)
@@ -500,6 +516,59 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     });
   }, []);
 
+  const useHint = useCallback(() => {
+    if (hintPoints <= 0) {
+      showTestRewardedAd(() => {
+        addHintPoints(2);
+        showToast('힌트 2개가 충전되었습니다.');
+      });
+      return;
+    }
+    try {
+      if (!hasSolution(puzzle.id)) {
+        showToast('해답 데이터를 불러올 수 없습니다.');
+        return;
+      }
+    } catch {
+      showToast('해답 데이터를 불러올 수 없습니다.');
+      return;
+    }
+    setHintMode(prev => !prev);
+  }, [hintPoints, puzzle.id, addHintPoints]);
+
+  const applyHintCell = useCallback((r, c) => {
+    if (board[r][c] === 2) return;
+
+    try {
+      const correctValue = getSolutionCell(puzzle.id, r, c);
+      if (correctValue === null) {
+        showToast('해답 데이터를 불러올 수 없습니다.');
+        setHintMode(false);
+        return;
+      }
+      if (board[r][c] === correctValue) {
+        setHintMode(false);
+        setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
+        showToast('이 셀은 이미 정답입니다.');
+        return;
+      }
+      playTap();
+      setBoard(prev => {
+        const next = prev.map(row => [...row]);
+        next[r][c] = correctValue;
+        return next;
+      });
+      setMoveCount(n => n + 1);
+      addHintPoints(-1);
+      setHintMode(false);
+      setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
+      showToast(`힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);
+    } catch {
+      showToast('힌트를 불러오지 못했습니다.');
+      setHintMode(false);
+    }
+  }, [board, puzzle.id, addHintPoints]);
+
   const reset = useCallback(() => {
     setBoard(puzzle.initialState.map(r => [...r]));
     setMoveCount(0);
@@ -509,6 +578,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
+    setHintMode(false);
   }, [puzzle]);
 
   useEffect(() => {
@@ -558,11 +628,11 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             <Text style={styles.stopwatchValue}>{formattedElapsed}</Text>
           </View>
           <TouchableOpacity
-            style={styles.hintButton}
-            onPress={() => showTestRewardedAd(() => addHintPoints(1))}
+            style={[styles.hintButton, hintMode && styles.hintButtonActive]}
+            onPress={useHint}
             activeOpacity={0.7}
           >
-            <Ionicons name="bulb-outline" size={15} color="#fff" />
+            <Ionicons name={hintMode ? 'bulb' : 'bulb-outline'} size={15} color="#fff" />
             <Text style={styles.hintButtonText}>HINT: {hintPoints}</Text>
           </TouchableOpacity>
         </View>
@@ -583,9 +653,10 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   areaMap={areaMap}
                   areaFilledCounts={areaFilledCounts}
                   isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
-                  onPress={() => toggleCell(rIdx, cIdx)}
-                  onLongPress={() => toggleLock(rIdx, cIdx)}
-                  isLocked={!!lockedCells[`${rIdx}-${cIdx}`]}
+                  onPress={hintMode ? () => applyHintCell(rIdx, cIdx) : () => toggleCell(rIdx, cIdx)}
+                  onLongPress={hintMode ? undefined : () => toggleLock(rIdx, cIdx)}
+                  isLocked={hintMode ? false : !!lockedCells[`${rIdx}-${cIdx}`]}
+                  hintMode={hintMode}
                   puzzle={puzzle}
                   cellRef={cellRefs.current[rIdx][cIdx]}
                   dotResetKey={dotResetKey}
@@ -795,6 +866,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 3,
+  },
+  hintButtonActive: {
+    backgroundColor: '#e8a33d',
+    borderColor: '#f5c26b',
   },
   hintButtonText: {
     color: '#fff',

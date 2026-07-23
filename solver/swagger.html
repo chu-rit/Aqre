@@ -197,6 +197,25 @@
             margin-bottom: 20px;
             font-size: 1.1rem;
         }
+        .copy-solution-button {
+            display: block;
+            margin: 12px auto 0;
+            padding: 9px 14px;
+            border: 1px solid #6fb1e5;
+            border-radius: 8px;
+            background: #3b82c4;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .copy-solution-button:hover {
+            background: #2f70ad;
+        }
+        .copy-solution-button:disabled {
+            cursor: default;
+            opacity: 0.8;
+        }
         .api-info {
             background-color: rgba(255,255,255,0.05);
             border-radius: 8px;
@@ -278,11 +297,11 @@
                 <p>API: http://localhost:5000</p>
             </div>
             <div class="level-select-wrapper" id="levelSelectWrapper">
-                <button class="level-nav-btn" id="levelPrevBtn" onclick="navigateLevel(-1)" disabled>&#9660;</button>
+                <button class="level-nav-btn" id="levelPrevBtn" onclick="navigateLevel(-1)" disabled>&#9650;</button>
                 <select id="levelSelect" class="level-select">
                     <option value="" disabled selected>레벨을 선택하세요...</option>
                 </select>
-                <button class="level-nav-btn" id="levelNextBtn" onclick="navigateLevel(1)" disabled>&#9650;</button>
+                <button class="level-nav-btn" id="levelNextBtn" onclick="navigateLevel(1)" disabled>&#9660;</button>
             </div>
             <div style="display:flex;gap:16px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap;">
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
@@ -822,6 +841,37 @@
         container.appendChild(solutionWrapper);
     }
 
+    async function copySolutionJson(solution, button) {
+        if (!currentPuzzle || !solution) return;
+
+        const rows = solution.map(row => `    [${row.join(', ')}]`).join(',\n');
+        const json = `{\n  "id": ${currentPuzzle.id},\n  "solution": [\n${rows}\n  ]\n}`;
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(json);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = json;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            }
+            button.textContent = 'JSON 복사됨';
+            button.disabled = true;
+            setTimeout(() => {
+                button.textContent = '퍼즐 ID + solution JSON 복사';
+                button.disabled = false;
+            }, 1800);
+        } catch (error) {
+            console.error('Failed to copy solution JSON:', error);
+            button.textContent = '복사 실패';
+            setTimeout(() => { button.textContent = '퍼즐 ID + solution JSON 복사'; }, 1800);
+        }
+    }
+
     // 솔루션 렌더링 함수
     function renderSolutions(solutions, elapsedTime, iterations, data) {
         const puzzleContainer = document.getElementById('puzzleContainer');
@@ -839,6 +889,12 @@
                 <span style="font-weight:bold;color:${diffColor};font-size:16px;">난이도: ${diffLabel} (${diffScore})</span>
             `;
             puzzleContainer.appendChild(solutionCountDiv);
+
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-solution-button';
+            copyButton.textContent = '퍼즐 ID + solution JSON 복사';
+            copyButton.addEventListener('click', () => copySolutionJson(solutions[0], copyButton));
+            puzzleContainer.appendChild(copyButton);
             
             // 단계별 추론 맵 표시
             if (data?.reasoningMap) {

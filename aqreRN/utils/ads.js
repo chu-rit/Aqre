@@ -96,7 +96,11 @@ export const showTestInterstitialAd = (onComplete) => {
 };
 
 export const showTestRewardedAd = (onReward) => {
-  if (Platform.OS === 'web' || !isRewardedLoaded || !rewardedAd) return;
+  if (Platform.OS === 'web') {
+    onReward?.();
+    return;
+  }
+  if (!isRewardedLoaded || !rewardedAd) return;
   rewardedCallback = onReward;
   rewardedAd.show();
 };

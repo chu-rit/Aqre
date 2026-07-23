@@ -126,6 +126,7 @@ const TutorialScreen = ({
   const autoAdvancedRef = useRef(false);
   const grantedHintStepsRef = useRef(new Set());
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const [claimedRewards, setClaimedRewards] = useState({});
 
   // 모든 하이라이트와 클론 요소를 제거하는 함수
   const cleanupAllHighlights = useCallback(() => {
@@ -194,12 +195,19 @@ const TutorialScreen = ({
     } catch {}
   }, []);
 
+  useEffect(() => {
+    AsyncStorage.getItem('claimedHintRewards').then(json => {
+      if (json) setClaimedRewards(JSON.parse(json));
+    });
+  }, []);
+
   // 단계 소스: 전달된 steps prop 우선, 없으면 levelId로 조회
   const sourceSteps = (Array.isArray(steps) && steps.length > 0)
     ? steps
     : (getTutorialStepsByLevel(levelId) || []);
   const currentLevelSteps = sourceSteps.filter(step => (
-    !step.requiresCompletedTutorialsWithoutSkipping || hasCompletedTutorialsWithoutSkipping
+    (!step.requiresCompletedTutorialsWithoutSkipping || hasCompletedTutorialsWithoutSkipping) &&
+    (!step.hintRewardKey || !claimedRewards[step.hintRewardKey])
   ));
   const currentStepData = currentLevelSteps[currentStep] || {};
 
