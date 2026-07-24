@@ -14,13 +14,17 @@ import { Svg, Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast, { showToast } from '../components/Toast';
+import Toast from '../components/Toast';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
-import { hasSolution, getSolutionCell } from '../src/logic/hints';
 import { playTap, playClear, setSoundEnabled } from '../utils/sound';
-import { showTestRewardedAd } from '../utils/ads';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
+import {
+  createAddHintPoints,
+  loadHintPoints as loadHintPointsFn,
+  createUseHint,
+  createApplyHintCell,
+} from '../utils/hintManager';
 
 const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
 
@@ -376,23 +380,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     );
   }
 
-  const addHintPoints = useCallback(async (amount, rewardKey) => {
-    const pointsToAdd = Number(amount);
-    if (!Number.isFinite(pointsToAdd) || pointsToAdd === 0) return;
-    const [pointsJson, rewardsJson] = await Promise.all([
-      AsyncStorage.getItem('hintPoints'),
-      AsyncStorage.getItem('claimedHintRewards'),
-    ]);
-    const claimedRewards = JSON.parse(rewardsJson || '{}');
-    if (rewardKey && claimedRewards[rewardKey]) return;
-    const nextPoints = Math.max(0, (Number(pointsJson) || 0) + pointsToAdd);
-    if (rewardKey) claimedRewards[rewardKey] = true;
-    await Promise.all([
-      AsyncStorage.setItem('hintPoints', String(nextPoints)),
-      AsyncStorage.setItem('claimedHintRewards', JSON.stringify(claimedRewards)),
-    ]);
-    setHintPoints(nextPoints);
-  }, []);
+  const addHintPoints = useCallback(createAddHintPoints(setHintPoints), []);
 
   const getCellRect = useCallback((row, col) => {
     return new Promise((resolve, reject) => {
@@ -425,15 +413,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   }, [puzzle.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadHintPoints = async () => {
-      const points = Number(await AsyncStorage.getItem('hintPoints')) || 0;
-      if (!cancelled) setHintPoints(points);
-    };
-    loadHintPoints();
-    return () => {
-      cancelled = true;
-    };
+    loadHintPointsFn(setHintPoints);
   }, []);
 
   useEffect(() => {
@@ -518,60 +498,25 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     });
   }, []);
 
-  const useHint = useCallback(() => {
-    if (hintPoints <= 0) {
-      showTestRewardedAd(() => {
-        addHintPoints(2);
-        showToast('힌트 2개가 충전되었습니다.');
-      });
-      return;
-    }
-    try {
-      if (!hasSolution(puzzle.id)) {
-        showToast('해답 데이터를 불러올 수 없습니다.');
-        return;
-      }
-    } catch {
-      showToast('해답 데이터를 불러올 수 없습니다.');
-      return;
-    }
-    setHintMode(prev => !prev);
-  }, [hintPoints, puzzle.id, addHintPoints]);
+  const useHint = useCallback(
+    createUseHint(hintPoints, addHintPoints, setHintMode),
+    [hintPoints, addHintPoints]
+  );
 
-  const applyHintCell = useCallback((r, c) => {
-    if (board[r][c] === 2) return;
-
-    try {
-      const correctValue = getSolutionCell(puzzle.id, r, c);
-      if (correctValue === null) {
-        showToast('해답 데이터를 불러올 수 없습니다.');
-        setHintMode(false);
-        return;
-      }
-      if (board[r][c] === correctValue) {
-        setHintMode(false);
-        setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
-        showToast('이 셀은 이미 정답입니다.');
-        return;
-      }
-      playTap();
-      setBoard(prev => {
-        const next = prev.map(row => [...row]);
-        next[r][c] = correctValue;
-        return next;
-      });
-      setMoveCount(n => n + 1);
-      if (!(showTutorial && puzzle.id === 26000005 && tutorialStep === 2)) {
-        addHintPoints(-1);
-      }
-      setHintMode(false);
-      setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
-      showToast(`힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);
-    } catch {
-      showToast('힌트를 불러오지 못했습니다.');
-      setHintMode(false);
-    }
-  }, [board, puzzle.id, addHintPoints, showTutorial, tutorialStep]);
+  const applyHintCell = useCallback(
+    createApplyHintCell(
+      puzzle.id,
+      board,
+      setBoard,
+      setHintMode,
+      setLockedCells,
+      setMoveCount,
+      addHintPoints,
+      showTutorial,
+      tutorialStep,
+    ),
+    [board, puzzle.id, addHintPoints, showTutorial, tutorialStep]
+  );
 
   const reset = useCallback(() => {
     setBoard(puzzle.initialState.map(r => [...r]));
@@ -898,6 +843,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
     zIndex: 100,
+    cursor: 'pointer',
+    touchAction: 'manipulation',
   },
   hintButtonActive: {
     backgroundColor: '#e8a33d',
