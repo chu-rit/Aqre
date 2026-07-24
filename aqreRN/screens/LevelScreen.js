@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
@@ -44,6 +45,7 @@ const SERIES_INFO = [
 ];
 
 export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
+  const insets = useSafeAreaInsets();
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
@@ -338,31 +340,11 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           ) : (
             <>
               <View style={styles.cardImageSection}>
-                {item.series === 0 ? (
-                  <Image
-                    source={require('../assets/GRP1.png')}
-                    style={styles.groupImage}
-                    resizeMode="cover"
-                  />
-                ) : item.series === 1 ? (
-                  <Image
-                    source={require('../assets/GRP2.png')}
-                    style={styles.groupImage}
-                    resizeMode="cover"
-                  />
-                ) : item.series === 2 ? (
-                  <Image
-                    source={require('../assets/GRP3.png')}
-                    style={styles.groupImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.groupImagePlaceholder, { backgroundColor: item.color + '18' }]}>
-                    <View style={[styles.placeholderIconCircle, { backgroundColor: item.color + '25' }]}>
-                      <Ionicons name={item.icon} size={40} color={item.color} />
-                    </View>
+                <View style={[styles.groupImagePlaceholder, { backgroundColor: item.color + '18' }]}>
+                  <View style={[styles.placeholderIconCircle, { backgroundColor: item.color + '25' }]}>
+                    <Ionicons name={item.icon} size={40} color={item.color} />
                   </View>
-                )}
+                </View>
               </View>
               <View style={styles.cardContentSection}>
                 <View style={styles.pageHeader}>
@@ -495,8 +477,10 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         </View>
       )}
 
+    </SafeAreaView>
+
       {showTutorial && (
-        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }}>
           <TutorialScreen
             isVisible={showTutorial}
             onClose={async () => {
@@ -510,6 +494,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
             onSkip={() => { playTap(); setShowTutorial(false); }}
             levelId={0}
             steps={level0Steps}
+            bottomInset={insets.bottom}
           />
         </View>
       )}
@@ -517,7 +502,6 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         pointerEvents="none"
         style={[styles.fadeOverlay, { opacity: overlayAnim }]}
       />
-    </SafeAreaView>
     </ImageBackground>
   );
 }
@@ -556,6 +540,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
+    lineHeight: 28,
     fontWeight: '800',
     color: '#2c3e50',
     letterSpacing: 1.5,
@@ -603,6 +588,7 @@ const styles = StyleSheet.create({
   },
   chapterTabText: {
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: '700',
     color: '#6b7c8d',
     letterSpacing: 0.3,
@@ -651,7 +637,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
     flexDirection: 'column',
-    overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 16 },
       android: { elevation: 4 },
@@ -703,12 +688,14 @@ const styles = StyleSheet.create({
   },
   pageBadgeText: {
     fontSize: 14,
+    lineHeight: 18,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 1,
   },
   pageProgress: {
     fontSize: 13,
+    lineHeight: 17,
     fontWeight: '700',
     color: '#8a9aaa',
   },
@@ -734,14 +721,15 @@ const styles = StyleSheet.create({
   unlockHintText: {
     marginTop: 16,
     fontSize: 14,
+    lineHeight: 20,
     color: '#9aa5b0',
     fontWeight: '600',
     textAlign: 'center',
-    lineHeight: 20,
   },
   tutorialSkipHint: {
     marginTop: 8,
     fontSize: 12,
+    lineHeight: 16,
     color: '#8a9aaa',
     fontWeight: '600',
     textAlign: 'center',
@@ -844,6 +832,7 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: '700',
     color: '#4a5a6b',
     marginTop: 16,
@@ -851,6 +840,7 @@ const styles = StyleSheet.create({
   },
   comingSoonSubtext: {
     fontSize: 14,
+    lineHeight: 18,
     color: '#7a8a9b',
     marginTop: 8,
   },

@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   SafeAreaView,
   Animated,
@@ -630,15 +631,14 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             <Text style={styles.stopwatchLabel}>TIME</Text>
             <Text style={styles.stopwatchValue}>{formattedElapsed}</Text>
           </View>
-          <TouchableOpacity
+          <Pressable
             style={[styles.hintButton, hintMode && styles.hintButtonActive]}
             onPress={showTutorial && puzzle.id === 26000005 && tutorialStep === 2 ? () => setHintMode(prev => !prev) : useHint}
-            activeOpacity={0.7}
             testID="hint"
           >
             <Ionicons name={hintMode ? 'bulb' : 'bulb-outline'} size={15} color="#fff" />
             <Text style={styles.hintButtonText}>HINT: {hintPoints}</Text>
-          </TouchableOpacity>
+          </Pressable>
           {showTutorial && puzzle.id === 26000005 && tutorialStep === 2 && (
             <TouchableOpacity
               style={{
@@ -897,6 +897,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 3,
+    zIndex: 100,
   },
   hintButtonActive: {
     backgroundColor: '#e8a33d',

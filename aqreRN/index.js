@@ -1,4 +1,11 @@
+import { Text } from 'react-native';
 import { registerRootComponent } from 'expo';
+
+// Disable font scaling globally for consistent layout on Android
+if (Text.defaultProps == null) {
+  Text.defaultProps = {};
+}
+Text.defaultProps.allowFontScaling = false;
 
 import App from './App';
 

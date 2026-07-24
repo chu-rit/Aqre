@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import StartScreen from './screens/StartScreen';
 import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
@@ -25,29 +26,33 @@ export default function App() {
     setScreen('level');
   };
 
-  switch (screen) {
-    case 'level':
-      return (
-        <LevelScreen
-          onSelectPuzzle={(puzzle) => showTestInterstitialAd(() => {
-            setSelectedPuzzle(puzzle);
-            setScreen('game');
-          })}
-          onBack={() => setScreen('start')}
-          onOptions={() => goOptions('level')}
-        />
-      );
-    case 'game':
-      return selectedPuzzle ? (
-        <GameScreen
-          puzzle={selectedPuzzle}
-          onBack={() => setScreen('level')}
-          onOptions={() => goOptions('game')}
-        />
-      ) : null;
-    case 'options':
-      return <OptionsScreen onClose={() => setScreen(prevScreen)} onChangeBgm={onChangeBgm} />;
-    default:
-      return <StartScreen onStart={handleStart} />;
-  }
+  const renderScreen = () => {
+    switch (screen) {
+      case 'level':
+        return (
+          <LevelScreen
+            onSelectPuzzle={(puzzle) => showTestInterstitialAd(() => {
+              setSelectedPuzzle(puzzle);
+              setScreen('game');
+            })}
+            onBack={() => setScreen('start')}
+            onOptions={() => goOptions('level')}
+          />
+        );
+      case 'game':
+        return selectedPuzzle ? (
+          <GameScreen
+            puzzle={selectedPuzzle}
+            onBack={() => setScreen('level')}
+            onOptions={() => goOptions('game')}
+          />
+        ) : null;
+      case 'options':
+        return <OptionsScreen onClose={() => setScreen(prevScreen)} onChangeBgm={onChangeBgm} />;
+      default:
+        return <StartScreen onStart={handleStart} />;
+    }
+  };
+
+  return <SafeAreaProvider>{renderScreen()}</SafeAreaProvider>;
 }

@@ -100,7 +100,10 @@ export const showTestRewardedAd = (onReward) => {
     onReward?.();
     return;
   }
-  if (!isRewardedLoaded || !rewardedAd) return;
+  if (!isRewardedLoaded || !rewardedAd) {
+    onReward?.(); // 광고가 준비 안 되면 테스트용으로 즉시 보상
+    return;
+  }
   rewardedCallback = onReward;
   rewardedAd.show();
 };

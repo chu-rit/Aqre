@@ -52,11 +52,12 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
   const mergedStyle = [
     {
       fontSize: 16,
+      lineHeight: 22,
     },
     style
   ];
 
-  return <Text style={mergedStyle}>{displayText}</Text>;
+  return <Text allowFontScaling={false} style={mergedStyle}>{displayText}</Text>;
 };
 
 // 튜토리얼 건너뛰기 핸들러
@@ -114,12 +115,13 @@ const TutorialScreen = ({
   onGrantHintPoints,
   onStepChange,
   hintMode = false,
+  bottomInset = 0,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [language, setLanguage] = useState('ko');
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const [highlightRect, setHighlightRect] = useState(null);
   const [highlightRects, setHighlightRects] = useState([]);
   const [boardRect, setBoardRect] = useState(null);
@@ -534,7 +536,7 @@ const TutorialScreen = ({
     if (isVisible) {
       setCurrentStep(0);
       fadeAnim.setValue(0);
-      slideAnim.setValue(50);
+      slideAnim.setValue(0);
       
       // 애니메이션 시작
       Animated.parallel([
@@ -609,7 +611,7 @@ const TutorialScreen = ({
       
       // 다음 단계로 넘어갈 때 애니메이션
       fadeAnim.setValue(0);
-      slideAnim.setValue(50);
+      slideAnim.setValue(0);
       
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -763,17 +765,17 @@ const TutorialScreen = ({
       style={[
         styles.container,
         isVisible ? styles.absoluteFill : null,
-        { zIndex: 3000, position: isVisible ? 'absolute' : 'relative' }
+        { zIndex: 3000, elevation: 3000, position: isVisible ? 'absolute' : 'relative' }
       ]}
       pointerEvents="box-none"
     >
       {children}
       {isVisible && (
         <>
-          {/* 1) 오버레이 레이어: showNextButton=true 이면 전체 차단, false 이고 하이라이트가 있으면 하이라이트만 통과 */}
+          {/* 1) 오버레이 레이어: showNextButton=true 이면 차단은 별도 blocker로 처리, false 이고 하이라이트가 있으면 하이라이트만 통과 */}
           <View
-            pointerEvents={showNextButton ? 'auto' : (allowOnlyHighlight ? 'box-none' : 'none')}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            pointerEvents={allowOnlyHighlight ? 'box-none' : 'none'}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, elevation: 1000 }}
           >
             {/* 딤드 배경 렌더링 정책 */}
             {hasHighlight && isSingleHighlight ? (
@@ -782,7 +784,7 @@ const TutorialScreen = ({
                 const r = rectsToRender[0];
                 const d = `M0,0 H${width} V${height} H0 Z M${r.left},${r.top} h${r.width} v${r.height} h-${r.width} Z`;
                 return (
-                  <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1000 }}>
+                  <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1000, elevation: 1000 }}>
                     <Svg width={width} height={height}>
                       <Path d={d} fill="rgba(0,0,0,0.6)" fillRule="evenodd" />
                     </Svg>
@@ -791,10 +793,10 @@ const TutorialScreen = ({
               })()
             ) : hasHighlight ? (
               // 다중 하이라이트: 전체 딤 + 하이라이트 테두리만
-              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }]} />
             ) : (
               // 하이라이트가 없으면 전체 딤
-              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }]} />
+              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }]} />
             )}
 
             {/* showNextButton=false && 하이라이트가 있을 때, 하이라이트 영역 외부만 터치 차단하는 블로커 4개 */}
@@ -803,22 +805,22 @@ const TutorialScreen = ({
                 {/* 상단 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: rectsToRender[0].top, zIndex: 2001 }}
+                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: rectsToRender[0].top, zIndex: 2001, elevation: 2001 }}
                 />
                 {/* 하단 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: rectsToRender[0].top + rectsToRender[0].height, bottom: 0, zIndex: 2001 }}
+                  style={{ position: 'absolute', left: 0, right: 0, top: rectsToRender[0].top + rectsToRender[0].height, bottom: 0, zIndex: 2001, elevation: 2001 }}
                 />
                 {/* 좌측 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, top: rectsToRender[0].top, width: rectsToRender[0].left, height: rectsToRender[0].height, zIndex: 2001 }}
+                  style={{ position: 'absolute', left: 0, top: rectsToRender[0].top, width: rectsToRender[0].left, height: rectsToRender[0].height, zIndex: 2001, elevation: 2001 }}
                 />
                 {/* 우측 블로커 */}
                 <View
                   pointerEvents="auto"
-                  style={{ position: 'absolute', left: rectsToRender[0].left + rectsToRender[0].width, right: 0, top: rectsToRender[0].top, height: rectsToRender[0].height, zIndex: 2001 }}
+                  style={{ position: 'absolute', left: rectsToRender[0].left + rectsToRender[0].width, right: 0, top: rectsToRender[0].top, height: rectsToRender[0].height, zIndex: 2001, elevation: 2001 }}
                 />
               </>
             )}
@@ -850,6 +852,14 @@ const TutorialScreen = ({
             ))}
           </View>
 
+          {/* showNextButton=true일 때 게임 보드 터치를 막되, 툴팁(다음 버튼)은 터치 가능하도록 투명 blocker를 툴팁 아래에 배치 */}
+          {showNextButton && (
+            <View
+              pointerEvents="auto"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1500, elevation: 1500 }}
+            />
+          )}
+
           {/* 2) 인터랙티브 툴팁 레이어 (하이라이트 위치에 따라 상/하단 배치) */}
           <Animated.View
             pointerEvents="none"
@@ -857,19 +867,20 @@ const TutorialScreen = ({
               styles.tooltipWrapper,
               {
                 zIndex: 2000,
+                elevation: 2000,
                 position: 'absolute',
                 left: 0,
                 right: 0,
                 [tooltipAtTop ? 'top' : 'bottom']: 0,
                 justifyContent: tooltipAtTop ? 'flex-start' : 'flex-end',
                 paddingTop: tooltipAtTop ? 60 : 0,
-                paddingBottom: tooltipAtTop ? 0 : 40,
+                paddingBottom: tooltipAtTop ? 0 : (40 + bottomInset),
               }
             ]}
           >
             <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginTop: tooltipAtTop ? 0 : 40 }]} pointerEvents="auto">
               <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
-                <Text style={styles.skipButtonText}>SKIP</Text>
+                <Text allowFontScaling={false} style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>
               <View style={styles.tooltipContent}>
                 <View style={styles.avatarContainer}>
@@ -898,7 +909,7 @@ const TutorialScreen = ({
                 )}
                 {showNextButton && (
                   <TouchableOpacity style={styles.nextButton} onPress={nextStep} activeOpacity={0.8}>
-                    <Text style={styles.nextButtonText}>{language === 'en' ? 'NEXT' : '다음'}</Text>
+                    <Text allowFontScaling={false} style={styles.nextButtonText}>{language === 'en' ? 'NEXT' : '다음'}</Text>
                   </TouchableOpacity>
                 )}
               </View>
