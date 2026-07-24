@@ -105,7 +105,7 @@ export default function StartScreen({ onStart }) {
       )}
       {loaded && (
         <Animated.View style={[styles.innerContainer, { opacity: fadeAnim }]}>
-          <Text style={styles.versionTag}>v1.0.1</Text>
+          <Text style={styles.versionTag}>v1.0.0</Text>
           <AnimatedTouchableOpacity 
             style={[styles.startButton, { opacity: pulseAnim }]} 
             activeOpacity={0.8} 

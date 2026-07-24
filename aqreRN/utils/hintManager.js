@@ -31,28 +31,19 @@ export async function loadHintPoints(setHintPoints) {
 
 export function createUseHint(hintPoints, addHintPoints, setHintMode) {
   return () => {
-    try {
+    if (hintPoints <= 0) {
       if (Platform.OS === 'web') {
-        alert('[useHint] called, hintPoints: ' + hintPoints);
-      }
-      if (hintPoints <= 0) {
-        if (Platform.OS === 'web') {
+        addHintPoints(2);
+        showToast('힌트 2개가 충전되었습니다.');
+      } else {
+        showTestRewardedAd(() => {
           addHintPoints(2);
           showToast('힌트 2개가 충전되었습니다.');
-        } else {
-          showTestRewardedAd(() => {
-            addHintPoints(2);
-            showToast('힌트 2개가 충전되었습니다.');
-          });
-        }
-        return;
+        });
       }
-      setHintMode(prev => !prev);
-    } catch (e) {
-      if (Platform.OS === 'web') {
-        alert('[useHint] error: ' + (e && e.message ? e.message : String(e)));
-      }
+      return;
     }
+    setHintMode(prev => !prev);
   };
 }
 
