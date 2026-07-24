@@ -342,7 +342,7 @@ export const tutorialSteps = {
       text: '임시로 힌트를 열어드릴테니 눌러보실까요?',
       textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
       highlight: {
-        selectors: ['[data-testid="hint"]']
+        selectors: ['[data-testid="hint"]', '#hint-button']
       },
       condition: { hintMode: true },
       showNextButton: false

@@ -529,7 +529,13 @@ const TutorialScreen = ({
     const firstFrame = requestAnimationFrame(() => {
       requestAnimationFrame(() => setMeasurementVersion(version => version + 1));
     });
-    return () => cancelAnimationFrame(firstFrame);
+    const retryTimer = setTimeout(() => {
+      setMeasurementVersion(version => version + 1);
+    }, 300);
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      clearTimeout(retryTimer);
+    };
   }, [currentStep, isVisible]);
 
   useEffect(() => {
