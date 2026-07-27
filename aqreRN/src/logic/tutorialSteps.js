@@ -32,7 +32,7 @@ export const tutorialSteps = {
         selectors: ["data-testid=level-26000001"]
       },
       condition: null,
-      showNextButton: false
+      showNextButton: true
     }
   ],
   

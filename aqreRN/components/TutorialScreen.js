@@ -7,6 +7,7 @@ import {
   Animated, 
   Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Path } from 'react-native-svg';
 import styles from './tutorialStyles';
 
-const { width, height } = Dimensions.get('window');
+// 정적 Dimensions 제거 - useWindowDimensions 훅 사용
 
 // 타이핑 효과를 위한 컴포넌트
 const TypeWriterText = ({ text, style, onTypingDone }) => {
@@ -131,6 +132,7 @@ const TutorialScreen = ({
   const grantedHintStepsRef = useRef(new Set());
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const [claimedRewards, setClaimedRewards] = useState({});
+  const { width, height } = useWindowDimensions();
 
   // 모든 하이라이트와 클론 요소를 제거하는 함수
   const cleanupAllHighlights = useCallback(() => {
@@ -761,8 +763,6 @@ const TutorialScreen = ({
     : (highlightRect ? [highlightRect] : []);
   const hasHighlight = rectsToRender.length > 0;
   const isSingleHighlight = rectsToRender.length === 1;
-  const isSelectorBased = Array.isArray(currentStepData?.highlight?.selectors) && currentStepData.highlight.selectors.length > 0;
-  const allowOnlyHighlight = !showNextButton && isSingleHighlight;
   const tooltipAtTop = isSingleHighlight && (rectsToRender[0].top + rectsToRender[0].height / 2) > height * 0.70;
 
   return (
@@ -771,109 +771,57 @@ const TutorialScreen = ({
       style={[
         styles.container,
         isVisible ? styles.absoluteFill : null,
-        { zIndex: 3000, elevation: 3000, position: isVisible ? 'absolute' : 'relative' }
+        { zIndex: 50, elevation: 50, position: isVisible ? 'absolute' : 'relative' }
       ]}
       pointerEvents="box-none"
     >
       {children}
       {isVisible && (
         <>
-          {/* 1) 오버레이 레이어: showNextButton=true 이면 차단은 별도 blocker로 처리, false 이고 하이라이트가 있으면 하이라이트만 통과 */}
-          <View
-            pointerEvents={allowOnlyHighlight ? 'box-none' : 'none'}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, elevation: 1000 }}
-          >
-            {/* 딤드 배경 렌더링 정책 */}
-            {hasHighlight && isSingleHighlight ? (
-              // 단일 하이라이트: SVG로 하나의 딤 오버레이에 구멍을 뚫어 틈/겹침 방지
-              (() => {
-                const r = rectsToRender[0];
-                const d = `M0,0 H${width} V${height} H0 Z M${r.left},${r.top} h${r.width} v${r.height} h-${r.width} Z`;
-                return (
-                  <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1000, elevation: 1000 }}>
-                    <Svg width={width} height={height}>
-                      <Path d={d} fill="rgba(0,0,0,0.6)" fillRule="evenodd" />
-                    </Svg>
-                  </View>
-                );
-              })()
-            ) : hasHighlight ? (
-              // 다중 하이라이트: 전체 딤 + 하이라이트 테두리만
-              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }]} />
-            ) : (
-              // 하이라이트가 없으면 전체 딤
-              <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }]} />
-            )}
-
-            {/* showNextButton=false && 하이라이트가 있을 때, 하이라이트 영역 외부만 터치 차단하는 블로커 4개 */}
-            {allowOnlyHighlight && (
-              <>
-                {/* 상단 블로커 */}
-                <View
-                  pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: rectsToRender[0].top, zIndex: 2001, elevation: 2001 }}
-                />
-                {/* 하단 블로커 */}
-                <View
-                  pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, right: 0, top: rectsToRender[0].top + rectsToRender[0].height, bottom: 0, zIndex: 2001, elevation: 2001 }}
-                />
-                {/* 좌측 블로커 */}
-                <View
-                  pointerEvents="auto"
-                  style={{ position: 'absolute', left: 0, top: rectsToRender[0].top, width: rectsToRender[0].left, height: rectsToRender[0].height, zIndex: 2001, elevation: 2001 }}
-                />
-                {/* 우측 블로커 */}
-                <View
-                  pointerEvents="auto"
-                  style={{ position: 'absolute', left: rectsToRender[0].left + rectsToRender[0].width, right: 0, top: rectsToRender[0].top, height: rectsToRender[0].height, zIndex: 2001, elevation: 2001 }}
-                />
-              </>
-            )}
-            {/* RN 하이라이트 박스: 항상 렌더 (스텝 종료 시 상태 초기화로 사라지게 함) */}
-            {hasHighlight && rectsToRender.map((r, idx) => (
-              <Animated.View
-                key={`hl-${idx}`}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  left: r.left,
-                  top: r.top,
-                  width: r.width,
-                  height: r.height,
-                  zIndex: 2002,
-                  borderWidth: 5,
-                  borderColor: '#FFD400',
-                  borderRadius: 8,
-                  backgroundColor: 'transparent',
-                  transform: [
-                    { scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.08] }) },
-                  ],
-                  elevation: 0,
-                  shadowOpacity: 0,
-                  shadowRadius: 0,
-                  shadowColor: 'transparent',
-                }}
-              />
-            ))}
-          </View>
-
-          {/* showNextButton=true일 때 게임 보드 터치를 막되, 툴팁(다음 버튼)은 터치 가능하도록 투명 blocker를 툴팁 아래에 배치 */}
-          {showNextButton && (
-            <View
-              pointerEvents="auto"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1500, elevation: 1500 }}
-            />
+          {/* === 레이어 1: 딤 배경 === */}
+          {/* showNextButton=true: 터치 차단 (auto), false: 터치 통과 (none) */}
+          {/* 하이라이트 있음: SVG로 구멍 뚫은 딤, 없음: 전체 딤 */}
+          {hasHighlight && isSingleHighlight ? (
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1, elevation: 10 }}>
+              <Svg width={width} height={height}>
+                <Path d={`M0,0 H${width} V${height} H0 Z M${rectsToRender[0].left},${rectsToRender[0].top} h${rectsToRender[0].width} v${rectsToRender[0].height} h-${rectsToRender[0].width} Z`} fill="rgba(0,0,0,0.6)" fillRule="evenodd" />
+              </Svg>
+            </View>
+          ) : (
+            <View pointerEvents={showNextButton ? 'auto' : 'none'} style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, elevation: 10 }]} />
           )}
 
-          {/* 2) 인터랙티브 툴팁 레이어 (하이라이트 위치에 따라 상/하단 배치) */}
+          {/* === 레이어 2: 하이라이트 박스 === */}
+          {hasHighlight && rectsToRender.map((r, idx) => (
+            <Animated.View
+              key={`hl-${idx}`}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: r.left,
+                top: r.top,
+                width: r.width,
+                height: r.height,
+                zIndex: 2,
+                borderWidth: 5,
+                borderColor: '#FFD400',
+                borderRadius: 8,
+                backgroundColor: 'transparent',
+                transform: [
+                  { scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.08] }) },
+                ],
+              }}
+            />
+          ))}
+
+          {/* === 레이어 3: 툴팁 === */}
           <Animated.View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[
               styles.tooltipWrapper,
               {
-                zIndex: 2000,
-                elevation: 2000,
+                zIndex: 20,
+                elevation: 20,
                 position: 'absolute',
                 left: 0,
                 right: 0,
@@ -884,7 +832,7 @@ const TutorialScreen = ({
               }
             ]}
           >
-            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], marginTop: tooltipAtTop ? 0 : 40 }]} pointerEvents="auto">
+            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]} pointerEvents="auto">
               <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
                 <Text allowFontScaling={false} style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>

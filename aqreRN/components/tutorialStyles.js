@@ -22,12 +22,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   tooltipWrapper: {
-    position: 'relative',
     width: '100%',
     paddingHorizontal: 16,
-    paddingTop: 60, // 상단 여백
-    paddingBottom: 40, // 하단 여백 줄임
-    zIndex: 1000,
   },
   tooltipContainer: {
     backgroundColor: 'white',
@@ -39,12 +35,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
-    elevation: 2001,
+    elevation: 5,
     transform: [{ translateY: 0 }],
     overflow: 'visible',
     padding: 24,
-    paddingBottom: 0,
-    marginTop: 40, // 상단 여백 크게 추가
+    paddingBottom: 12,
+    marginTop: 0,
   },
   tooltipContent: {
     flexDirection: 'row',
@@ -73,7 +69,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 15,
     position: 'relative',
-    marginLeft: 10,
+    marginLeft: 0,
     minHeight: 80,
     ...Platform.select({
       ios: {
@@ -83,14 +79,14 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
       },
       android: {
-        elevation: 4,
+        elevation: 0,
       },
     }),
   },
   speechBubbleTriangle: {
     position: 'absolute',
-    left: -20,
-    bottom: 20, // 상단에서 하단으로 변경
+    left: -10,
+    bottom: 20,
     width: 0,
     height: 0,
     borderStyle: 'solid',
@@ -115,10 +111,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8, // 상하 패딩 줄임
-    borderTopWidth: 0, // 상단 테두리 제거
-    marginTop: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    marginTop: 8,
+    marginBottom: 4,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -127,9 +123,7 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
       },
       android: {
-        elevation: 10,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
+        elevation: 0,
       },
     }),
   },
@@ -170,7 +164,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
       },
       android: {
-        elevation: 6,
+        elevation: 0,
       },
     }),
   },
@@ -183,10 +177,9 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     position: 'absolute',
-    top: 8, // 상단 여백 줄임
-    right: 12, // 오른쪽 여백 줄임
+    top: 8,
+    right: 12,
     padding: 8,
-    zIndex: 1002,
   },
   skipButtonText: {
     color: '#8e8e93',
@@ -199,17 +192,6 @@ const styles = StyleSheet.create({
     borderColor: '#4c6ef5',
     borderRadius: 12,
     backgroundColor: 'rgba(76, 110, 245, 0.1)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#4c6ef5',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
   },
 });
 

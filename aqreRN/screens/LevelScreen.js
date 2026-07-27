@@ -480,7 +480,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     </SafeAreaView>
 
       {showTutorial && (
-        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, elevation: 1000 }}>
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 }}>
           <TutorialScreen
             isVisible={showTutorial}
             onClose={async () => {
@@ -563,11 +563,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.35)',
     gap: 8,
     ...Platform.select({
-      ios: { shadowColor: 'rgba(0,0,0,0.05)', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 2 },
-      android: { elevation: 1 },
+      ios: {
+        backgroundColor: 'rgba(255,255,255,0.35)',
+        shadowColor: 'rgba(0,0,0,0.05)', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 1, shadowRadius: 2,
+      },
+      android: {
+        backgroundColor: 'rgba(255,255,255,0.55)',
+        elevation: 0,
+      },
     }),
   },
   chapterTabActive: {
