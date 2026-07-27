@@ -115,7 +115,8 @@ function checkGameRules(board, puzzle) {
   return Array.from(violationMessages).map(m => JSON.parse(m));
 }
 
-const GAP = 0;
+const GAP = 14;
+const AREA_GAP = 6;
 
 function getViolationMeta(type) {
   if (type === '영역 회색 칸 초과' || type === '영역 회색 칸 부족') {
@@ -211,13 +212,13 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   }, []);
 
   const areaIdx = areaMap[rowIdx][colIdx];
-  const borders = { borderTopColor: 'transparent', borderTopWidth: 4, borderBottomColor: 'transparent', borderBottomWidth: 4, borderLeftColor: 'transparent', borderLeftWidth: 4, borderRightColor: 'transparent', borderRightWidth: 4 };
-  if (areaIdx !== -1) {
-    if (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]) borders.borderTopColor = '#acd4f5';
-    if (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]) borders.borderBottomColor = '#acd4f5';
-    if (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]) borders.borderLeftColor = '#acd4f5';
-    if (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]) borders.borderRightColor = '#acd4f5';
-  }
+  const isAreaBoundaryTop = areaIdx !== -1 && (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]);
+  const isAreaBoundaryBottom = areaIdx !== -1 && (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]);
+  const isAreaBoundaryLeft = areaIdx !== -1 && (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]);
+  const isAreaBoundaryRight = areaIdx !== -1 && (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]);
+
+  const marginRight = 0;
+  const marginBottom = 0;
 
   const bgColor = cell === 0 ? '#f8f9fb' : cell === 1 ? '#3a6b9c' : '#34495e';
   const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
@@ -235,14 +236,11 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
     <TouchableOpacity
       ref={cellRef}
       style={[{
-        flex: 1, aspectRatio: 1,
-        marginRight: colIdx === size - 1 ? 0 : GAP,
-        marginBottom: rowIdx === size - 1 ? 0 : GAP,
-        borderRadius: 0,
+        width: '100%', height: '100%',
+        borderRadius: 4,
         backgroundColor: bgColor,
         justifyContent: 'center',
         alignItems: 'center',
-        ...borders,
       }]}
       onPress={isLocked ? undefined : onPress}
       onPressIn={hintMode ? undefined : startHoldProgress}
@@ -595,31 +593,112 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
         <View style={styles.boardWrapper} testID="board" ref={r => registerRef('board', r)}>
           {(() => {
-            const cellSize = (BOARD_SIZE - GAP * (size - 1)) / size;
-            return board.map((row, rIdx) => (
-            <View key={rIdx} style={{ flexDirection: 'row', flex: 1, minHeight: 0 }}>
-              {row.map((cell, cIdx) => (
-                <BoardCell
-                  key={`${rIdx}-${cIdx}`}
-                  rowIdx={rIdx}
-                  colIdx={cIdx}
-                  cell={cell}
-                  size={size}
-                  cellSize={cellSize}
-                  areaMap={areaMap}
-                  areaFilledCounts={areaFilledCounts}
-                  isViolation={highlightedCells.some(v => v.row === rIdx && v.col === cIdx)}
-                  onPress={hintMode ? () => applyHintCell(rIdx, cIdx) : () => toggleCell(rIdx, cIdx)}
-                  onLongPress={hintMode ? undefined : () => toggleLock(rIdx, cIdx)}
-                  isLocked={!!lockedCells[`${rIdx}-${cIdx}`]}
-                  hintMode={hintMode}
-                  puzzle={puzzle}
-                  cellRef={cellRefs.current[rIdx][cIdx]}
-                  dotResetKey={dotResetKey}
-                />
-              ))}
-            </View>
-          ));
+            const pad = 6;
+            const cellSize = (BOARD_SIZE - pad * 2 - GAP * (size - 1)) / size;
+            const LINE_OFFSET = GAP / 2;
+            const xs = [];
+            const ys = [];
+            let cx = pad;
+            let cy = pad;
+            for (let c = 0; c < size; c++) { xs.push(cx); cx += cellSize + GAP; }
+            for (let r = 0; r < size; r++) { ys.push(cy); cy += cellSize + GAP; }
+            // Build SVG path for area boundaries - draw each area's outline edges
+            const LINE_COLOR = '#acd4f5';
+            const STROKE_W = 8;
+            const round = v => Math.round(v * 10) / 10;
+            const inArea = (r, c, a) => r >= 0 && r < size && c >= 0 && c < size && areaMap[r][c] === a;
+
+            const areaIds = new Set();
+            for (let r = 0; r < size; r++)
+              for (let c = 0; c < size; c++)
+                if (areaMap[r][c] !== -1) areaIds.add(areaMap[r][c]);
+
+            const pathSegs = [];
+            for (const areaId of areaIds) {
+              // Top boundaries: merge consecutive cells in same row with top boundary
+              for (let r = 0; r < size; r++) {
+                let c = 0;
+                while (c < size) {
+                  if (areaMap[r][c] !== areaId || inArea(r - 1, c, areaId)) { c++; continue; }
+                  const startC = c;
+                  while (c < size && areaMap[r][c] === areaId && !inArea(r - 1, c, areaId)) c++;
+                  const endC = c - 1;
+                  pathSegs.push(`M${round(xs[startC] - LINE_OFFSET)} ${round(ys[r] - LINE_OFFSET)} L${round(xs[endC] + cellSize + LINE_OFFSET)} ${round(ys[r] - LINE_OFFSET)}`);
+                }
+              }
+              // Bottom boundaries
+              for (let r = 0; r < size; r++) {
+                let c = 0;
+                while (c < size) {
+                  if (areaMap[r][c] !== areaId || inArea(r + 1, c, areaId)) { c++; continue; }
+                  const startC = c;
+                  while (c < size && areaMap[r][c] === areaId && !inArea(r + 1, c, areaId)) c++;
+                  const endC = c - 1;
+                  pathSegs.push(`M${round(xs[startC] - LINE_OFFSET)} ${round(ys[r] + cellSize + LINE_OFFSET)} L${round(xs[endC] + cellSize + LINE_OFFSET)} ${round(ys[r] + cellSize + LINE_OFFSET)}`);
+                }
+              }
+              // Left boundaries: merge consecutive cells in same column with left boundary
+              for (let c = 0; c < size; c++) {
+                let r = 0;
+                while (r < size) {
+                  if (areaMap[r][c] !== areaId || inArea(r, c - 1, areaId)) { r++; continue; }
+                  const startR = r;
+                  while (r < size && areaMap[r][c] === areaId && !inArea(r, c - 1, areaId)) r++;
+                  const endR = r - 1;
+                  pathSegs.push(`M${round(xs[c] - LINE_OFFSET)} ${round(ys[startR] - LINE_OFFSET)} L${round(xs[c] - LINE_OFFSET)} ${round(ys[endR] + cellSize + LINE_OFFSET)}`);
+                }
+              }
+              // Right boundaries
+              for (let c = 0; c < size; c++) {
+                let r = 0;
+                while (r < size) {
+                  if (areaMap[r][c] !== areaId || inArea(r, c + 1, areaId)) { r++; continue; }
+                  const startR = r;
+                  while (r < size && areaMap[r][c] === areaId && !inArea(r, c + 1, areaId)) r++;
+                  const endR = r - 1;
+                  pathSegs.push(`M${round(xs[c] + cellSize + LINE_OFFSET)} ${round(ys[startR] - LINE_OFFSET)} L${round(xs[c] + cellSize + LINE_OFFSET)} ${round(ys[endR] + cellSize + LINE_OFFSET)}`);
+                }
+              }
+            }
+            const areaPath = pathSegs.join(' ');
+            const cellElements = [];
+            for (let r = 0; r < size; r++) {
+              for (let c = 0; c < size; c++) {
+                cellElements.push(
+                  <View key={`cell-${r}-${c}`} style={{ position: 'absolute', left: xs[c], top: ys[r], width: cellSize, height: cellSize }}>
+                    <BoardCell
+                      rowIdx={r}
+                      colIdx={c}
+                      cell={board[r][c]}
+                      size={size}
+                      cellSize={cellSize}
+                      areaMap={areaMap}
+                      areaFilledCounts={areaFilledCounts}
+                      isViolation={highlightedCells.some(v => v.row === r && v.col === c)}
+                      onPress={hintMode ? () => applyHintCell(r, c) : () => toggleCell(r, c)}
+                      onLongPress={hintMode ? undefined : () => toggleLock(r, c)}
+                      isLocked={!!lockedCells[`${r}-${c}`]}
+                      hintMode={hintMode}
+                      puzzle={puzzle}
+                      cellRef={cellRefs.current[r][c]}
+                      dotResetKey={dotResetKey}
+                    />
+                  </View>
+                );
+              }
+            }
+            return (
+              <View style={{ position: 'relative', width: BOARD_SIZE, height: BOARD_SIZE, overflow: 'visible' }}>
+                {cellElements}
+                {areaPath ? (
+                  <View pointerEvents="none" style={{ position: 'absolute', top: -STROKE_W, left: -STROKE_W, width: BOARD_SIZE + STROKE_W * 2, height: BOARD_SIZE + STROKE_W * 2, zIndex: 10, elevation: 10, overflow: 'visible' }}>
+                    <Svg width={BOARD_SIZE + STROKE_W * 2} height={BOARD_SIZE + STROKE_W * 2} viewBox={`${-STROKE_W} ${-STROKE_W} ${BOARD_SIZE + STROKE_W * 2} ${BOARD_SIZE + STROKE_W * 2}`}>
+                      <Path d={areaPath} stroke={LINE_COLOR} strokeWidth={STROKE_W} strokeLinecap="round" strokeLinejoin="round" />
+                    </Svg>
+                  </View>
+                ) : null}
+              </View>
+            );
           })()}
         </View>
 
@@ -840,9 +919,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
   },
   boardWrapper: {
-    backgroundColor: '#2c3e50',
-    padding: 6,
+    backgroundColor: '#1a1a2e',
+    padding: 0,
     borderRadius: 16,
+    overflow: 'visible',
     width: BOARD_SIZE,
     height: BOARD_SIZE,
     alignSelf: 'center',
