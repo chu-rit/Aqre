@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Switch, TouchableOpacity,
-  SafeAreaView, Alert, Platform, StyleSheet, PanResponder, Animated, NativeModules,
+  Alert, Platform, StyleSheet, PanResponder, Animated, NativeModules,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap } from '../utils/sound';
 
@@ -79,6 +81,7 @@ function VolumeSlider({ value, onChange }) {
 }
 
 export default function OptionsScreen({ onClose, onChangeBgm }) {
+  const insets = useSafeAreaInsets();
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -152,7 +155,8 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+        <StatusBar style="dark" />
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => { playTap(); onClose(); }}>
             <Ionicons name="chevron-back" size={24} color="#2c3e50" />
@@ -232,7 +236,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           pointerEvents="none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', opacity: overlayAnim }}
         />
-      </SafeAreaView>
+      </View>
       <Toast />
     </>
   );

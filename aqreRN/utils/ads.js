@@ -1,10 +1,21 @@
 import { Platform } from 'react-native';
-import mobileAds, {
-  AdEventType,
-  InterstitialAd,
-  RewardedAd,
-  RewardedAdEventType,
-} from 'react-native-google-mobile-ads';
+
+let mobileAds = null;
+let AdEventType = null;
+let InterstitialAd = null;
+let RewardedAd = null;
+let RewardedAdEventType = null;
+
+try {
+  const adsModule = require('react-native-google-mobile-ads');
+  mobileAds = adsModule.default;
+  AdEventType = adsModule.AdEventType;
+  InterstitialAd = adsModule.InterstitialAd;
+  RewardedAd = adsModule.RewardedAd;
+  RewardedAdEventType = adsModule.RewardedAdEventType;
+} catch (e) {
+  // react-native-google-mobile-ads not available (e.g. Expo Go)
+}
 
 const TEST_AD_UNIT_IDS = {
   interstitial: {
@@ -26,8 +37,10 @@ let rewardedAd = null;
 let isRewardedLoaded = false;
 let rewardedCallback = null;
 
+const isAdsAvailable = () => !!mobileAds;
+
 const preloadInterstitialAd = () => {
-  if (Platform.OS === 'web' || interstitialAd) return;
+  if (!isAdsAvailable() || interstitialAd) return;
   const ad = InterstitialAd.createForAdRequest(getTestAdUnitId('interstitial'));
   interstitialAd = ad;
   ad.addAdEventListener(AdEventType.LOADED, () => {
@@ -52,7 +65,7 @@ const preloadInterstitialAd = () => {
 };
 
 const preloadRewardedAd = () => {
-  if (Platform.OS === 'web' || rewardedAd) return;
+  if (!isAdsAvailable() || rewardedAd) return;
   const ad = RewardedAd.createForAdRequest(getTestAdUnitId('rewarded'));
   rewardedAd = ad;
   ad.addAdEventListener(AdEventType.LOADED, () => {
@@ -76,18 +89,14 @@ const preloadRewardedAd = () => {
 };
 
 export const initializeAds = async () => {
-  if (Platform.OS === 'web') return;
+  if (!isAdsAvailable()) return;
   await mobileAds().initialize();
   preloadInterstitialAd();
   preloadRewardedAd();
 };
 
 export const showTestInterstitialAd = (onComplete) => {
-  if (Platform.OS === 'web') {
-    onComplete?.();
-    return;
-  }
-  if (!isInterstitialLoaded || !interstitialAd) {
+  if (!isAdsAvailable() || !isInterstitialLoaded || !interstitialAd) {
     onComplete?.();
     return;
   }
@@ -96,12 +105,8 @@ export const showTestInterstitialAd = (onComplete) => {
 };
 
 export const showTestRewardedAd = (onReward) => {
-  if (Platform.OS === 'web') {
+  if (!isAdsAvailable() || !isRewardedLoaded || !rewardedAd) {
     onReward?.();
-    return;
-  }
-  if (!isRewardedLoaded || !rewardedAd) {
-    onReward?.(); // 광고가 준비 안 되면 테스트용으로 즉시 보상
     return;
   }
   rewardedCallback = onReward;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Text, Platform, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as Font from 'expo-font';
+import { StatusBar } from 'expo-status-bar';
 import StartScreen from './screens/StartScreen';
 import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
@@ -9,26 +9,16 @@ import OptionsScreen from './screens/OptionsScreen';
 import { loadSoundSettings, initBGM, setBGMEnabled } from './utils/sound';
 import { initializeAds, showTestInterstitialAd } from './utils/ads';
 
-const FONT_NAME = 'NotoSansKR';
-
 export default function App() {
   const [screen, setScreen] = useState('start');
   const [prevScreen, setPrevScreen] = useState('level');
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
-  const [fontsLoaded] = Font.useFonts({
-    [FONT_NAME]: require('./assets/fonts/NotoSansKR.ttf'),
-  });
-
-  useEffect(() => {
-    if (fontsLoaded && Platform.OS === 'android') {
-      if (Text.defaultProps == null) Text.defaultProps = {};
-      Text.defaultProps.style = { fontFamily: FONT_NAME };
-    }
-  }, [fontsLoaded]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     loadSoundSettings();
     initializeAds();
+    setReady(true);
   }, []);
 
   const goOptions = (from) => { setPrevScreen(from); setScreen('options'); };
@@ -67,14 +57,6 @@ export default function App() {
         return <StartScreen onStart={handleStart} />;
     }
   };
-
-  if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#4c6ef5" />
-      </View>
-    );
-  }
 
   return <SafeAreaProvider>{renderScreen()}</SafeAreaProvider>;
 }

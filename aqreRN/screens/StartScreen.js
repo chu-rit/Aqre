@@ -5,12 +5,12 @@ import {
   View,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
   Animated,
 } from 'react-native';
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadSoundSettings, initBGM } from '../utils/sound';
 
 const { width, height } = Dimensions.get('window');
@@ -20,6 +20,7 @@ const is16x9 = aspectRatio >= 1.6 && aspectRatio <= 1.85;
 const LOADING_DURATION = 2500;
 
 export default function StartScreen({ onStart }) {
+  const insets = useSafeAreaInsets();
   const [loaded, setLoaded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -90,7 +91,7 @@ export default function StartScreen({ onStart }) {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
       <StatusBar style="dark" />
       <Image
         source={require('../assets/img/Loading.png')}
@@ -119,7 +120,7 @@ export default function StartScreen({ onStart }) {
         pointerEvents="none"
         style={[styles.overlay, { opacity: overlayAnim }]}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

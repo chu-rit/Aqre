@@ -32,7 +32,7 @@ export const tutorialSteps = {
         selectors: ["data-testid=level-26000001"]
       },
       condition: null,
-      showNextButton: true
+      showNextButton: false
     }
   ],
   
@@ -326,21 +326,21 @@ export const tutorialSteps = {
   'level26000005': [
     {
       text: '드디어 마지막 튜토리얼입니다.',
-      textEn: 'Excellent. You now understand all the rules.',
+      textEn: 'Finally, the last tutorial.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
       text: '이제 점점 더 어려워지는 퍼즐에 대응할 수 있도록 힌트에 대해 알아볼 것입니다.',
-      textEn: 'If you run into trouble, use the reset button at the top right to start over.',
+      textEn: 'Now, let\'s learn about hints to help you tackle increasingly difficult puzzles.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
       text: '임시로 힌트를 열어드릴테니 눌러보실까요?',
-      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      textEn: 'Let\'s open the hint temporarily. Would you like to press it?',
       highlight: {
         selectors: ['[data-testid="hint"]', '#hint-button']
       },
@@ -349,7 +349,7 @@ export const tutorialSteps = {
     },
     {
       text: '힌트 모드가 활성화 되었습니다. 답을 알고 싶은 셀을 선택하세요.',
-      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      textEn: 'Hint mode is activated. Select a cell to reveal its answer.',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -358,7 +358,7 @@ export const tutorialSteps = {
     },
     {
       text: '해당 칸의 답이 표시되고 잠금처리 되었습니다. 칸을 오래눌러도 잠금처리 할 수 있습니다.',
-      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      textEn: 'The answer for that cell is revealed and it has been locked. You can also lock a cell by long-pressing it.',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -367,7 +367,7 @@ export const tutorialSteps = {
     },
     {
       text: '다시 오래 누르면 잠금을 해제할 수 있습니다. 힌트 포인트는 광고보기를 통해 추가할 수 있습니다.',
-      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      textEn: 'Long-press again to unlock it. Hint points can be earned by watching ads.',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -379,14 +379,14 @@ export const tutorialSteps = {
       hintPoints: 5,
       hintRewardKey: 'tutorials-completion-reward',
       text: '마지막으로 응원하는 마음을 담아 힌트 포인트를 선물로 드리겠습니다.',
-      textEn: "Now, shall we get to work restoring our clients' memories",
+      textEn: 'Lastly, as a gesture of support, we\'ll gift you some hint points.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
       text: '이제 즐거운 마음으로 퍼즐을 즐겨주시기 바랍니다.',
-      textEn: 'Select a rule violation below to highlight the neurons causing the problem.',
+      textEn: 'Now please enjoy the puzzles and have fun!',
       highlight: null,
       condition: null,
       showNextButton: true

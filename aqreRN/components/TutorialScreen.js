@@ -15,39 +15,46 @@ import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Path } from 'react-native-svg';
 import styles from './tutorialStyles';
+import { measureSelector } from '../utils/refRegistry';
 
 // 정적 Dimensions 제거 - useWindowDimensions 훅 사용
 
 // 타이핑 효과를 위한 컴포넌트
-const TypeWriterText = ({ text, style, onTypingDone }) => {
+const TypeWriterText = React.memo(({ text, style, onTypingDone }) => {
   const [displayText, setDisplayText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const typingSpeed = 30; // ms
+  const typingSpeed = 15; // ms
+  const onTypingDoneRef = useRef(onTypingDone);
+  onTypingDoneRef.current = onTypingDone;
+  const lastTextRef = useRef(text);
 
-  // '<br>' 태그를 줄바꿈으로 변환
-  const processedText = React.useMemo(() => {
-    if (typeof text !== 'string') return '';
-    return text.replace(/<br\s*\/?>(\r\n|\n|\r)?/gi, '\n');
+  // '<br>' 태그를 줄바꿈으로 변환 후 code point 단위 배열로 분리
+  const charArray = React.useMemo(() => {
+    if (typeof text !== 'string') return [];
+    const processed = text.replace(/<br\s*\/?>(\r\n|\n|\r)?/gi, '\n');
+    return Array.from(processed);
   }, [text]);
 
   useEffect(() => {
-    if (currentIndex < processedText.length) {
+    // 텍스트가 바뀌면 리셋하고 이번 effect는 종료
+    if (lastTextRef.current !== text) {
+      lastTextRef.current = text;
+      setDisplayText('');
+      setCurrentIndex(0);
+      return;
+    }
+
+    if (currentIndex < charArray.length) {
       const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + processedText[currentIndex]);
+        setDisplayText(prev => prev + charArray[currentIndex]);
         setCurrentIndex(prev => prev + 1);
       }, typingSpeed);
 
       return () => clearTimeout(timeout);
-    } else if (onTypingDone) {
-      onTypingDone();
+    } else if (currentIndex >= charArray.length && charArray.length > 0 && onTypingDoneRef.current) {
+      onTypingDoneRef.current();
     }
-  }, [currentIndex, processedText, onTypingDone]);
-
-  useEffect(() => {
-    // 텍스트가 바뀌면 리셋
-    setDisplayText('');
-    setCurrentIndex(0);
-  }, [processedText]);
+  }, [currentIndex, charArray, text]);
 
   // 기본 스타일과 전달된 스타일을 병합
   const mergedStyle = [
@@ -58,8 +65,13 @@ const TypeWriterText = ({ text, style, onTypingDone }) => {
     style
   ];
 
-  return <Text allowFontScaling={false} style={mergedStyle}>{displayText}</Text>;
-};
+  return (
+    <View style={{ position: 'relative' }}>
+      <Text allowFontScaling={false} style={[mergedStyle, { opacity: 0 }]}>{charArray.join('')}</Text>
+      <Text allowFontScaling={false} style={[mergedStyle, { position: 'absolute', top: 0, left: 0, right: 0 }]}>{displayText}</Text>
+    </View>
+  );
+});
 
 // 튜토리얼 건너뛰기 핸들러
 const handleSkipTutorial = async (levelId, onSkip, onClose) => {  
@@ -127,6 +139,11 @@ const TutorialScreen = ({
   const [highlightRects, setHighlightRects] = useState([]);
   const [boardRect, setBoardRect] = useState(null);
   const [measurementVersion, setMeasurementVersion] = useState(0);
+  const [tooltipAtTop, setTooltipAtTop] = useState(false);
+  const tooltipAtTopRef = useRef(false);
+  useEffect(() => { tooltipAtTopRef.current = tooltipAtTop; }, [tooltipAtTop]);
+  const [highlightReady, setHighlightReady] = useState(false);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   const overlayRef = useRef(null);
   const autoAdvancedRef = useRef(false);
   const grantedHintStepsRef = useRef(new Set());
@@ -256,13 +273,112 @@ const TutorialScreen = ({
     }
   }, [onSkip, onClose, cleanupAllHighlights]);
 
+  // Native(Android/iOS) 하이라이트: refRegistry 기반 측정
   useEffect(() => {
-    // 네이티브 환경에서는 DOM 로직을 실행하지 않음
-    if (Platform.OS !== 'web') {
+    if (!isVisible || Platform.OS === 'web') return;
+    const highlight = currentStepData.highlight;
+    if (!highlight) {
       setHighlightRect(null);
       setHighlightRects([]);
+      setTooltipAtTop(false);
+      setHighlightReady(true);
       return;
     }
+
+    const padding = Number(highlight.padding ?? 4);
+    const useMultiple = !!highlight.multipleBoxes;
+    const isRetry = measurementVersion > 0;
+
+    const computeTooltipAtTop = (rect) => {
+      return rect && (rect.top + rect.height / 2) > height * 0.70;
+    };
+
+    const measureSelectors = async () => {
+      try {
+        if (Array.isArray(highlight.selectorGroups) && highlight.selectorGroups.length > 0) {
+          const groupRects = [];
+          for (const group of highlight.selectorGroups) {
+            const measured = await Promise.all((group || []).map(s => measureSelector(s)));
+            const valid = measured.filter(r => r && r.width > 0 && r.height > 0);
+            if (valid.length > 0) {
+              const minLeft = Math.min(...valid.map(r => r.left));
+              const minTop = Math.min(...valid.map(r => r.top));
+              const maxRight = Math.max(...valid.map(r => r.right));
+              const maxBottom = Math.max(...valid.map(r => r.bottom));
+              groupRects.push({
+                left: minLeft - padding,
+                top: minTop - padding,
+                width: (maxRight - minLeft) + padding * 2,
+                height: (maxBottom - minTop) + padding * 2,
+              });
+            }
+          }
+          if (groupRects.length > 0) {
+            setHighlightRects(groupRects);
+            setHighlightRect(null);
+            setTooltipAtTop(computeTooltipAtTop(groupRects[0]));
+            if (!isRetry) setHighlightReady(true);
+          } else if (!isRetry) {
+            setHighlightRect(null);
+            setHighlightRects([]);
+            setHighlightReady(true);
+          }
+        } else if (Array.isArray(highlight.selectors) && highlight.selectors.length > 0) {
+          const measured = await Promise.all(highlight.selectors.map(s => measureSelector(s)));
+          const valid = measured.filter(r => r && r.width > 0 && r.height > 0);
+          if (valid.length > 0) {
+            if (useMultiple) {
+              const multiRects = valid.map(r => ({
+                left: r.left - padding,
+                top: r.top - padding,
+                width: r.width + padding * 2,
+                height: r.height + padding * 2,
+              }));
+              setHighlightRects(multiRects);
+              setHighlightRect(null);
+              setTooltipAtTop(computeTooltipAtTop(multiRects[0]));
+              if (!isRetry) setHighlightReady(true);
+            } else {
+              const minLeft = Math.min(...valid.map(r => r.left));
+              const minTop = Math.min(...valid.map(r => r.top));
+              const maxRight = Math.max(...valid.map(r => r.right));
+              const maxBottom = Math.max(...valid.map(r => r.bottom));
+              const singleRect = {
+                left: minLeft - padding,
+                top: minTop - padding,
+                width: (maxRight - minLeft) + padding * 2,
+                height: (maxBottom - minTop) + padding * 2,
+              };
+              setHighlightRect(singleRect);
+              setHighlightRects([]);
+              setTooltipAtTop(computeTooltipAtTop(singleRect));
+              if (!isRetry) setHighlightReady(true);
+            }
+          } else if (!isRetry) {
+            setHighlightRect(null);
+            setHighlightRects([]);
+            setHighlightReady(true);
+          }
+        } else if (!isRetry) {
+          setHighlightRect(null);
+          setHighlightRects([]);
+          setHighlightReady(true);
+        }
+      } catch {
+        if (!isRetry) {
+          setHighlightRect(null);
+          setHighlightRects([]);
+          setHighlightReady(true);
+        }
+      }
+    };
+
+    measureSelectors();
+  }, [currentStep, currentStepData.highlight, isVisible, measurementVersion]);
+
+  // Web 하이라이트: DOM 기반
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
 
     // 항상 표시되도록 수정
     // 이전에 생성된 하이라이트 요소 제거
@@ -484,9 +600,11 @@ const TutorialScreen = ({
           if (groupRects.length > 0) {
             setHighlightRects(groupRects);
             setHighlightRect(null);
+            setTooltipAtTop(groupRects[0] && (groupRects[0].top + groupRects[0].height / 2) > height * 0.70);
           } else {
             setHighlightRect(null);
             setHighlightRects([]);
+            setTooltipAtTop(false);
           }
         } else if (Array.isArray(currentStepData.highlight?.selectors)) {
           // 2) 기존: selectors 전체를 대상으로
@@ -501,18 +619,21 @@ const TutorialScreen = ({
               }));
               setHighlightRects(rects);
               setHighlightRect(null);
+              setTooltipAtTop(rects[0] && (rects[0].top + rects[0].height / 2) > height * 0.70);
             } else {
               const minLeft = Math.min(...boxes.map(b => b.left));
               const minTop = Math.min(...boxes.map(b => b.top));
               const maxRight = Math.max(...boxes.map(b => b.right));
               const maxBottom = Math.max(...boxes.map(b => b.bottom));
-              setHighlightRect({
+              const singleRect = {
                 left: minLeft - padding,
                 top: minTop - padding,
                 width: (maxRight - minLeft) + padding * 2,
                 height: (maxBottom - minTop) + padding * 2,
-              });
+              };
+              setHighlightRect(singleRect);
               setHighlightRects([]);
+              setTooltipAtTop(singleRect && (singleRect.top + singleRect.height / 2) > height * 0.70);
             }
           } else {
             setHighlightRect(null);
@@ -524,8 +645,10 @@ const TutorialScreen = ({
         setHighlightRects([]);
       }
     }
+    setHighlightReady(true);
   }, [currentStep, currentStepData.highlight, isVisible, measurementVersion]);
 
+  // Web용 measurementVersion 재시도 (native에서는 제거 - 깜빡임 방지)
   useEffect(() => {
     if (!isVisible || Platform.OS !== 'web') return undefined;
     const firstFrame = requestAnimationFrame(() => {
@@ -540,32 +663,50 @@ const TutorialScreen = ({
     };
   }, [currentStep, isVisible]);
 
+
+  const startTooltipAnimation = useCallback(() => {
+    if (fadeAnim._value > 0.5) {
+      fadeAnim.setValue(1);
+      return;
+    }
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const hideTooltipAnimation = useCallback(() => {
+    return new Promise((resolve) => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => resolve());
+    });
+  }, [fadeAnim]);
+
   useEffect(() => {
     if (isVisible) {
       setCurrentStep(0);
-      fadeAnim.setValue(0);
-      slideAnim.setValue(0);
-      
-      // 애니메이션 시작
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      setHighlightReady(false);
+      cleanupAllHighlights();
       
       return () => {
-        // 컴포넌트 언마운트/숨김 시 하이라이트와 클론 요소 모두 제거
         cleanupAllHighlights();
       };
     }
-  }, [isVisible, fadeAnim, slideAnim]);
+  }, [isVisible, cleanupAllHighlights]);
+
+  // 툴팁 애니메이션 시작: 하이라이트가 없으면 즉시, 있으면 측정 완료 후
+  useEffect(() => {
+    if (!isVisible) return;
+    const hasHighlightConfig = !!currentStepData?.highlight;
+    if (!hasHighlightConfig || highlightReady) {
+      startTooltipAnimation();
+    }
+  }, [isVisible, currentStep, highlightReady, currentStepData, startTooltipAnimation]);
 
   // 하이라이트 펄스 애니메이션 (살짝 커졌다 작아졌다)
   useEffect(() => {
@@ -592,56 +733,50 @@ const TutorialScreen = ({
       setBoardRect(null);
       return;
     }
-    const node = typeof document !== 'undefined' ? document.querySelector('[data-testid="game-board"]') : null;
-    if (!node) {
-      setBoardRect(null);
-      return;
-    }
-    try {
-      const r = node.getBoundingClientRect();
-      if (r && r.width > 0 && r.height > 0) {
-        setBoardRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
-      } else {
+    if (Platform.OS === 'web') {
+      const node = typeof document !== 'undefined' ? document.querySelector('[data-testid="game-board"]') : null;
+      if (!node) {
+        setBoardRect(null);
+        return;
+      }
+      try {
+        const r = node.getBoundingClientRect();
+        if (r && r.width > 0 && r.height > 0) {
+          setBoardRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
+        } else {
+          setBoardRect(null);
+        }
+      } catch {
         setBoardRect(null);
       }
-    } catch {
-      setBoardRect(null);
+    } else {
+      measureSelector('data-testid=board').then(r => {
+        if (r && r.width > 0 && r.height > 0) {
+          setBoardRect({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height });
+        } else {
+          setBoardRect(null);
+        }
+      }).catch(() => setBoardRect(null));
     }
   }, [isVisible, currentStep, highlightRect]);
 
   // 다음 스텝으로 이동하는 함수
   const nextStep = useCallback(() => {
-    cleanupAllHighlights();
-    
     if (currentStep < currentLevelSteps.length - 1) {
       setCurrentStep(prev => prev + 1);
       setShowNextButton(currentLevelSteps[currentStep + 1]?.showNextButton || false);
-      
-      // 다음 단계로 넘어갈 때 애니메이션
-      fadeAnim.setValue(0);
-      slideAnim.setValue(0);
-      
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      setHighlightReady(false);
     } else {
-      // 튜토리얼 완료
-      if (onClose) {
-        onClose();
-      } else if (onSkip) {
-        onSkip();
-      }
+      hideTooltipAnimation().then(() => {
+        cleanupAllHighlights();
+        if (onClose) {
+          onClose();
+        } else if (onSkip) {
+          onSkip();
+        }
+      });
     }
-  }, [currentStep, currentLevelSteps, fadeAnim, slideAnim, onClose, onSkip, cleanupAllHighlights]);
+  }, [currentStep, currentLevelSteps, onClose, onSkip, hideTooltipAnimation, cleanupAllHighlights]);
 
   // 스텝이 바뀔 때 자동 진행 플래그 리셋
   useEffect(() => {
@@ -708,10 +843,12 @@ const TutorialScreen = ({
         if (groupRects.length > 0) {
           setHighlightRects(groupRects);
           setHighlightRect(null);
+          setTooltipAtTop(groupRects[0] && (groupRects[0].top + groupRects[0].height / 2) > height * 0.70);
           return;
         } else {
           setHighlightRect(null);
           setHighlightRects([]);
+          setTooltipAtTop(false);
           return;
         }
       }
@@ -727,23 +864,27 @@ const TutorialScreen = ({
         }));
         setHighlightRects(perCellRects);
         setHighlightRect(null);
+        setTooltipAtTop(perCellRects[0] && (perCellRects[0].top + perCellRects[0].height / 2) > height * 0.70);
       } else {
         const minLeft = Math.min(...rects.map(r => r.left));
         const minTop = Math.min(...rects.map(r => r.top));
         const maxRight = Math.max(...rects.map(r => r.left + r.width));
         const maxBottom = Math.max(...rects.map(r => r.top + r.height));
-        setHighlightRect({
+        const singleRect = {
           left: minLeft - padding,
           top: minTop - padding,
           width: (maxRight - minLeft) + padding * 2,
           height: (maxBottom - minTop) + padding * 2,
-        });
+        };
+        setHighlightRect(singleRect);
         setHighlightRects([]);
+        setTooltipAtTop(singleRect && (singleRect.top + singleRect.height / 2) > height * 0.70);
       }
     } catch (e) {
       setHighlightRect(null);
       setHighlightRects([]);
     }
+    setHighlightReady(true);
   }, [isVisible, currentStepData.highlight, getCellRect]);
 
   useEffect(() => {
@@ -763,7 +904,6 @@ const TutorialScreen = ({
     : (highlightRect ? [highlightRect] : []);
   const hasHighlight = rectsToRender.length > 0;
   const isSingleHighlight = rectsToRender.length === 1;
-  const tooltipAtTop = isSingleHighlight && (rectsToRender[0].top + rectsToRender[0].height / 2) > height * 0.70;
 
   return (
     <View
@@ -832,7 +972,7 @@ const TutorialScreen = ({
               }
             ]}
           >
-            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]} pointerEvents="auto">
+            <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim }]} pointerEvents="auto">
               <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
                 <Text allowFontScaling={false} style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>

@@ -17,6 +17,8 @@ import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel, tutorialSteps } from '../src/logic/tutorialSteps';
 import { playTap } from '../utils/sound';
+import { registerRef } from '../utils/refRegistry';
+import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Carousel from 'react-native-reanimated-carousel';
@@ -239,6 +241,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
             <TouchableOpacity
               key={puzzle.id}
               testID={`level-${puzzle.id}`}
+              ref={r => registerRef(`level-${puzzle.id}`, r)}
               style={[styles.levelButton, cleared && styles.clearedButton]}
               onPress={async () => {
                 playTap();
@@ -404,8 +407,9 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   };
 
   return (
-    <ImageBackground source={require('../assets/bg1.png')} style={{ flex: 1, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} resizeMode="cover">
-    <SafeAreaView style={styles.container}>
+    <ImageBackground source={require('../assets/bg1.png')} style={{ flex: 1, width: SCREEN_WIDTH }} resizeMode="cover">
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <View style={{ width: 44 }} />
         <View pointerEvents="none" style={styles.headerCenter}>
@@ -477,7 +481,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         </View>
       )}
 
-    </SafeAreaView>
+    </View>
 
       {showTutorial && (
         <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 }}>
@@ -708,7 +712,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   lockedPage: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,

@@ -24,6 +24,9 @@ import {
   createUseHint,
   createApplyHintCell,
 } from '../utils/hintManager';
+import { registerRef } from '../utils/refRegistry';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
 
@@ -112,7 +115,7 @@ function checkGameRules(board, puzzle) {
   return Array.from(violationMessages).map(m => JSON.parse(m));
 }
 
-const GAP = 1;
+const GAP = 0;
 
 function getViolationMeta(type) {
   if (type === '영역 회색 칸 초과' || type === '영역 회색 칸 부족') {
@@ -345,6 +348,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
 });
 
 export default function GameScreen({ puzzle, onBack, onOptions }) {
+  const insets = useSafeAreaInsets();
   const [board, setBoard] = useState(() => puzzle.initialState.map(r => [...r]));
   const [moveCount, setMoveCount] = useState(0);
   const [startTime] = useState(Date.now());
@@ -549,7 +553,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           transform: [{ translateY: screenEnterAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
         }}
       >
-        <SafeAreaView style={styles.container}>
+        <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+        <StatusBar style="dark" />
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
             <BackButton />
@@ -558,7 +563,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             <Text style={styles.headerTitle}>{getPuzzleTitle(puzzle)}</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconBtn} onPress={reset} testID="reset-level">
+            <TouchableOpacity style={styles.iconBtn} onPress={reset} testID="reset-level" ref={r => registerRef('reset-level', r)}>
               <ResetButton />
             </TouchableOpacity>
             <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={onOptions}>
@@ -580,39 +585,15 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             onPress={showTutorial && puzzle.id === 26000005 && tutorialStep === 2 ? () => setHintMode(prev => !prev) : useHint}
             testID="hint"
             nativeID="hint-button"
+            ref={r => registerRef('hint', r)}
             activeOpacity={0.7}
           >
             <Ionicons name={hintMode ? 'bulb' : 'bulb-outline'} size={15} color="#fff" />
             <Text style={styles.hintButtonText}>HINT: {hintPoints}</Text>
           </TouchableOpacity>
-          {showTutorial && puzzle.id === 26000005 && tutorialStep === 2 && (
-            <TouchableOpacity
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                right: 0,
-                marginBottom: 6,
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: '#f59e0b',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                zIndex: 1100,
-              }}
-              onPress={() => setHintMode(prev => !prev)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="bulb" size={15} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-                {hintMode ? '힌트 선택 취소' : '힌트 사용(체험용)'}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
 
-        <View style={styles.boardWrapper} testID="board">
+        <View style={styles.boardWrapper} testID="board" ref={r => registerRef('board', r)}>
           {(() => {
             const cellSize = (BOARD_SIZE - GAP * (size - 1)) / size;
             return board.map((row, rIdx) => (
@@ -665,6 +646,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                   <TouchableOpacity
                     key={rule.key}
                     testID={`rule-card-${rule.key}`}
+                    ref={r => registerRef(`rule-card-${rule.key}`, r)}
                     style={[
                       styles.violationCard,
                       isViolated ? styles.violationCardError : styles.violationCardSuccess,
@@ -727,7 +709,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             </View>
           </View>
         )}
-        </SafeAreaView>
+        </View>
       </Animated.View>
       <Toast />
       {showTutorial && (
