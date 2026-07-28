@@ -1,0 +1,82 @@
+# Aqre RN - AI 코딩 규칙
+
+## 프로젝트 개요
+- Expo 기반 React Native 퍼즐 게임 "Aqre"
+- 패키지 매니저: npm
+- 언어: JavaScript (TypeScript 아님)
+
+## 중요 규칙
+- 코드를 작성하기 전에 항상 Web, iOS, Android 모두에서 정상 동작하는지 검토한다.
+- 프로젝트 구조나 로직을 추측하지 않는다.
+- 확신할 수 없는 경우 파일을 먼저 읽고 판단한다.
+- 기존 구현 의도를 임의로 변경하지 않는다.
+
+## 광고 규칙
+- 광고 로직 수정 시 기존 광고 정책을 유지한다.
+- Rewarded Ad는 사용자가 명시적으로 요청한 경우에만 표시한다.
+- 광고 관련 기능은 Web에서 정상적으로 우회 동작해야 한다.
+
+## 코드 수정 원칙
+- 요청한 기능과 관련 없는 파일은 수정하지 않는다.
+- 기존 로직을 리팩토링하지 않는다.
+- 동작하는 코드를 임의로 개선하지 않는다.
+- 최소한의 변경으로 문제를 해결한다.
+- 기존 변수명, 함수명, 파일 구조를 유지한다.
+
+## React Native 규칙
+- React Native Web 호환성을 항상 우선 고려
+- Platform.OS 분기는 반드시 필요한 경우에만 사용
+- Expo Go에서 동작 가능한 구현을 우선 고려
+- 스타일 수정 시 기존 디자인과 UI를 유지
+
+## 라이브러리 규칙
+- 새로운 라이브러리 추가는 반드시 필요한 경우에만 제안
+- 이미 구현 가능한 기능이라면 기존 라이브러리 우선 사용
+- Expo SDK 54와 호환되지 않는 라이브러리 사용 금지
+- Web 미지원 라이브러리 사용 금지
+- Native Module 추가는 최후의 수단으로만 고려
+
+## 기술 스택
+- React Native 0.81 + Expo SDK 54
+- React 19.1
+- react-native-svg: SVG 렌더링
+- react-native-reanimated: 애니메이션
+- @expo/vector-icons (Ionicons): 아이콘
+- expo-haptics: 햅틱 피드백
+- expo-av: 사운드
+- react-native-google-mobile-ads: 광고
+- AsyncStorage: 로컬 저장
+- crypto-js: 암호화
+
+## 프로젝트 구조
+- `screens/` - 화면 컴포넌트 (GameScreen, LevelScreen, OptionsScreen, StartScreen)
+- `components/` - 재사용 컴포넌트 (TutorialScreen, Toast)
+- `src/logic/` - 게임 로직 (puzzles, hints, tutorialSteps, encryptedSolutions)
+- `utils/` - 유틸리티 (ads, sound, hintManager, refRegistry)
+- `assets/` - 정적 리소스 (폰트, 이미지)
+- `App.js` - 루트 네비게이션
+
+## 코드 스타일
+- 들여쓰기: 2공백
+- 함수형 컴포넌트 + hooks
+- 불필요한 주석/문서 작성 금지
+- UI 텍스트는 한국어,영어 (게임 규칙, 버튼 텍스트 등)
+- 동적 스타일은 인라인 허용, 정적 스타일은 StyleSheet.create 사용
+- 최소한의 집중된 수정 지향
+- 모든 코드는 iOS, Android, Web에서 동작하도록 작성 (플랫폼별 분기는 최소화)
+
+## 게임 규칙 (Aqre)
+- 격자 퍼즐: 칸을 회색(채움) 또는 흰색(빈칸)으로 채움
+- 각 영역마다 정해진 수의 회색 칸이 있어야 함
+- 가로/세로로 같은 색이 3개까지만 연속 가능
+- 모든 회색 칸은 서로 연결되어야 함
+
+## 주요 상수
+- `BOARD_SIZE` - 보드 전체 크기 (px)
+- `GAP` - 셀 간 간격
+- `AREA_GAP` - 영역 경계 관련 간격
+- 영역 경계선: react-native-svg의 SVG path로 렌더링
+- 보드 배경색: `#1a1a2e`, 경계선 색: `#acd4f5`
+
+## 개발
+- 실행: `npx expo start -c` (캐시 삭제)

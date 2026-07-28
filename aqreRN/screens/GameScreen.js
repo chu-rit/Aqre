@@ -593,7 +593,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
         <View style={styles.boardWrapper} testID="board" ref={r => registerRef('board', r)}>
           {(() => {
-            const pad = 6;
+            const pad = 14;
             const cellSize = (BOARD_SIZE - pad * 2 - GAP * (size - 1)) / size;
             const LINE_OFFSET = GAP / 2;
             const xs = [];
@@ -604,7 +604,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             for (let r = 0; r < size; r++) { ys.push(cy); cy += cellSize + GAP; }
             // Build SVG path for area boundaries - draw each area's outline edges
             const LINE_COLOR = '#acd4f5';
-            const STROKE_W = 8;
+            const STROKE_W = 6;
             const round = v => Math.round(v * 10) / 10;
             const inArea = (r, c, a) => r >= 0 && r < size && c >= 0 && c < size && areaMap[r][c] === a;
 

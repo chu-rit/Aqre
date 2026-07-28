@@ -91,7 +91,7 @@ export default function StartScreen({ onStart }) {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0), paddingBottom: Math.max(insets.bottom, 0) }]}>
       <StatusBar style="dark" />
       <Image
         source={require('../assets/img/Loading.png')}
