@@ -1,5 +1,6 @@
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 let bgmPlayer = null;
 let soundEnabled = true;
@@ -7,6 +8,7 @@ let bgmEnabled = true;
 let soundVolume = 1.0;
 let bgmVolume = 0.5;
 let tapSound = null;
+let vibrationEnabled = true;
 
 export async function loadSoundSettings() {
   try {
@@ -24,6 +26,7 @@ export async function loadSoundSettings() {
       bgmEnabled = p.bgmEnabled !== false;
       if (typeof p.soundVolume === 'number') soundVolume = p.soundVolume;
       if (typeof p.bgmVolume === 'number') bgmVolume = p.bgmVolume;
+      vibrationEnabled = p.vibrationEnabled !== false;
     }
     // Preload tap sound
     if (!tapSound) {
@@ -90,6 +93,15 @@ export async function setBGMEnabled(enabled) {
 
 export function setSoundEnabled(enabled) {
   soundEnabled = enabled;
+}
+
+export function setVibrationEnabled(enabled) {
+  vibrationEnabled = enabled;
+}
+
+export function playVibrate() {
+  if (!vibrationEnabled) return;
+  try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
 }
 
 export async function setBGMVolume(volume) {

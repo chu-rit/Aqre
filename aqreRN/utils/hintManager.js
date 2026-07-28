@@ -36,10 +36,13 @@ export function createUseHint(hintPoints, addHintPoints, setHintMode) {
         addHintPoints(2);
         showToast('힌트 2개가 충전되었습니다.');
       } else {
-        showTestRewardedAd(() => {
+        const adShown = showTestRewardedAd(() => {
           addHintPoints(2);
           showToast('힌트 2개가 충전되었습니다.');
         });
+        if (!adShown) {
+          showToast('광고를 준비 중입니다. 잠시 후 다시 시도해주세요.');
+        }
       }
       return;
     }
@@ -59,19 +62,11 @@ export function createApplyHintCell(
   tutorialStep,
 ) {
   return (r, c) => {
-    if (board[r][c] === 2) return;
-
     try {
       const correctValue = getSolutionCell(puzzleId, r, c);
       if (correctValue === null) {
         showToast('해답 데이터를 불러올 수 없습니다.');
         setHintMode(false);
-        return;
-      }
-      if (board[r][c] === correctValue) {
-        setHintMode(false);
-        setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
-        showToast('이 셀은 이미 정답입니다.');
         return;
       }
       playTap();

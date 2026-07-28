@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { initializeAds } from '../utils/ads';
 import { loadSoundSettings, initBGM } from '../utils/sound';
+
 
 const { width, height } = Dimensions.get('window');
 const aspectRatio = height / width;
@@ -20,7 +21,6 @@ const is16x9 = aspectRatio >= 1.6 && aspectRatio <= 1.85;
 const LOADING_DURATION = 2500;
 
 export default function StartScreen({ onStart }) {
-  const insets = useSafeAreaInsets();
   const [loaded, setLoaded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -57,15 +57,21 @@ export default function StartScreen({ onStart }) {
 
     // Preload sounds and finish loading immediately when ready
     const preload = async () => {
-      await loadSoundSettings();
-      await initBGM();
-      dotAnim.stop();
-      setLoaded(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
+      try {
+        await loadSoundSettings();
+        await initBGM();
+        initializeAds();
+      } catch {
+        // continue loading even if preloading fails
+      } finally {
+        dotAnim.stop();
+        setLoaded(true);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }).start();
+      }
     };
     preload();
 
@@ -91,7 +97,7 @@ export default function StartScreen({ onStart }) {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0), paddingBottom: Math.max(insets.bottom, 0) }]}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
       <Image
         source={require('../assets/img/Loading.png')}

@@ -376,7 +376,7 @@ export const tutorialSteps = {
     },
     {
       requiresCompletedTutorialsWithoutSkipping: true,
-      hintPoints: 5,
+      hintPoints: 2,
       hintRewardKey: 'tutorials-completion-reward',
       text: '마지막으로 응원하는 마음을 담아 힌트 포인트를 선물로 드리겠습니다.',
       textEn: 'Lastly, as a gesture of support, we\'ll gift you some hint points.',

@@ -9,7 +9,7 @@ import Toast, { showToast } from '../components/Toast';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap } from '../utils/sound';
+import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap, setVibrationEnabled as setGlobalVibrationEnabled } from '../utils/sound';
 
 const VOLUME_STEPS = [0, 0.1, 0.25, 0.5, 0.75, 1.0];
 const STEP_WIDTH = 18;
@@ -200,7 +200,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Text style={styles.rowLabel}>{isEnglish ? 'Vibration' : '진동'}</Text>
             <Switch
               value={vibrationEnabled}
-              onValueChange={v => { playTap(); setVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
+              onValueChange={v => { playTap(); setVibrationEnabled(v); setGlobalVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
               trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
               thumbColor="#fff"
             />

@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from '../components/Toast';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
-import { playTap, playClear, setSoundEnabled } from '../utils/sound';
+import { playTap, playClear, playVibrate, setSoundEnabled } from '../utils/sound';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import {
   createAddHintPoints,
@@ -480,6 +480,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
   const toggleCell = useCallback((r, c) => {
     playTap();
+    playVibrate();
     setBoard(prev => {
       if (prev[r][c] === 2) return prev;
       const next = prev.map(row => [...row]);

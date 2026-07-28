@@ -7,7 +7,7 @@ import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
 import OptionsScreen from './screens/OptionsScreen';
 import { loadSoundSettings, initBGM, setBGMEnabled } from './utils/sound';
-import { initializeAds, showTestInterstitialAd } from './utils/ads';
+import { initializeAds, showPuzzleSelectInterstitial } from './utils/ads';
 
 export default function App() {
   const [screen, setScreen] = useState('start');
@@ -35,7 +35,7 @@ export default function App() {
       case 'level':
         return (
           <LevelScreen
-            onSelectPuzzle={(puzzle) => showTestInterstitialAd(() => {
+            onSelectPuzzle={(puzzle) => showPuzzleSelectInterstitial(() => {
               setSelectedPuzzle(puzzle);
               setScreen('game');
             })}

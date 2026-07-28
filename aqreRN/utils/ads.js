@@ -54,7 +54,8 @@ const preloadInterstitialAd = () => {
     onComplete?.();
     preloadInterstitialAd();
   });
-  ad.addAdEventListener(AdEventType.ERROR, () => {
+  ad.addAdEventListener(AdEventType.ERROR, (error) => {
+    console.error('Interstitial ad load error:', error);
     const onComplete = interstitialCompleteCallback;
     interstitialAd = null;
     isInterstitialLoaded = false;
@@ -72,27 +73,45 @@ const preloadRewardedAd = () => {
     isRewardedLoaded = true;
   });
   ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-    rewardedCallback?.();
+    rewardedAdCompleted = true;
   });
   ad.addAdEventListener(AdEventType.CLOSED, () => {
+    if (rewardedAdCompleted) {
+      rewardedCallback?.();
+    }
     rewardedAd = null;
     isRewardedLoaded = false;
     rewardedCallback = null;
+    rewardedAdCompleted = false;
     preloadRewardedAd();
   });
-  ad.addAdEventListener(AdEventType.ERROR, () => {
+  ad.addAdEventListener(AdEventType.ERROR, (error) => {
+    console.error('Rewarded ad load error:', error);
     rewardedAd = null;
     isRewardedLoaded = false;
     rewardedCallback = null;
+    rewardedAdCompleted = false;
   });
   ad.load();
 };
 
 export const initializeAds = async () => {
   if (!isAdsAvailable()) return;
-  await mobileAds().initialize();
+  try {
+    await mobileAds().initialize();
+  } catch (e) {
+    console.error('AdMob initialize error:', e);
+    return;
+  }
   preloadInterstitialAd();
   preloadRewardedAd();
+  await Promise.race([
+    Promise.all([
+      isInterstitialLoaded ? Promise.resolve() : interstitialLoadedPromise,
+      isRewardedLoaded ? Promise.resolve() : rewardedLoadedPromise,
+    ]),
+    new Promise(resolve => setTimeout(resolve, 10000)),
+  ]);
 };
 
 export const showTestInterstitialAd = (onComplete) => {
@@ -104,11 +123,23 @@ export const showTestInterstitialAd = (onComplete) => {
   interstitialAd.show();
 };
 
+const INTERSTITIAL_COOLDOWN_MS = 5 * 60 * 1000;
+let interstitialAvailableAt = Date.now() + INTERSTITIAL_COOLDOWN_MS;
+
+export const showPuzzleSelectInterstitial = (onComplete) => {
+  if (Date.now() < interstitialAvailableAt) {
+    onComplete?.();
+    return;
+  }
+  interstitialAvailableAt = Date.now() + INTERSTITIAL_COOLDOWN_MS;
+  showTestInterstitialAd(onComplete);
+};
+
 export const showTestRewardedAd = (onReward) => {
   if (!isAdsAvailable() || !isRewardedLoaded || !rewardedAd) {
-    onReward?.();
-    return;
+    return false;
   }
   rewardedCallback = onReward;
   rewardedAd.show();
+  return true;
 };
