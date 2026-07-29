@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "aqreRN",
+    "name": "AQRE:FILL&FLOW",
     "slug": "aqreRN",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,7 +17,7 @@
     },
     "android": {
       "icon": "./assets/icon.png",
-      "package": "com.churit.aqreRN"
+      "package": "com.churit.aqre"
     },
     "web": {
       "bundler": "metro",

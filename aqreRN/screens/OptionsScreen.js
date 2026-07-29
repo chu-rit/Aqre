@@ -232,6 +232,13 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
             <Text style={styles.dangerBtnText}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.creditContent}>
+            <Text style={styles.creditLine}>Developed by ChuRit</Text>
+            <Text style={styles.creditLine}>Special Thanks to Eric Fox</Text>
+          </View>
+        </View>
         <Animated.View
           pointerEvents="none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', opacity: overlayAnim }}
@@ -337,5 +344,13 @@ const styles = StyleSheet.create({
   },
   dangerBtnText: {
     fontSize: 16, color: '#e53935', fontWeight: '600',
+  },
+  creditContent: {
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  creditLine: {
+    fontSize: 14, color: '#6b7c8d', fontWeight: '500', lineHeight: 22,
   },
 });

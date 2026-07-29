@@ -475,9 +475,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         )
       ) : (
         <View style={styles.comingSoonContainer}>
-          <Ionicons name="time-outline" size={64} color="#6b7c93" />
-          <Text style={styles.comingSoonText}>Coming Soon</Text>
-          <Text style={styles.comingSoonSubtext}>Chapter 2 is under development</Text>
+          <View style={styles.comingSoonCard}>
+            <View style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonBadgeText}>LOCKED</Text>
+            </View>
+            <Ionicons name="lock-closed" size={48} color="#8a9aaa" style={styles.comingSoonIcon} />
+            <Text style={styles.comingSoonText}>CHAPTER 2</Text>
+            <View style={styles.comingSoonDivider} />
+            <Text style={styles.comingSoonSubtext}>COMING SOON</Text>
+          </View>
         </View>
       )}
 
@@ -838,18 +844,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+  comingSoonCard: {
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 20,
+    paddingVertical: 36,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16 },
+      android: { elevation: 3 },
+    }),
+  },
+  comingSoonBadge: {
+    backgroundColor: '#dfe7ef',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 16,
+  },
+  comingSoonBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8a9aaa',
+    letterSpacing: 2,
+  },
+  comingSoonIcon: {
+    marginBottom: 12,
+  },
   comingSoonText: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '700',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '800',
     color: '#4a5a6b',
-    marginTop: 16,
-    letterSpacing: 0.5,
+    letterSpacing: 2,
+  },
+  comingSoonDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: '#c5cdd6',
+    borderRadius: 1,
+    marginVertical: 10,
   },
   comingSoonSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 18,
-    color: '#7a8a9b',
-    marginTop: 8,
+    color: '#8a9aaa',
+    fontWeight: '600',
+    letterSpacing: 3,
   },
 });

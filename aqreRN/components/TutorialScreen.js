@@ -26,7 +26,6 @@ const TypeWriterText = React.memo(({ text, style, onTypingDone }) => {
   const typingSpeed = 15; // ms
   const onTypingDoneRef = useRef(onTypingDone);
   onTypingDoneRef.current = onTypingDone;
-  const lastTextRef = useRef(text);
 
   // '<br>' 태그를 줄바꿈으로 변환 후 code point 단위 배열로 분리
   const charArray = React.useMemo(() => {
@@ -35,15 +34,13 @@ const TypeWriterText = React.memo(({ text, style, onTypingDone }) => {
     return Array.from(processed);
   }, [text]);
 
+  // 텍스트가 바뀌면 리셋
   useEffect(() => {
-    // 텍스트가 바뀌면 리셋하고 이번 effect는 종료
-    if (lastTextRef.current !== text) {
-      lastTextRef.current = text;
-      setDisplayText('');
-      setCurrentIndex(0);
-      return;
-    }
+    setDisplayText('');
+    setCurrentIndex(0);
+  }, [charArray]);
 
+  useEffect(() => {
     if (currentIndex < charArray.length) {
       const timeout = setTimeout(() => {
         setDisplayText(prev => prev + charArray[currentIndex]);
@@ -54,7 +51,7 @@ const TypeWriterText = React.memo(({ text, style, onTypingDone }) => {
     } else if (currentIndex >= charArray.length && charArray.length > 0 && onTypingDoneRef.current) {
       onTypingDoneRef.current();
     }
-  }, [currentIndex, charArray, text]);
+  }, [currentIndex, charArray]);
 
   // 기본 스타일과 전달된 스타일을 병합
   const mergedStyle = [
@@ -918,9 +915,7 @@ const TutorialScreen = ({
       {children}
       {isVisible && (
         <>
-          {/* === 레이어 1: 딤 배경 === */}
-          {/* showNextButton=true: 터치 차단 (auto), false: 터치 통과 (none) */}
-          {/* 하이라이트 있음: SVG로 구멍 뚫은 딤, 없음: 전체 딤 */}
+          {/* === 레이어 1: 딤 배경 (시각용, 터치 없음) === */}
           {hasHighlight && isSingleHighlight ? (
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 1, elevation: 10 }}>
               <Svg width={width} height={height}>
@@ -928,8 +923,25 @@ const TutorialScreen = ({
               </Svg>
             </View>
           ) : (
-            <View pointerEvents={showNextButton ? 'auto' : 'none'} style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, elevation: 10 }]} />
+            <View pointerEvents="none" style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, elevation: 10 }]} />
           )}
+
+          {/* === 레이어 1.5: 터치 차단 === */}
+          {/* showNextButton=true: 전체 차단 (툴팁은 zIndex 20에서 작동) */}
+          {/* showNextButton=false: 하이라이트 영역만 터치 통과, 나머지 차단 */}
+          {showNextButton ? (
+            <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, backgroundColor: 'transparent' }} />
+          ) : hasHighlight && isSingleHighlight ? (() => {
+            const r = rectsToRender[0];
+            return (
+              <View style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 2 }} pointerEvents="box-none">
+                <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.max(0, r.top), backgroundColor: 'transparent' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top + r.height, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: 0, width: Math.max(0, r.left), height: r.height, backgroundColor: 'transparent' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: r.left + r.width, right: 0, height: r.height, backgroundColor: 'transparent' }} />
+              </View>
+            );
+          })() : null}
 
           {/* === 레이어 2: 하이라이트 박스 === */}
           {hasHighlight && rectsToRender.map((r, idx) => (
