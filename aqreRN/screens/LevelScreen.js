@@ -57,6 +57,9 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const [hoveredIndicatorIndex, setHoveredIndicatorIndex] = useState(null);
   const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
+  const [masterMode, setMasterMode] = useState(false);
+  const [language, setLanguage] = useState('ko');
+  const isEnglish = language === 'en';
   const carouselRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
   const overlayAnim = useRef(new Animated.Value(1)).current;
@@ -80,6 +83,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         const alreadyPlayed = cleared.length > 0;
         if (!alreadyPlayed && level0Steps.length > 0) {
           setShowTutorial(true);
+        }
+        const optionsJson = await AsyncStorage.getItem('options');
+        if (optionsJson) {
+          const options = JSON.parse(optionsJson);
+          setMasterMode(!!options.masterMode);
+          if (options.language === 'ko' || options.language === 'en') setLanguage(options.language);
         }
         const savedPage = await AsyncStorage.getItem('levelCurrentPage');
         if (savedPage !== null) {
@@ -116,7 +125,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
       3: normal2Locked,
       4: hardLocked,
     };
-    const unlockHints = {
+    const unlockHints = isEnglish ? {
+      1: 'Complete the tutorial to unlock.',
+      2: 'Clear 10 EASY puzzles to unlock.',
+      3: 'Clear 5 NORMAL 1 puzzles to unlock.',
+      4: 'Clear 10 NORMAL puzzles to unlock.',
+    } : {
       1: '튜토리얼을 완료하면 잠금 해제됩니다.',
       2: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
       3: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
@@ -147,7 +161,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     const firstLockedIndex = allGroups.findIndex(g => g.locked);
     if (firstLockedIndex === -1) return allGroups;
     return allGroups.slice(0, firstLockedIndex + 1);
-  }, [selectedChapter, clearedPuzzles, showTutorial]);
+  }, [selectedChapter, clearedPuzzles, showTutorial, isEnglish]);
 
   const groupData = loaded ? getGroupData() : [];
 
@@ -255,6 +269,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 onSelectPuzzle(puzzle);
               }}
               onLongPress={async () => {
+                if (!masterMode) return;
                 playTap();
                 const json = await AsyncStorage.getItem('clearedPuzzles') || '[]';
                 const list = JSON.parse(json);
@@ -338,7 +353,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
               )}
               <Text style={styles.unlockHintText}>{item.unlockHint}</Text>
-              {item.series === 1 && <Text style={styles.tutorialSkipHint}>튜토리얼을 스킵할려면 자물쇠를 꾸욱 눌러주세요.</Text>}
+              {item.series === 1 && <Text style={styles.tutorialSkipHint}>{isEnglish ? 'Press and hold the lock to skip the tutorial.' : '튜토리얼을 스킵할려면 자물쇠를 꾸욱 눌러주세요.'}</Text>}
             </View>
           ) : (
             <>
@@ -470,7 +485,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           </>
         ) : (
           <View style={styles.comingSoonContainer}>
-            <Text style={styles.comingSoonSubtext}>로딩 중...</Text>
+            <Text style={styles.comingSoonSubtext}>{isEnglish ? 'Loading...' : '로딩 중...'}</Text>
           </View>
         )
       ) : (

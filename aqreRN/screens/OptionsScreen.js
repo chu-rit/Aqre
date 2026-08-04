@@ -86,8 +86,11 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [language, setLanguage] = useState('ko');
+  const [masterModeReady, setMasterModeReady] = useState(false);
+  const [masterMode, setMasterMode] = useState(false);
   const isEnglish = language === 'en';
   const overlayAnim = useRef(new Animated.Value(1)).current;
+  const churitBlueTimer = useRef(null);
 
   useEffect(() => {
     Animated.timing(overlayAnim, {
@@ -106,6 +109,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           if (typeof p.soundVolumeStep === 'number') setSoundVolumeState(p.soundVolumeStep);
           if (typeof p.bgmVolumeStep === 'number') setBgmVolumeState(p.bgmVolumeStep);
           if (typeof p.vibrationEnabled === 'boolean') setVibrationEnabled(p.vibrationEnabled);
+          if (p.masterMode) setMasterMode(true);
           if (p.language === 'ko' || p.language === 'en') {
             setLanguage(p.language);
           } else {
@@ -136,7 +140,14 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
       try {
         await AsyncStorage.removeItem('clearedPuzzles');
         await AsyncStorage.removeItem('completedTutorials');
-        showToast(isEnglish ? 'Clear data has been reset.' : '성공적으로 초기화되었습니다');
+        if (masterModeReady) {
+          const json = await AsyncStorage.getItem('options');
+          const current = json ? JSON.parse(json) : {};
+          await AsyncStorage.setItem('options', JSON.stringify({ ...current, masterMode: true }));
+          showToast(isEnglish ? 'Master Mode activated!' : '마스터 모드가 활성화되었습니다!');
+        } else {
+          showToast(isEnglish ? 'Clear data has been reset.' : '성공적으로 초기화되었습니다');
+        }
         if (onClose) setTimeout(onClose, 1200);
       } catch (e) {
         showToast((isEnglish ? 'Reset failed: ' : '초기화 실패: ') + (e?.message || (isEnglish ? 'Error' : '오류')));
@@ -161,13 +172,13 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           <TouchableOpacity style={styles.iconBtn} onPress={() => { playTap(); onClose(); }}>
             <Ionicons name="chevron-back" size={24} color="#2c3e50" />
           </TouchableOpacity>
-          <Text style={styles.title}>Options</Text>
+          <Text style={styles.title} selectable={false}>Options</Text>
           <View style={{ width: 44 }} />
         </View>
 
         <View style={styles.section}>
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel}>{isEnglish ? 'Sound Effects' : '효과음'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Sound Effects' : '효과음'}</Text>
             <VolumeSlider
               value={soundVolume}
               onChange={(i) => {
@@ -181,7 +192,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel}>{isEnglish ? 'Background Music' : '배경음'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Background Music' : '배경음'}</Text>
             <VolumeSlider
               value={bgmVolume}
               onChange={(i) => {
@@ -197,7 +208,7 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>{isEnglish ? 'Vibration' : '진동'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Vibration' : '진동'}</Text>
             <Switch
               value={vibrationEnabled}
               onValueChange={v => { playTap(); setVibrationEnabled(v); setGlobalVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
@@ -207,21 +218,21 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>{isEnglish ? 'Language' : '언어'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Language' : '언어'}</Text>
             <View style={styles.languageSelector}>
               <TouchableOpacity
                 style={[styles.languageButton, language === 'ko' && styles.languageButtonActive]}
                 onPress={() => { playTap(); setLanguage('ko'); saveMultiple({ language: 'ko' }); }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.languageButtonText, language === 'ko' && styles.languageButtonTextActive]}>{isEnglish ? 'Korean' : '한국어'}</Text>
+                <Text style={[styles.languageButtonText, language === 'ko' && styles.languageButtonTextActive]} selectable={false}>{isEnglish ? 'Korean' : '한국어'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
                 onPress={() => { playTap(); setLanguage('en'); saveMultiple({ language: 'en' }); }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>English</Text>
+                <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]} selectable={false}>English</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -229,14 +240,36 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
 
         <View style={styles.section}>
           <TouchableOpacity style={styles.dangerBtn} onPress={() => { playTap(); clearAllData(); }}>
-            <Text style={styles.dangerBtnText}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
+            <Text style={styles.dangerBtnText} selectable={false}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
           <View style={styles.creditContent}>
-            <Text style={styles.creditLine}>Developed by ChuRit</Text>
-            <Text style={styles.creditLine}>Special Thanks to Eric Fox</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.creditLine} selectable={false}>Developed by </Text>
+              <TouchableOpacity
+                activeOpacity={1}
+                delayLongPress={3000}
+                onLongPress={async () => {
+                  if (masterMode) {
+                    const json = await AsyncStorage.getItem('options');
+                    const current = json ? JSON.parse(json) : {};
+                    await AsyncStorage.setItem('options', JSON.stringify({ ...current, masterMode: false }));
+                    setMasterMode(false);
+                    setMasterModeReady(false);
+                    showToast(isEnglish ? 'Master Mode deactivated.' : '마스터 모드가 비활성화되었습니다.');
+                  } else {
+                    setMasterModeReady(true);
+                    if (churitBlueTimer.current) clearTimeout(churitBlueTimer.current);
+                    churitBlueTimer.current = setTimeout(() => setMasterModeReady(false), 2000);
+                  }
+                }}
+              >
+                <Text style={[styles.creditLine, (masterMode || masterModeReady) && { color: '#3b82c4' }]} selectable={false}>ChuRit</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.creditLine} selectable={false}>Special Thanks to Eric Fox</Text>
           </View>
         </View>
         <Animated.View

@@ -5,6 +5,16 @@ import { showToast } from '../components/Toast';
 import { playTap } from '../utils/sound';
 import { showTestRewardedAd } from '../utils/ads';
 
+async function getIsEnglish() {
+  try {
+    const json = await AsyncStorage.getItem('options');
+    const options = json ? JSON.parse(json) : {};
+    return options.language === 'en';
+  } catch {
+    return false;
+  }
+}
+
 export function createAddHintPoints(setHintPoints) {
   return async (amount, rewardKey) => {
     const pointsToAdd = Number(amount);
@@ -30,18 +40,19 @@ export async function loadHintPoints(setHintPoints) {
 }
 
 export function createUseHint(hintPoints, addHintPoints, setHintMode) {
-  return () => {
+  return async () => {
     if (hintPoints <= 0) {
+      const isEnglish = await getIsEnglish();
       if (Platform.OS === 'web') {
         addHintPoints(2);
-        showToast('힌트 2개가 충전되었습니다.');
+        showToast(isEnglish ? '2 hints have been added.' : '힌트 2개가 충전되었습니다.');
       } else {
         const adShown = showTestRewardedAd(() => {
           addHintPoints(2);
-          showToast('힌트 2개가 충전되었습니다.');
+          showToast(isEnglish ? '2 hints have been added.' : '힌트 2개가 충전되었습니다.');
         });
         if (!adShown) {
-          showToast('광고를 준비 중입니다. 잠시 후 다시 시도해주세요.');
+          showToast(isEnglish ? 'Failed to load ad.' : '광고를 불러올 수 없습니다.');
         }
       }
       return;
@@ -61,11 +72,12 @@ export function createApplyHintCell(
   showTutorial,
   tutorialStep,
 ) {
-  return (r, c) => {
+  return async (r, c) => {
     try {
       const correctValue = getSolutionCell(puzzleId, r, c);
       if (correctValue === null) {
-        showToast('해답 데이터를 불러올 수 없습니다.');
+        const isEnglish = await getIsEnglish();
+        showToast(isEnglish ? 'Failed to load solution data.' : '해답 데이터를 불러올 수 없습니다.');
         setHintMode(false);
         return;
       }
@@ -81,9 +93,11 @@ export function createApplyHintCell(
       }
       setHintMode(false);
       setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
-      showToast(`힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);
+      const isEnglish = await getIsEnglish();
+      showToast(isEnglish ? `Hint: Row ${r + 1}, Col ${c + 1} revealed.` : `힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);
     } catch {
-      showToast('힌트를 불러오지 못했습니다.');
+      const isEnglish = await getIsEnglish();
+      showToast(isEnglish ? 'Failed to load hint.' : '힌트를 불러오지 못했습니다.');
       setHintMode(false);
     }
   };

@@ -7,7 +7,7 @@ import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
 import OptionsScreen from './screens/OptionsScreen';
 import { loadSoundSettings, initBGM, setBGMEnabled } from './utils/sound';
-import { initializeAds, showPuzzleSelectInterstitial } from './utils/ads';
+import { showPuzzleSelectInterstitial } from './utils/ads';
 
 export default function App() {
   const [screen, setScreen] = useState('start');
@@ -17,7 +17,6 @@ export default function App() {
 
   useEffect(() => {
     loadSoundSettings();
-    initializeAds();
     setReady(true);
   }, []);
 

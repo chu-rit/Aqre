@@ -199,7 +199,7 @@ export const tutorialSteps = {
   'level26000003': [
     {
       text: '마지막 세 번째 규칙은 4연속 금지 규칙입니다. 룰 체크에서 4연속 규칙을 눌러 볼까요?',
-      textEn: 'The final third rule prohibits four consecutive cells. Select the 4-in-a-row rule in Rule Check.',
+      textEn: 'The final third rule is the No Four rule. Select the No Four rule in Rule Check.',
       highlight: {
         selectors: ['data-testid=rule-card-seq'],
       },

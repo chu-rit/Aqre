@@ -22,38 +22,37 @@ import { measureSelector } from '../utils/refRegistry';
 // 타이핑 효과를 위한 컴포넌트
 const TypeWriterText = React.memo(({ text, style, onTypingDone }) => {
   const [displayText, setDisplayText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const typingSpeed = 15; // ms
+  const typingSpeed = 15;
   const onTypingDoneRef = useRef(onTypingDone);
   onTypingDoneRef.current = onTypingDone;
+  const generationRef = useRef(0);
 
-  // '<br>' 태그를 줄바꿈으로 변환 후 code point 단위 배열로 분리
   const charArray = React.useMemo(() => {
-    if (typeof text !== 'string') return [];
+    if (typeof text !== 'string' || !text) return [];
     const processed = text.replace(/<br\s*\/?>(\r\n|\n|\r)?/gi, '\n');
     return Array.from(processed);
   }, [text]);
 
-  // 텍스트가 바뀌면 리셋
   useEffect(() => {
+    const gen = ++generationRef.current;
     setDisplayText('');
-    setCurrentIndex(0);
+    let i = 0;
+    const tick = () => {
+      if (gen !== generationRef.current) return;
+      if (i < charArray.length) {
+        const ch = charArray[i];
+        if (ch === undefined || ch === null) return;
+        setDisplayText(prev => prev + ch);
+        i++;
+        setTimeout(tick, typingSpeed);
+      } else if (charArray.length > 0 && onTypingDoneRef.current) {
+        onTypingDoneRef.current();
+      }
+    };
+    if (charArray.length > 0) setTimeout(tick, typingSpeed);
+    return () => { generationRef.current++; };
   }, [charArray]);
 
-  useEffect(() => {
-    if (currentIndex < charArray.length) {
-      const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + charArray[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, typingSpeed);
-
-      return () => clearTimeout(timeout);
-    } else if (currentIndex >= charArray.length && charArray.length > 0 && onTypingDoneRef.current) {
-      onTypingDoneRef.current();
-    }
-  }, [currentIndex, charArray]);
-
-  // 기본 스타일과 전달된 스타일을 병합
   const mergedStyle = [
     {
       fontSize: 16,
@@ -934,14 +933,16 @@ const TutorialScreen = ({
           ) : hasHighlight && isSingleHighlight ? (() => {
             const r = rectsToRender[0];
             return (
-              <View style={{ position: 'absolute', top: 0, left: 0, width, height, zIndex: 2 }} pointerEvents="box-none">
-                <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.max(0, r.top), backgroundColor: 'transparent' }} />
-                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top + r.height, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent' }} />
-                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: 0, width: Math.max(0, r.left), height: r.height, backgroundColor: 'transparent' }} />
-                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: r.left + r.width, right: 0, height: r.height, backgroundColor: 'transparent' }} />
-              </View>
+              <>
+                <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.max(0, r.top), zIndex: 2, backgroundColor: 'rgba(0,0,0,0.01)' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top + r.height, left: 0, right: 0, bottom: 0, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.01)' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: 0, width: Math.max(0, r.left), height: r.height, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.01)' }} />
+                <View pointerEvents="auto" style={{ position: 'absolute', top: r.top, left: r.left + r.width, right: 0, height: r.height, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.01)' }} />
+              </>
             );
-          })() : null}
+          })() : (
+            <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.01)' }} />
+          )}
 
           {/* === 레이어 2: 하이라이트 박스 === */}
           {hasHighlight && rectsToRender.map((r, idx) => (

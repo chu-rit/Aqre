@@ -60,7 +60,7 @@ export default function StartScreen({ onStart }) {
       try {
         await loadSoundSettings();
         await initBGM();
-        initializeAds();
+        await initializeAds();
       } catch {
         // continue loading even if preloading fails
       } finally {

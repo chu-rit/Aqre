@@ -43,7 +43,7 @@ const BOARD_SIZE = Math.min(SCREEN_WIDTH - 32, 480);
 const LOCK_HOLD_DURATION = 1000;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-function checkGameRules(board, puzzle) {
+function checkGameRules(board, puzzle, isEnglish) {
   const size = puzzle.size;
   const violationMessages = new Set();
 
@@ -52,16 +52,16 @@ function checkGameRules(board, puzzle) {
     const required = parseInt(area.required);
     const grayCount = area.cells.reduce((n, [r, c]) => n + (board[r][c] === 1 ? 1 : 0), 0);
     if (grayCount > required) {
-      violationMessages.add(JSON.stringify({ type: '영역 회색 칸 초과', message: '영역의 회색 칸 수가 초과되었습니다.', cells: area.cells.filter(([r, c]) => board[r][c] === 1).map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'area_overflow', message: isEnglish ? 'Area has too many gray cells.' : '영역의 회색 칸 수가 초과되었습니다.', cells: area.cells.filter(([r, c]) => board[r][c] === 1).map(([r, c]) => ({ row: r, col: c })) }));
       break;
     }
     if (grayCount < required) {
-      violationMessages.add(JSON.stringify({ type: '영역 회색 칸 부족', message: '영역의 회색 칸 수가 부족합니다.', cells: area.cells.filter(([r, c]) => board[r][c] !== 1).map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'area_underflow', message: isEnglish ? 'Area has too few gray cells.' : '영역의 회색 칸 수가 부족합니다.', cells: area.cells.filter(([r, c]) => board[r][c] !== 1).map(([r, c]) => ({ row: r, col: c })) }));
       break;
     }
   }
 
-  const dirs = [{ dx: 1, dy: 0, name: '가로', key: 'horizontal' }, { dx: 0, dy: 1, name: '세로', key: 'vertical' }];
+  const dirs = [{ dx: 1, dy: 0, name: isEnglish ? 'Horizontal' : '가로', key: 'horizontal' }, { dx: 0, dy: 1, name: isEnglish ? 'Vertical' : '세로', key: 'vertical' }];
   for (const dir of dirs) {
     let found = false;
     for (let i = 0; i < size && !found; i++) {
@@ -75,7 +75,7 @@ function checkGameRules(board, puzzle) {
           cells.push({ row: r, col: c });
         }
         if (seq.every(v => v === 0) || seq.every(v => v === 1)) {
-          violationMessages.add(JSON.stringify({ type: `${dir.name} 연속 색상 위반`, message: `${dir.name} 방향 4칸 연속 색상 위반`, cells }));
+          violationMessages.add(JSON.stringify({ type: `${dir.key}_consecutive`, message: isEnglish ? `${dir.name} 4 consecutive cells violation` : `${dir.name} 방향 4칸 연속 색상 위반`, cells }));
           found = true;
         }
       }
@@ -108,7 +108,7 @@ function checkGameRules(board, puzzle) {
     if (groups.length > 1) {
       groups.sort((a, b) => b.length - a.length);
       const disconnected = groups.slice(1).flat();
-      violationMessages.add(JSON.stringify({ type: '회색 칸 연결성 위반', message: '회색 칸들이 서로 연결되어 있지 않습니다.', cells: disconnected.map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'connectivity', message: isEnglish ? 'Gray cells are not connected.' : '회색 칸들이 서로 연결되어 있지 않습니다.', cells: disconnected.map(([r, c]) => ({ row: r, col: c })) }));
     }
   }
 
@@ -118,17 +118,17 @@ function checkGameRules(board, puzzle) {
 const GAP = 14;
 const AREA_GAP = 6;
 
-function getViolationMeta(type) {
-  if (type === '영역 회색 칸 초과' || type === '영역 회색 칸 부족') {
-    return { title: '영역 규칙', icon: 'apps', color: '#3b82c4', tint: '#e3eef8' };
+function getViolationMeta(type, isEnglish) {
+  if (type === 'area_overflow' || type === 'area_underflow') {
+    return { title: isEnglish ? 'Area' : '영역 규칙', icon: 'apps', color: '#3b82c4', tint: '#e3eef8' };
   }
-  if (type === '가로 연속 색상 위반' || type === '세로 연속 색상 위반') {
-    return { title: '4연속 규칙', icon: 'warning', color: '#e8a33d', tint: '#fbf1de' };
+  if (type === 'horizontal_consecutive' || type === 'vertical_consecutive') {
+    return { title: isEnglish ? 'No Four' : '4연속 규칙', icon: 'warning', color: '#e8a33d', tint: '#fbf1de' };
   }
-  if (type === '회색 칸 연결성 위반') {
-    return { title: '연결 규칙', icon: 'git-network', color: '#9b59b6', tint: '#f0e6f6' };
+  if (type === 'connectivity') {
+    return { title: isEnglish ? 'Connectivity' : '연결 규칙', icon: 'git-network', color: '#9b59b6', tint: '#f0e6f6' };
   }
-  return { title: '규칙 위반', icon: 'alert-circle', color: '#6b8e3d', tint: '#eef3e2' };
+  return { title: isEnglish ? 'Rule' : '규칙 위반', icon: 'alert-circle', color: '#6b8e3d', tint: '#eef3e2' };
 }
 
 const BackButton = () => (
@@ -357,9 +357,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [selectedViolation, setSelectedViolation] = useState(null);
   const selectedRule = React.useMemo(() => {
     if (!selectedViolation) return null;
-    if (['영역 회색 칸 초과', '영역 회색 칸 부족'].includes(selectedViolation.type)) return 'area';
-    if (['회색 칸 연결성 위반'].includes(selectedViolation.type)) return 'connect';
-    if (['가로 연속 색상 위반', '세로 연속 색상 위반'].includes(selectedViolation.type)) return 'seq';
+    if (['area_overflow', 'area_underflow'].includes(selectedViolation.type)) return 'area';
+    if (['connectivity'].includes(selectedViolation.type)) return 'connect';
+    if (['horizontal_consecutive', 'vertical_consecutive'].includes(selectedViolation.type)) return 'seq';
     return null;
   }, [selectedViolation]);
   const [clearVisible, setClearVisible] = useState(false);
@@ -368,6 +368,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
   const [hintPoints, setHintPoints] = useState(0);
   const [hintMode, setHintMode] = useState(false);
+  const [language, setLanguage] = useState('ko');
+  const isEnglish = language === 'en';
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
@@ -457,8 +459,17 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   }, [puzzle]);
 
   useEffect(() => {
+    AsyncStorage.getItem('options').then(json => {
+      if (json) {
+        const options = JSON.parse(json);
+        if (options.language === 'ko' || options.language === 'en') setLanguage(options.language);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     if (!board || board.length !== size) return;
-    const msgs = checkGameRules(board, puzzle);
+    const msgs = checkGameRules(board, puzzle, isEnglish);
     setViolations(msgs);
     if (msgs.length === 0) {
       if (!clearVisible) playClear();
@@ -705,9 +716,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
 {(() => {
           const ALL_RULES = [
-            { key: 'area',    title: '영역', types: ['영역 회색 칸 초과', '영역 회색 칸 부족'], icon: 'apps',        okColor: '#3b82c4' },
-            { key: 'connect', title: '연결', types: ['회색 칸 연결성 위반'],                     icon: 'git-network', okColor: '#9b59b6' },
-            { key: 'seq',     title: '4연속', types: ['가로 연속 색상 위반', '세로 연속 색상 위반'], icon: 'warning',   okColor: '#e8a33d' },
+            { key: 'area',    title: isEnglish ? 'Area' : '영역', types: ['area_overflow', 'area_underflow'], icon: 'apps',        okColor: '#3b82c4' },
+            { key: 'connect', title: isEnglish ? 'Connect' : '연결', types: ['connectivity'],                     icon: 'git-network', okColor: '#9b59b6' },
+            { key: 'seq',     title: isEnglish ? 'No Four' : '4연속', types: ['horizontal_consecutive', 'vertical_consecutive'], icon: 'warning',   okColor: '#e8a33d' },
           ];
           return (
             <View style={styles.violationSection}>
@@ -750,7 +761,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                     <Text
                       style={[styles.violationCardText, isViolated && styles.violationCardTextError]}
                     >
-                      {rule.title}{' 규\u2060칙'}
+                      {rule.title}{isEnglish ? ' Rule' : ' 규\u2060칙'}
                     </Text>
                   </TouchableOpacity>
                 );

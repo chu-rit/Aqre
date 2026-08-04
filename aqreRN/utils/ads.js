@@ -1,23 +1,23 @@
 import { Platform } from 'react-native';
 
-let mobileAds = null;
+let MobileAds = null;
 let AdEventType = null;
 let InterstitialAd = null;
 let RewardedAd = null;
 let RewardedAdEventType = null;
 
 try {
-  const adsModule = require('react-native-google-mobile-ads');
-  mobileAds = adsModule.default;
-  AdEventType = adsModule.AdEventType;
-  InterstitialAd = adsModule.InterstitialAd;
-  RewardedAd = adsModule.RewardedAd;
-  RewardedAdEventType = adsModule.RewardedAdEventType;
+  const m = require('react-native-google-mobile-ads');
+  MobileAds = m.default;
+  AdEventType = m.AdEventType;
+  InterstitialAd = m.InterstitialAd;
+  RewardedAd = m.RewardedAd;
+  RewardedAdEventType = m.RewardedAdEventType;
 } catch (e) {
-  // react-native-google-mobile-ads not available (e.g. Expo Go)
+  // module not available
 }
 
-const TEST_AD_UNIT_IDS = {
+const AD_UNIT_IDS = {
   interstitial: {
     android: 'ca-app-pub-3940256099942544/1033173712',
     ios: 'ca-app-pub-3940256099942544/4411468910',
@@ -28,118 +28,126 @@ const TEST_AD_UNIT_IDS = {
   },
 };
 
-const getTestAdUnitId = (format) => TEST_AD_UNIT_IDS[format][Platform.OS];
+const getAdUnitId = (format) => AD_UNIT_IDS[format][Platform.OS];
 
-let interstitialAd = null;
-let isInterstitialLoaded = false;
-let interstitialCompleteCallback = null;
-let rewardedAd = null;
-let isRewardedLoaded = false;
+let interstitialAdInstance = null;
+let interstitialLoaded = false;
+let interstitialCallback = null;
+
+let rewardedAdInstance = null;
+let rewardedLoaded = false;
 let rewardedCallback = null;
+let rewardedEarned = false;
+let rewardedRetryTimer = null;
 
-const isAdsAvailable = () => !!mobileAds;
+let initialized = false;
 
-const preloadInterstitialAd = () => {
-  if (!isAdsAvailable() || interstitialAd) return;
-  const ad = InterstitialAd.createForAdRequest(getTestAdUnitId('interstitial'));
-  interstitialAd = ad;
+// === Interstitial ===
+
+function loadInterstitial() {
+  if (!MobileAds || interstitialAdInstance) return;
+  const ad = InterstitialAd.createForAdRequest(getAdUnitId('interstitial'));
+  interstitialAdInstance = ad;
+
   ad.addAdEventListener(AdEventType.LOADED, () => {
-    isInterstitialLoaded = true;
+    interstitialLoaded = true;
+  });
+  ad.addAdEventListener(AdEventType.ERROR, (e) => {
+    interstitialAdInstance = null;
+    interstitialLoaded = false;
+    setTimeout(loadInterstitial, 5000);
   });
   ad.addAdEventListener(AdEventType.CLOSED, () => {
-    const onComplete = interstitialCompleteCallback;
-    interstitialAd = null;
-    isInterstitialLoaded = false;
-    interstitialCompleteCallback = null;
-    onComplete?.();
-    preloadInterstitialAd();
-  });
-  ad.addAdEventListener(AdEventType.ERROR, (error) => {
-    console.error('Interstitial ad load error:', error);
-    const onComplete = interstitialCompleteCallback;
-    interstitialAd = null;
-    isInterstitialLoaded = false;
-    interstitialCompleteCallback = null;
-    onComplete?.();
+    const cb = interstitialCallback;
+    interstitialAdInstance = null;
+    interstitialLoaded = false;
+    interstitialCallback = null;
+    cb?.();
+    loadInterstitial();
   });
   ad.load();
-};
+}
 
-const preloadRewardedAd = () => {
-  if (!isAdsAvailable() || rewardedAd) return;
-  const ad = RewardedAd.createForAdRequest(getTestAdUnitId('rewarded'));
-  rewardedAd = ad;
-  ad.addAdEventListener(AdEventType.LOADED, () => {
-    isRewardedLoaded = true;
+// === Rewarded ===
+
+function loadRewarded() {
+  if (!MobileAds || rewardedAdInstance) return;
+  if (rewardedRetryTimer) { clearTimeout(rewardedRetryTimer); rewardedRetryTimer = null; }
+
+  const ad = RewardedAd.createForAdRequest(getAdUnitId('rewarded'));
+  rewardedAdInstance = ad;
+
+  ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+    rewardedLoaded = true;
   });
   ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-    rewardedAdCompleted = true;
+    rewardedEarned = true;
+  });
+  ad.addAdEventListener(AdEventType.ERROR, (e) => {
+    rewardedAdInstance = null;
+    rewardedLoaded = false;
+    rewardedCallback = null;
+    rewardedEarned = false;
+    rewardedRetryTimer = setTimeout(loadRewarded, 5000);
   });
   ad.addAdEventListener(AdEventType.CLOSED, () => {
-    if (rewardedAdCompleted) {
+    if (rewardedEarned) {
       rewardedCallback?.();
     }
-    rewardedAd = null;
-    isRewardedLoaded = false;
+    rewardedAdInstance = null;
+    rewardedLoaded = false;
     rewardedCallback = null;
-    rewardedAdCompleted = false;
-    preloadRewardedAd();
-  });
-  ad.addAdEventListener(AdEventType.ERROR, (error) => {
-    console.error('Rewarded ad load error:', error);
-    rewardedAd = null;
-    isRewardedLoaded = false;
-    rewardedCallback = null;
-    rewardedAdCompleted = false;
+    rewardedEarned = false;
+    loadRewarded();
   });
   ad.load();
-};
+}
 
-export const initializeAds = async () => {
-  if (!isAdsAvailable()) return;
+// === Public API ===
+
+export async function initializeAds() {
+  if (!MobileAds || initialized) return;
+  initialized = true;
   try {
-    await mobileAds().initialize();
+    await MobileAds().initialize();
   } catch (e) {
-    console.error('AdMob initialize error:', e);
+    initialized = false;
     return;
   }
-  preloadInterstitialAd();
-  preloadRewardedAd();
-  await Promise.race([
-    Promise.all([
-      isInterstitialLoaded ? Promise.resolve() : interstitialLoadedPromise,
-      isRewardedLoaded ? Promise.resolve() : rewardedLoadedPromise,
-    ]),
-    new Promise(resolve => setTimeout(resolve, 10000)),
-  ]);
-};
+  loadInterstitial();
+  loadRewarded();
+}
 
-export const showTestInterstitialAd = (onComplete) => {
-  if (!isAdsAvailable() || !isInterstitialLoaded || !interstitialAd) {
+export function showTestInterstitialAd(onComplete) {
+  if (!MobileAds || !interstitialLoaded || !interstitialAdInstance) {
     onComplete?.();
     return;
   }
-  interstitialCompleteCallback = onComplete;
-  interstitialAd.show();
-};
+  interstitialCallback = onComplete;
+  interstitialAdInstance.show();
+}
 
 const INTERSTITIAL_COOLDOWN_MS = 5 * 60 * 1000;
 let interstitialAvailableAt = Date.now() + INTERSTITIAL_COOLDOWN_MS;
 
-export const showPuzzleSelectInterstitial = (onComplete) => {
+export function showPuzzleSelectInterstitial(onComplete) {
   if (Date.now() < interstitialAvailableAt) {
     onComplete?.();
     return;
   }
   interstitialAvailableAt = Date.now() + INTERSTITIAL_COOLDOWN_MS;
   showTestInterstitialAd(onComplete);
-};
+}
 
-export const showTestRewardedAd = (onReward) => {
-  if (!isAdsAvailable() || !isRewardedLoaded || !rewardedAd) {
-    return false;
+export function showTestRewardedAd(onReward) {
+  if (!MobileAds) return false;
+  if (rewardedLoaded && rewardedAdInstance) {
+    rewardedCallback = onReward;
+    rewardedAdInstance.show();
+    return true;
   }
-  rewardedCallback = onReward;
-  rewardedAd.show();
-  return true;
-};
+  if (!rewardedAdInstance) {
+    loadRewarded();
+  }
+  return false;
+}
