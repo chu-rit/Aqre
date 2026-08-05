@@ -179,7 +179,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 12,
+    minWidth: 64,
+    minHeight: 44,
     padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 30,
+    elevation: 30,
   },
   skipButtonText: {
     color: '#8e8e93',

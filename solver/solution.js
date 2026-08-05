@@ -566,3 +566,18 @@ export const PUZZLE_SLT = [
         ]
     }
 ]
+
+const EASY_ONE_ID_MAP = new Map([
+    [26000006, 26010001], [26000007, 26010002], [2606152, 26010003],
+    [26061511, 26010004], [26000008, 26010005], [26000009, 26010006],
+    [26000011, 26010007], [26061614, 26010008], [26000010, 26010009],
+    [26061621, 26010010], [26000012, 26010011], [26000014, 26010012],
+    [26000017, 26010013], [26000016, 26010014], [26000015, 26010015],
+]);
+PUZZLE_SLT.push(...PUZZLE_SLT
+    .filter(solution => EASY_ONE_ID_MAP.has(solution.id))
+    .map(solution => ({
+        ...solution,
+        id: EASY_ONE_ID_MAP.get(solution.id),
+        solution: solution.solution.map(row => [...row]),
+    })));

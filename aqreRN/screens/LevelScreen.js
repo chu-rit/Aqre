@@ -40,10 +40,11 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const SERIES_INFO = [
   { series: 0, label: 'TUTORIAL',  color: '#8e9aaf', icon: 'school-outline' },
-  { series: 1, label: 'EASY',      color: '#5ba4cf', icon: 'sunny-outline' },
-  { series: 2, label: 'NORMAL 1',  color: '#e8914a', icon: 'flame-outline' },
-  { series: 3, label: 'NORMAL 2',  color: '#e8914a', icon: 'flame-outline' },
-  { series: 4, label: 'HARD',      color: '#4a6fa5', icon: 'skull-outline' },
+  { series: 1, label: 'EASY 1',    color: '#5ba4cf', icon: 'sunny-outline' },
+  { series: 2, label: 'EASY 2',    color: '#5ba4cf', icon: 'sunny-outline' },
+  { series: 3, label: 'NORMAL 1',  color: '#e8914a', icon: 'flame-outline' },
+  { series: 4, label: 'NORMAL 2',  color: '#e8914a', icon: 'flame-outline' },
+  { series: 5, label: 'HARD',      color: '#4a6fa5', icon: 'skull-outline' },
 ];
 
 export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
@@ -114,27 +115,28 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     const clearedEasy = d1.filter(p => clearedPuzzles.includes(p.id)).length;
     const clearedNormal = d2.filter(p => clearedPuzzles.includes(p.id)).length;
     const normalLocked = easyLocked || clearedEasy < 10;
-    const clearedNormal1 = chapterPuzzles.filter(p => p.series === 2 && clearedPuzzles.includes(p.id)).length;
+    const clearedNormal1 = chapterPuzzles.filter(p => p.series === 3 && clearedPuzzles.includes(p.id)).length;
     const normal2Locked = normalLocked || clearedNormal1 < 5;
     const hardLocked = normalLocked || clearedNormal < 10;
 
     const lockMap = {
       0: false,
       1: easyLocked,
-      2: normalLocked,
-      3: normal2Locked,
-      4: hardLocked,
+      2: easyLocked,
+      3: normalLocked,
+      4: normal2Locked,
+      5: hardLocked,
     };
     const unlockHints = isEnglish ? {
       1: 'Complete the tutorial to unlock.',
-      2: 'Clear 10 EASY puzzles to unlock.',
-      3: 'Clear 5 NORMAL 1 puzzles to unlock.',
-      4: 'Clear 10 NORMAL puzzles to unlock.',
+      3: 'Clear 10 EASY puzzles to unlock.',
+      4: 'Clear 5 NORMAL 1 puzzles to unlock.',
+      5: 'Clear 10 NORMAL puzzles to unlock.',
     } : {
       1: '튜토리얼을 완료하면 잠금 해제됩니다.',
-      2: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
-      3: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
-      4: 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
+      3: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
+      4: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
+      5: 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.'
     };
 
     const seriesNumbers = [...new Set(chapterPuzzles.map(p => p.series))].sort((a, b) => a - b);

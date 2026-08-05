@@ -29,13 +29,21 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
+const SERIES_NAMES = {
+  0: 'Tutorial',
+  1: 'Easy 1',
+  2: 'Easy 2',
+  3: 'Normal 1',
+  4: 'Normal 2',
+  5: 'Hard',
+};
 
 function getPuzzleTitle(puzzle) {
-  const groupName = DIFFICULTY_NAMES[puzzle.difficulty] ?? `Lv${puzzle.difficulty}`;
-  const sameDiff = PUZZLE_MAPS.filter(p => p.difficulty === puzzle.difficulty);
-  const idx = sameDiff.indexOf(puzzle);
+  const groupName = SERIES_NAMES[puzzle.series] ?? DIFFICULTY_NAMES[puzzle.difficulty] ?? `Lv${puzzle.difficulty}`;
+  const sameSeries = PUZZLE_MAPS.filter(p => p.series === puzzle.series);
+  const idx = sameSeries.indexOf(puzzle);
   const num = idx >= 0 ? idx + 1 : '?';
-  return `${groupName} ${num}`;
+  return `${groupName} - ${num}`;
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -373,7 +381,11 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
+  const [clearEffectVisible, setClearEffectVisible] = useState(false);
   const screenEnterAnim = useRef(new Animated.Value(0)).current;
+  const clearEffectAnim = useRef(new Animated.Value(0)).current;
+  const clearRippleAnim = useRef(new Animated.Value(0)).current;
+  const clearTriggeredRef = useRef(false);
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -444,6 +456,12 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearTime(null);
     setViolations([]);
     setClearVisible(false);
+    setClearEffectVisible(false);
+    clearTriggeredRef.current = false;
+    clearEffectAnim.stopAnimation();
+    clearEffectAnim.setValue(0);
+    clearRippleAnim.stopAnimation();
+    clearRippleAnim.setValue(0);
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
@@ -455,8 +473,10 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
       : null;
     return () => {
       if (tutorialTimer) clearTimeout(tutorialTimer);
+      clearEffectAnim.stopAnimation();
+      clearRippleAnim.stopAnimation();
     };
-  }, [puzzle]);
+  }, [puzzle, clearEffectAnim, clearRippleAnim]);
 
   useEffect(() => {
     AsyncStorage.getItem('options').then(json => {
@@ -471,9 +491,30 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     if (!board || board.length !== size) return;
     const msgs = checkGameRules(board, puzzle, isEnglish);
     setViolations(msgs);
-    if (msgs.length === 0) {
-      if (!clearVisible) playClear();
-      setClearVisible(true);
+    if (msgs.length > 0) {
+      clearTriggeredRef.current = false;
+      return;
+    }
+
+    if (!clearTriggeredRef.current) {
+      clearTriggeredRef.current = true;
+      playClear();
+      setClearEffectVisible(true);
+      clearEffectAnim.setValue(0);
+      clearRippleAnim.setValue(0);
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(clearEffectAnim, { toValue: 1, duration: 260, useNativeDriver: true }),
+          Animated.delay(550),
+          Animated.timing(clearEffectAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
+        ]),
+        Animated.timing(clearRippleAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished) {
+          setClearEffectVisible(false);
+          setClearVisible(true);
+        }
+      });
       if (!clearTime) setClearTime(Date.now());
       AsyncStorage.getItem('clearedPuzzles').then(json => {
         const arr = json ? JSON.parse(json) : [];
@@ -482,7 +523,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
         }
       });
     }
-  }, [board, puzzle]);
+  }, [board, puzzle, isEnglish, clearTime, clearEffectAnim, clearRippleAnim]);
 
   useEffect(() => {
     setSelectedViolation(null);
@@ -537,11 +578,17 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearTime(null);
     setViolations([]);
     setClearVisible(false);
+    setClearEffectVisible(false);
+    clearTriggeredRef.current = false;
+    clearEffectAnim.stopAnimation();
+    clearEffectAnim.setValue(0);
+    clearRippleAnim.stopAnimation();
+    clearRippleAnim.setValue(0);
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
     setHintMode(false);
-  }, [puzzle]);
+  }, [puzzle, clearEffectAnim]);
 
   useEffect(() => {
     if (clearTime) return undefined;
@@ -712,6 +759,40 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
               </View>
             );
           })()}
+          {clearEffectVisible && (
+            <View pointerEvents="auto" style={styles.clearBoardEffect}>
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.clearBoardGlow, {
+                  opacity: clearEffectAnim.interpolate({
+                    inputRange: [0, 0.25, 0.7, 1],
+                    outputRange: [0, 0.95, 0.55, 0],
+                  }),
+                  transform: [{
+                    scale: clearEffectAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.04],
+                    }),
+                  }],
+                }]}
+              />
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.clearBoardRipple, {
+                  opacity: clearRippleAnim.interpolate({
+                    inputRange: [0, 0.35, 1],
+                    outputRange: [0.9, 0.5, 0],
+                  }),
+                  transform: [{
+                    scale: clearRippleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 7.5],
+                    }),
+                  }],
+                }]}
+              />
+            </View>
+          )}
         </View>
 
 {(() => {
@@ -1049,16 +1130,30 @@ const styles = StyleSheet.create({
   violationTextWrap: { flex: 1 },
   violationTitle: { color: '#2c3e50', fontWeight: '800', fontSize: 15, marginBottom: 2 },
   violationDesc: { color: '#8a96a3', fontSize: 13, fontWeight: '500' },
+  clearBoardEffect: {
+    position: 'absolute', top: -8, left: -8, right: -8, bottom: -8,
+    justifyContent: 'center', alignItems: 'center', zIndex: 30, elevation: 30,
+  },
+  clearBoardGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    borderRadius: 24, borderWidth: 5, borderColor: '#ffd34e',
+    shadowColor: '#ffd34e', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 18, elevation: 10,
+  },
+  clearBoardRipple: {
+    width: 72, height: 72, borderRadius: 36,
+    borderWidth: 5, borderColor: 'rgba(255,211,78,0.95)',
+    shadowColor: '#ffd34e', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
+  },
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(27, 42, 58, 0.52)',
+    backgroundColor: 'rgba(27, 42, 58, 0.18)',
     justifyContent: 'center', alignItems: 'center', zIndex: 100,
     padding: 24,
   },
   clearCard: {
-    width: '100%', maxWidth: 360, backgroundColor: '#fff', borderRadius: 24,
+    width: '100%', maxWidth: 360, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 24,
     paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: '#dbe7f3', position: 'relative',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)', position: 'relative',
     shadowColor: '#1b2a3a', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.2, shadowRadius: 24, elevation: 12,
   },
   closeBtn: {
@@ -1074,16 +1169,17 @@ const styles = StyleSheet.create({
   clearTitle: { fontSize: 30, fontWeight: '800', color: '#2c3e50', marginBottom: 6 },
   clearSubtitle: { color: '#8a96a3', fontSize: 14, fontWeight: '600', marginBottom: 22 },
   clearStats: {
-    width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f9fd',
-    borderRadius: 16, borderWidth: 1, borderColor: '#e0eaf4', paddingVertical: 14, marginBottom: 20,
+    width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245,249,253,0.62)',
+    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(224,234,244,0.78)', paddingVertical: 14, marginBottom: 20,
   },
   clearStatCard: { flex: 1, alignItems: 'center', gap: 3 },
   clearStatDivider: { width: 1, height: 46, backgroundColor: '#d8e3ee' },
   clearStatLabel: { color: '#8a96a3', fontSize: 12, fontWeight: '700' },
   clearStatValue: { color: '#2c3e50', fontSize: 20, fontWeight: '800' },
   clearBtn: {
-    width: '100%', backgroundColor: '#4a90d9', borderRadius: 14, paddingVertical: 15,
+    width: '100%', backgroundColor: 'rgba(74,144,217,0.72)', borderRadius: 14, paddingVertical: 15,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)',
     shadowColor: '#4a90d9', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.24, shadowRadius: 9, elevation: 4,
   },
   clearBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },

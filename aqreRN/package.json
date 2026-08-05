@@ -26,6 +26,7 @@
     "react-native-google-mobile-ads": "16.0.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-reanimated-carousel": "^4.0.3",
+    "react-native-ringer-mode": "^2.0.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Text, Platform, View, ActivityIndicator } from 'react-native';
+import { Text, Platform, View, ActivityIndicator, AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import StartScreen from './screens/StartScreen';
 import LevelScreen from './screens/LevelScreen';
 import GameScreen from './screens/GameScreen';
 import OptionsScreen from './screens/OptionsScreen';
-import { loadSoundSettings, initBGM, setBGMEnabled } from './utils/sound';
+import { loadSoundSettings, initBGM, setBGMEnabled, refreshSilentMode } from './utils/sound';
 import { showPuzzleSelectInterstitial } from './utils/ads';
 
 export default function App() {
@@ -18,6 +18,10 @@ export default function App() {
   useEffect(() => {
     loadSoundSettings();
     setReady(true);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshSilentMode();
+    });
+    return () => sub.remove();
   }, []);
 
   const goOptions = (from) => { setPrevScreen(from); setScreen('options'); };

@@ -986,7 +986,11 @@ const TutorialScreen = ({
             ]}
           >
             <Animated.View style={[styles.tooltipContainer, { opacity: fadeAnim }]} pointerEvents="auto">
-              <TouchableOpacity style={styles.skipButton} onPress={onSkip || skipTutorial}>
+              <TouchableOpacity
+                style={styles.skipButton}
+                hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                onPress={onSkip || skipTutorial}
+              >
                 <Text allowFontScaling={false} style={styles.skipButtonText}>SKIP</Text>
               </TouchableOpacity>
               <View style={styles.tooltipContent}>

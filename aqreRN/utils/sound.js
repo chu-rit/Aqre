@@ -1,6 +1,16 @@
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
+
+let getRingerMode = null;
+let RINGER_MODE = null;
+
+try {
+  const ringerModule = require('react-native-ringer-mode');
+  getRingerMode = ringerModule.getRingerMode;
+  RINGER_MODE = ringerModule.RINGER_MODE;
+} catch (e) {}
 
 let bgmPlayer = null;
 let soundEnabled = true;
@@ -10,11 +20,21 @@ let bgmVolume = 0.5;
 let tapSound = null;
 let vibrationEnabled = true;
 
+async function isSilentMode() {
+  if (Platform.OS !== 'android' || !getRingerMode) return false;
+  try {
+    const mode = await getRingerMode();
+    return mode === RINGER_MODE.silent || mode === RINGER_MODE.vibrate;
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function loadSoundSettings() {
   try {
     // Set audio mode for optimal performance
     await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
+      playsInSilentModeIOS: false,
       staysActiveInBackground: false,
       shouldDuckAndroid: true,
     });
@@ -42,6 +62,7 @@ export async function loadSoundSettings() {
 
 export async function initBGM() {
   if (!bgmEnabled) return;
+  if (await isSilentMode()) return;
   try {
     if (bgmPlayer) await bgmPlayer.unloadAsync();
     const { sound } = await Audio.Sound.createAsync(
@@ -56,6 +77,7 @@ export async function initBGM() {
 
 export async function playTap() {
   if (!soundEnabled || !tapSound) return;
+  if (await isSilentMode()) return;
   try {
     await tapSound.sound.replayAsync();
   } catch (e) {}
@@ -70,6 +92,7 @@ export async function setSoundVolume(volume) {
 
 export async function playClear() {
   if (!soundEnabled) return;
+  if (await isSilentMode()) return;
   try {
     const { sound } = await Audio.Sound.createAsync(
       require('../assets/clear.mp3'),
@@ -88,6 +111,15 @@ export async function setBGMEnabled(enabled) {
     else await bgmPlayer.pauseAsync();
   } else if (enabled) {
     await initBGM();
+  }
+}
+
+export async function refreshSilentMode() {
+  if (await isSilentMode()) {
+    if (bgmPlayer) await bgmPlayer.pauseAsync();
+  } else {
+    if (bgmEnabled && !bgmPlayer) await initBGM();
+    else if (bgmEnabled && bgmPlayer) await bgmPlayer.playAsync();
   }
 }
 
