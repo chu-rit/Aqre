@@ -140,6 +140,8 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
       try {
         await AsyncStorage.removeItem('clearedPuzzles');
         await AsyncStorage.removeItem('completedTutorials');
+        await AsyncStorage.removeItem('skippedTutorials');
+        await AsyncStorage.removeItem('levelSwipeTutorialShown');
         if (masterModeReady) {
           const json = await AsyncStorage.getItem('options');
           const current = json ? JSON.parse(json) : {};

@@ -32,6 +32,7 @@ const GRID_PADDING = 0;
 const BTN_MARGIN = 5 * 2;
 const CARD_WIDTH = SCREEN_WIDTH - PAGE_PADDING;
 const LEVEL_BTN_SIZE = Math.min(64, Math.floor((CARD_WIDTH - CARD_PADDING - GRID_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
+const REFERENCE_CARD_HEIGHT = 92 + LEVEL_BTN_SIZE * 3;
 const TUTORIAL_SKIP_SIZE = 84;
 const TUTORIAL_SKIP_STROKE = 5;
 const TUTORIAL_SKIP_RADIUS = (TUTORIAL_SKIP_SIZE - TUTORIAL_SKIP_STROKE) / 2;
@@ -47,10 +48,12 @@ const SERIES_INFO = [
   { series: 5, label: 'HARD',      color: '#4a6fa5', icon: 'skull-outline' },
 ];
 
+
 export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const insets = useSafeAreaInsets();
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -85,6 +88,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         if (!alreadyPlayed && level0Steps.length > 0) {
           setShowTutorial(true);
         }
+        const initialTutorialIds = PUZZLE_MAPS
+          .filter(puzzle => puzzle.chapter === 1 && puzzle.difficulty === 0)
+          .map(puzzle => puzzle.id);
+        const completedInitialTutorial = initialTutorialIds.length > 0
+          && initialTutorialIds.every(id => cleared.includes(id));
+        const swipeTutorialShown = await AsyncStorage.getItem('levelSwipeTutorialShown');
+        if (completedInitialTutorial && swipeTutorialShown !== 'true') {
+          setShowSwipeTutorial(true);
+        }
         const optionsJson = await AsyncStorage.getItem('options');
         if (optionsJson) {
           const options = JSON.parse(optionsJson);
@@ -104,6 +116,11 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     load();
   }, []);
 
+  const completeSwipeTutorial = async () => {
+    await AsyncStorage.setItem('levelSwipeTutorialShown', 'true');
+    setShowSwipeTutorial(false);
+  };
+
   const getGroupData = useCallback(() => {
     if (selectedChapter !== 1) return [];
     const chapterPuzzles = PUZZLE_MAPS.filter(p => p.chapter === 1);
@@ -113,8 +130,10 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     const d3 = chapterPuzzles.filter(p => p.difficulty === 3);
     const easyLocked = d0.length > 0 && !d0.every(p => clearedPuzzles.includes(p.id));
     const clearedEasy = d1.filter(p => clearedPuzzles.includes(p.id)).length;
+    const clearedEasy1 = chapterPuzzles.filter(p => p.series === 1 && clearedPuzzles.includes(p.id)).length;
     const clearedNormal = d2.filter(p => clearedPuzzles.includes(p.id)).length;
     const normalLocked = easyLocked || clearedEasy < 10;
+    const easy2Locked = easyLocked || clearedEasy1 < 5;
     const clearedNormal1 = chapterPuzzles.filter(p => p.series === 3 && clearedPuzzles.includes(p.id)).length;
     const normal2Locked = normalLocked || clearedNormal1 < 5;
     const hardLocked = normalLocked || clearedNormal < 10;
@@ -122,18 +141,20 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     const lockMap = {
       0: false,
       1: easyLocked,
-      2: easyLocked,
+      2: easy2Locked,
       3: normalLocked,
       4: normal2Locked,
       5: hardLocked,
     };
     const unlockHints = isEnglish ? {
       1: 'Complete the tutorial to unlock.',
+      2: 'Clear 5 EASY 1 puzzles to unlock.',
       3: 'Clear 10 EASY puzzles to unlock.',
       4: 'Clear 5 NORMAL 1 puzzles to unlock.',
       5: 'Clear 10 NORMAL puzzles to unlock.',
     } : {
       1: '튜토리얼을 완료하면 잠금 해제됩니다.',
+      2: 'EASY 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
       3: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
       4: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
       5: 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.'
@@ -388,16 +409,27 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 
   const renderPageIndicator = () => {
     if (groupData.length <= 1) return null;
+    const indicatorTop = listHeight
+      ? Math.max(8, (listHeight - REFERENCE_CARD_HEIGHT) / 2 - 58)
+      : 12;
     return (
-      <View style={styles.indicatorBar}>
+      <View
+        testID="level-series-indicator"
+        ref={r => registerRef('level-series-indicator', r)}
+        style={[styles.indicatorBar, { top: indicatorTop }]}
+      >
         {groupData.map((g, i) => {
           const emphasis = Math.max(0, 1 - Math.abs(carouselProgress - i));
           const isHovered = hoveredIndicatorIndex === i;
-          const dotSize = 7 + emphasis * 4 + (isHovered ? 2 : 0);
+          const dotSize = 10 + emphasis * 5 + (isHovered ? 2 : 0);
           return (
             <TouchableOpacity
               key={g.key}
-              style={[styles.indicatorDotWrap, isHovered && styles.indicatorDotWrapHovered]}
+              style={[
+                styles.indicatorDotWrap,
+                { width: Math.min(56, SCREEN_WIDTH * 0.15) },
+                isHovered && styles.indicatorDotWrapHovered,
+              ]}
               onPress={() => { playTap(); handlePageChange(i); }}
               onHoverIn={() => setHoveredIndicatorIndex(i)}
               onHoverOut={() => setHoveredIndicatorIndex(null)}
@@ -476,6 +508,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                     loop={false}
                     pagingEnabled
                     snapEnabled
+                    minScrollDistancePerSwipe={SCREEN_WIDTH * 0.2}
                     overscrollEnabled={false}
                     onProgressChange={handleProgressChange}
                     onSnapToItem={handleSnapToItem}
@@ -521,6 +554,18 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
             onSkip={() => { playTap(); setShowTutorial(false); }}
             levelId={0}
             steps={level0Steps}
+            bottomInset={insets.bottom}
+          />
+        </View>
+      )}
+      {showSwipeTutorial && (
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 }}>
+          <TutorialScreen
+            isVisible={showSwipeTutorial}
+            onClose={completeSwipeTutorial}
+            onSkip={completeSwipeTutorial}
+            levelId="levelSwipe"
+            steps={getTutorialStepsByLevel('levelSwipe')}
             bottomInset={insets.bottom}
           />
         </View>
@@ -772,7 +817,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingBottom: 16,
-    gap: 20,
+    gap: 2,
     position: 'absolute',
     top: 12,
     left: 0,
@@ -782,7 +827,7 @@ const styles = StyleSheet.create({
   indicatorDotWrap: {
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 6,
+    paddingHorizontal: 0,
     paddingVertical: 4,
     cursor: 'pointer',
   },
