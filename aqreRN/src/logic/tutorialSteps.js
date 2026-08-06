@@ -395,14 +395,14 @@ export const tutorialSteps = {
 
   levelSwipe: [
     {
-      text: '튜토리얼 스테이지를 모두 클리어하셨습니다! 이제부터 레벨은 여러 시리즈로 나뉘어 제공됩니다.',
-      textEn: 'You cleared all tutorial stages! From now on, levels are organized into multiple series.',
+      text: '이제부터 퍼즐은 여러 카드로 나뉘어 제공됩니다.',
+      textEn: 'From now on, puzzles are organized into multiple series.',
       highlight: null,
       condition: null,
       showNextButton: true
     },
     {
-      text: '화면에 표시된 점과 시리즈 이름은 현재 보고 있는 레벨 카드와 전체 시리즈의 순서를 알려줍니다.',
+      text: '화면에 표시된 점과 카드 이름은 현재 보고 있는 레벨 카드와 전체 시리즈의 순서를 알려줍니다.',
       textEn: 'The dots and series names show which level card you are viewing and its order among all series.',
       highlight: {
         selectors: ['data-testid=level-series-indicator'],
@@ -412,11 +412,14 @@ export const tutorialSteps = {
       showNextButton: true
     },
     {
-      text: '레벨 카드를 손가락으로 좌우로 밀어 보세요. 오른쪽으로 밀면 다음 시리즈로, 왼쪽으로 밀면 이전 시리즈로 이동합니다.',
+      text: '카드를 집고 왼쪽으로 밀어 다음 레벨로 이동하세요.',
       textEn: 'Swipe the level card left or right. Swipe right for the next series and left for the previous one.',
-      highlight: null,
+      highlight: {
+        selectors: ['data-testid=level-card'],
+        padding: 0
+      },
       condition: null,
-      showNextButton: true
+      showNextButton: false
     }
   ]
 };

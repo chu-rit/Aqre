@@ -78,7 +78,7 @@ function VolumeSlider({ value, onChange }) {
   );
 }
 
-export default function OptionsScreen({ onClose, onChangeBgm, renderToast = true, embedded = false }) {
+export default function OptionsScreen({ onClose, onChangeBgm, onResetData, renderToast = true, embedded = false }) {
   const insets = useSafeAreaInsets();
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
@@ -148,7 +148,8 @@ export default function OptionsScreen({ onClose, onChangeBgm, renderToast = true
         } else {
           showToast(isEnglish ? 'Clear data has been reset.' : '성공적으로 초기화되었습니다');
         }
-        if (onClose) setTimeout(onClose, 1200);
+        if (onResetData) setTimeout(onResetData, 1200);
+        else if (onClose) setTimeout(onClose, 1200);
       } catch (e) {
         showToast((isEnglish ? 'Reset failed: ' : '초기화 실패: ') + (e?.message || (isEnglish ? 'Error' : '오류')));
       }
@@ -166,7 +167,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, renderToast = true
 
   return (
     <View style={embedded ? styles.embeddedRoot : styles.modalRoot}>
-      <View style={[embedded ? styles.embeddedContent : styles.modalContainer, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={embedded ? styles.embeddedContent : [styles.modalContainer, { paddingTop: Math.max(insets.top, 0) }]}>
         <StatusBar style="dark" />
         <View style={styles.header}>
           <View style={{ width: 44 }} />

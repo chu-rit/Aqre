@@ -28,6 +28,33 @@ import * as Localization from 'expo-localization';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const LEVELS_PER_ROW = 5;
+
+const AnimatedCheckmark = ({ isNew }) => {
+  const scale = useRef(new Animated.Value(isNew ? 0 : 1)).current;
+  const opacity = useRef(new Animated.Value(isNew ? 0 : 1)).current;
+  useEffect(() => {
+    if (isNew) {
+      Animated.parallel([
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 4,
+          tension: 80,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, []);
+  return (
+    <Animated.View style={[styles.checkmark, { transform: [{ scale }], opacity }]}>
+      <Ionicons name="checkmark" size={16} color="#fff" />
+    </Animated.View>
+  );
+};
 const PAGE_PADDING = 20 * 2;
 const CARD_PADDING = 16 * 2;
 const GRID_PADDING = 0;
@@ -51,12 +78,15 @@ const SERIES_INFO = [
 ];
 
 
-export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
+export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refreshKey }) {
   const insets = useSafeAreaInsets();
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
+  const [newlyCleared, setNewlyCleared] = useState([]);
+  const prevClearedRef = useRef([]);
   const [showOptions, setShowOptions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
+  const [swipeTutorialStep, setSwipeTutorialStep] = useState(0);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -83,6 +113,62 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
     }).start(() => setShowOptions(false));
   }, [optionsPopupAnim]);
 
+  const loadData = useCallback(async () => {
+    try {
+      const data = await AsyncStorage.getItem('clearedPuzzles');
+      const cleared = data ? JSON.parse(data) : [];
+      const prevCleared = prevClearedRef.current;
+      setClearedPuzzles(cleared);
+      if (prevCleared.length > 0) {
+        const newIds = cleared.filter(id => !prevCleared.includes(id));
+        if (newIds.length > 0) setNewlyCleared(newIds);
+      }
+      prevClearedRef.current = cleared;
+      const alreadyPlayed = cleared.length > 0;
+      if (!alreadyPlayed && level0Steps.length > 0) {
+        setShowTutorial(true);
+      }
+      const initialTutorialIds = PUZZLE_MAPS
+        .filter(puzzle => puzzle.chapter === 1 && puzzle.difficulty === 0)
+        .map(puzzle => puzzle.id);
+      const completedInitialTutorial = initialTutorialIds.length > 0
+        && initialTutorialIds.every(id => cleared.includes(id));
+      const swipeTutorialShown = await AsyncStorage.getItem('levelSwipeTutorialShown');
+      if (completedInitialTutorial && swipeTutorialShown !== 'true') {
+        setShowSwipeTutorial(true);
+      }
+      const optionsJson = await AsyncStorage.getItem('options');
+      if (optionsJson) {
+        const options = JSON.parse(optionsJson);
+        setMasterMode(!!options.masterMode);
+        if (options.language === 'ko' || options.language === 'en') {
+          setLanguage(options.language);
+        } else {
+          const locales = Localization.getLocales();
+          const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+          setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
+        }
+      } else {
+        const locales = Localization.getLocales();
+        const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+        setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
+      }
+      const savedPage = await AsyncStorage.getItem('levelCurrentPage');
+      if (savedPage !== null) {
+        const pageIdx = parseInt(savedPage);
+        if (!isNaN(pageIdx) && pageIdx >= 0) {
+          setCurrentPage(pageIdx);
+        }
+      }
+    } catch (e) {}
+    setLoaded(true);
+  }, []);
+
+  const handleResetData = useCallback(() => {
+    setShowOptions(false);
+    if (onBack) onBack();
+  }, [onBack]);
+
   useEffect(() => {
     Animated.timing(overlayAnim, {
       toValue: 0,
@@ -92,52 +178,19 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
   }, []);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await AsyncStorage.getItem('clearedPuzzles');
-        if (data) setClearedPuzzles(JSON.parse(data));
-        const cleared = data ? JSON.parse(data) : [];
-        const alreadyPlayed = cleared.length > 0;
-        if (!alreadyPlayed && level0Steps.length > 0) {
-          setShowTutorial(true);
-        }
-        const initialTutorialIds = PUZZLE_MAPS
-          .filter(puzzle => puzzle.chapter === 1 && puzzle.difficulty === 0)
-          .map(puzzle => puzzle.id);
-        const completedInitialTutorial = initialTutorialIds.length > 0
-          && initialTutorialIds.every(id => cleared.includes(id));
-        const swipeTutorialShown = await AsyncStorage.getItem('levelSwipeTutorialShown');
-        if (completedInitialTutorial && swipeTutorialShown !== 'true') {
-          setShowSwipeTutorial(true);
-        }
-        const optionsJson = await AsyncStorage.getItem('options');
-        if (optionsJson) {
-          const options = JSON.parse(optionsJson);
-          setMasterMode(!!options.masterMode);
-          if (options.language === 'ko' || options.language === 'en') {
-            setLanguage(options.language);
-          } else {
-            const locales = Localization.getLocales();
-            const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-            setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
-          }
-        } else {
-          const locales = Localization.getLocales();
-          const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-          setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
-        }
-        const savedPage = await AsyncStorage.getItem('levelCurrentPage');
-        if (savedPage !== null) {
-          const pageIdx = parseInt(savedPage);
-          if (!isNaN(pageIdx) && pageIdx >= 0) {
-            setCurrentPage(pageIdx);
-          }
-        }
-      } catch (e) {}
-      setLoaded(true);
-    };
-    load();
-  }, []);
+    if (newlyCleared.length > 0) {
+      const timer = setTimeout(() => setNewlyCleared([]), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [newlyCleared]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (refreshKey > 0) loadData();
+  }, [refreshKey, loadData]);
 
   const completeSwipeTutorial = async () => {
     await AsyncStorage.setItem('levelSwipeTutorialShown', 'true');
@@ -229,8 +282,14 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
     if (index !== currentPage) {
       setCurrentPage(index);
       AsyncStorage.setItem('levelCurrentPage', String(index));
+      if (showSwipeTutorial) {
+        const steps = getTutorialStepsByLevel('levelSwipe');
+        if (swipeTutorialStep >= steps.length - 1) {
+          completeSwipeTutorial();
+        }
+      }
     }
-  }, [currentPage]);
+  }, [currentPage, showSwipeTutorial, swipeTutorialStep]);
 
   const handleProgressChange = useCallback((absoluteProgress) => {
     setCarouselProgress(Math.max(0, Math.min(groupData.length - 1, absoluteProgress)));
@@ -332,9 +391,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
                 {currentNumber}
               </Text>
               {cleared && (
-                <View style={styles.checkmark}>
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                </View>
+                <AnimatedCheckmark isNew={newlyCleared.includes(puzzle.id)} />
               )}
             </TouchableOpacity>
           );
@@ -350,7 +407,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
 
     return (
       <View style={[styles.page, { height: listHeight }, isTutorialPage && styles.pageTutorial]}>
-        <View style={[styles.card, isTutorialPage && styles.cardTutorial]}>
+        <View style={[styles.card, isTutorialPage && styles.cardTutorial]} testID={showSwipeTutorial && index === 0 ? 'level-card' : undefined} ref={r => { if (showSwipeTutorial && index === 0) registerRef('level-card', r); }}>
           {item.locked ? (
             <View style={styles.lockedPage}>
               <View style={styles.pageHeader}>
@@ -515,6 +572,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
             <View style={{ flex: 1 }}>
               <View style={{ flex: 1 }} onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}>
                 {listHeight > 0 && (
+                  <View style={{ flex: 1 }} testID="level-carousel" ref={r => registerRef('level-carousel', r)}>
                   <Carousel
                     ref={carouselRef}
                     style={{ width: SCREEN_WIDTH, height: listHeight }}
@@ -529,6 +587,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
                     onProgressChange={handleProgressChange}
                     onSnapToItem={handleSnapToItem}
                   />
+                  </View>
                 )}
               </View>
               {renderPageIndicator()}
@@ -582,6 +641,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
             onSkip={completeSwipeTutorial}
             levelId="levelSwipe"
             steps={getTutorialStepsByLevel('levelSwipe')}
+            onStepChange={setSwipeTutorialStep}
             bottomInset={insets.bottom}
           />
         </View>
@@ -620,6 +680,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
               embedded
               onClose={closeOptions}
               onChangeBgm={onChangeBgm}
+              onResetData={handleResetData}
             />
           </Animated.View>
         </Animated.View>

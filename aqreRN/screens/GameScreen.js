@@ -434,7 +434,7 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   );
 });
 
-export default function GameScreen({ puzzle, onBack, onChangeBgm }) {
+export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData }) {
   const insets = useSafeAreaInsets();
   const [board, setBoard] = useState(() => puzzle.initialState.map(r => [...r]));
   const [moveCount, setMoveCount] = useState(0);
@@ -478,6 +478,12 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm }) {
       useNativeDriver: true,
     }).start(() => setShowOptions(false));
   }, [optionsPopupAnim]);
+
+  const handleResetData = useCallback(() => {
+    setShowOptions(false);
+    if (onResetData) onResetData();
+    else if (onBack) onBack();
+  }, [onResetData, onBack]);
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -1060,6 +1066,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm }) {
               embedded
               onClose={closeOptions}
               onChangeBgm={onChangeBgm}
+              onResetData={handleResetData}
               renderToast={false}
             />
           </Animated.View>

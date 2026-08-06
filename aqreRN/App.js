@@ -14,6 +14,7 @@ export default function App() {
   const [screen, setScreen] = useState('start');
   const [selectedPuzzle, setSelectedPuzzle] = useState(null);
   const [ready, setReady] = useState(false);
+  const [levelRefreshKey, setLevelRefreshKey] = useState(0);
   const screenSlideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export default function App() {
     }).start(({ finished }) => {
       if (finished) {
         setSelectedPuzzle(null);
+        setLevelRefreshKey(k => k + 1);
         setScreen('level');
       }
     });
@@ -79,6 +81,7 @@ export default function App() {
         >
           <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
             <LevelScreen
+              refreshKey={levelRefreshKey}
               onSelectPuzzle={(puzzle) => showPuzzleSelectInterstitial(() => openGame(puzzle))}
               onBack={() => setScreen('start')}
               onChangeBgm={onChangeBgm}
@@ -90,6 +93,7 @@ export default function App() {
                 puzzle={selectedPuzzle}
                 onBack={closeGame}
                 onChangeBgm={onChangeBgm}
+                onResetData={() => { setSelectedPuzzle(null); setScreen('start'); }}
               />
             ) : null}
           </View>
