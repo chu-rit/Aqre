@@ -499,6 +499,19 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
     return new Promise((resolve, reject) => {
       const ref = cellRefs.current?.[row]?.[col];
       if (!ref?.current) { reject(new Error('ref not ready')); return; }
+      if (Platform.OS === 'web') {
+        try {
+          const rect = ref.current.getBoundingClientRect();
+          if (rect && rect.width > 0 && rect.height > 0) {
+            resolve({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
+          } else {
+            reject(new Error('getBoundingClientRect failed'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+        return;
+      }
       ref.current.measure((x, y, width, height, pageX, pageY) => {
         if (typeof pageX === 'number') resolve({ left: pageX, top: pageY, width, height });
         else reject(new Error('measure failed'));
@@ -602,7 +615,6 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
 
     if (!clearTriggeredRef.current) {
       clearTriggeredRef.current = true;
-      playClear();
       setClearEffectVisible(true);
       clearWaveAnim.setValue(0);
       const waveSteps = (size - 1) * 2 + 3;
@@ -615,6 +627,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
         if (finished) {
           setClearEffectVisible(false);
           setClearVisible(true);
+          playClear();
           clearPopupAnim.setValue(0);
           Animated.spring(clearPopupAnim, {
             toValue: 1,
@@ -640,6 +653,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   }, [board]);
 
   const toggleCell = useCallback((r, c) => {
+    if (clearEffectVisible || clearVisible) return;
     playTap();
     playVibrate();
     setBoard(prev => {
@@ -649,9 +663,10 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
       return next;
     });
     setMoveCount(n => n + 1);
-  }, []);
+  }, [clearEffectVisible, clearVisible]);
 
   const toggleLock = useCallback((r, c) => {
+    if (clearEffectVisible || clearVisible) return;
     const key = `${r}-${c}`;
     setLockedCells(prev => {
       const next = { ...prev };
@@ -659,7 +674,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
       else next[key] = true;
       return next;
     });
-  }, []);
+  }, [clearEffectVisible, clearVisible]);
 
   const useHint = useCallback(
     createUseHint(hintPoints, addHintPoints, setHintMode),

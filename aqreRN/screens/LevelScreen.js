@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   Animated,
+  Easing,
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,25 +31,29 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const LEVELS_PER_ROW = 5;
 
 const AnimatedCheckmark = ({ isNew }) => {
-  const scale = useRef(new Animated.Value(isNew ? 0 : 1)).current;
+  const scale = useRef(new Animated.Value(isNew ? 1 : 1)).current;
   const opacity = useRef(new Animated.Value(isNew ? 0 : 1)).current;
   useEffect(() => {
     if (isNew) {
+      const screenMax = Math.max(SCREEN_WIDTH, SCREEN_HEIGHT);
+      const startScale = screenMax / 16 * 1.5;
+      scale.setValue(startScale);
+      opacity.setValue(0);
       Animated.parallel([
-        Animated.spring(scale, {
-          toValue: 1,
-          friction: 4,
-          tension: 80,
-          useNativeDriver: true,
-        }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 200,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, []);
+  }, [isNew]);
   return (
     <Animated.View style={[styles.checkmark, { transform: [{ scale }], opacity }]}>
       <Ionicons name="checkmark" size={16} color="#fff" />

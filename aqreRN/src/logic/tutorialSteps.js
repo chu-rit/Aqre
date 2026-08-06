@@ -416,7 +416,7 @@ export const tutorialSteps = {
       textEn: 'Swipe the level card left or right. Swipe right for the next series and left for the previous one.',
       highlight: {
         selectors: ['data-testid=level-card'],
-        padding: 0
+        padding: 50
       },
       condition: null,
       showNextButton: false

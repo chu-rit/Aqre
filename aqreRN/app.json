@@ -42,8 +42,6 @@
           "microphonePermission": false
         }
       ],
-      "expo-font",
-      "expo-system-ui",
       "expo-localization"
     ],
     "extra": {
