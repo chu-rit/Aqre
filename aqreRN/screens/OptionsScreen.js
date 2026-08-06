@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, Switch, TouchableOpacity,
-  Alert, Platform, StyleSheet, PanResponder, Animated, NativeModules,
+  Alert, Platform, StyleSheet, PanResponder, Animated,
 } from 'react-native';
+import * as Localization from 'expo-localization';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
@@ -18,11 +19,8 @@ const NUM_BARS = VOLUME_STEPS.length - 1;
 const TOTAL_WIDTH = NUM_BARS * STEP_WIDTH + (NUM_BARS - 1) * STEP_GAP;
 
 function getDeviceLanguage() {
-  const locale = Platform.OS === 'web'
-    ? navigator.language
-    : NativeModules.SettingsManager?.settings?.AppleLocale
-      || NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
-      || NativeModules.I18nManager?.localeIdentifier;
+  const locales = Localization.getLocales();
+  const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
   return String(locale || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
 }
 
@@ -80,7 +78,7 @@ function VolumeSlider({ value, onChange }) {
   );
 }
 
-export default function OptionsScreen({ onClose, onChangeBgm }) {
+export default function OptionsScreen({ onClose, onChangeBgm, renderToast = true, embedded = false }) {
   const insets = useSafeAreaInsets();
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
@@ -167,15 +165,15 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
   };
 
   return (
-    <>
-      <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+    <View style={embedded ? styles.embeddedRoot : styles.modalRoot}>
+      <View style={[embedded ? styles.embeddedContent : styles.modalContainer, { paddingTop: Math.max(insets.top, 0) }]}>
         <StatusBar style="dark" />
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => { playTap(); onClose(); }}>
-            <Ionicons name="chevron-back" size={24} color="#2c3e50" />
-          </TouchableOpacity>
-          <Text style={styles.title} selectable={false}>Options</Text>
           <View style={{ width: 44 }} />
+          <Text style={styles.title} selectable={false}>Options</Text>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => { playTap(); onClose(); }}>
+            <Ionicons name="close" size={24} color="#2c3e50" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -279,8 +277,8 @@ export default function OptionsScreen({ onClose, onChangeBgm }) {
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', opacity: overlayAnim }}
         />
       </View>
-      <Toast />
-    </>
+      {renderToast && <Toast />}
+    </View>
   );
 }
 
@@ -288,6 +286,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#dde4ed',
+  },
+  modalRoot: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'rgba(20,35,52,0.38)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 0,
+    width: '92%',
+    height: 520,
+    maxWidth: 420,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    overflow: 'hidden',
+  },
+  embeddedRoot: {
+    width: '100%',
+    height: 520,
+    maxWidth: 420,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#172b43', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.22, shadowRadius: 24 },
+      android: { elevation: 14 },
+    }),
+  },
+  embeddedContent: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -374,8 +405,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   dangerBtn: {
-    paddingVertical: 15,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     alignItems: 'center',
+    backgroundColor: 'rgba(229,57,53,0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(229,57,53,0.3)',
   },
   dangerBtnText: {
     fontSize: 16, color: '#e53935', fontWeight: '600',

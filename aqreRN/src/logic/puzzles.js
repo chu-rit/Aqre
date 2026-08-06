@@ -327,7 +327,7 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0]
         ]
     },
-    { //9
+    { 
         id: 26010010,
         chapter: 1,
         difficulty: 1,
@@ -345,7 +345,7 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0]
         ]
     },
-    { //10
+    { 
         id: 26010011,
         chapter: 1,
         difficulty: 1,
@@ -390,11 +390,6 @@ export const PUZZLE_MAPS = [
     },
 
     // LEVEL difficulty - Easy, series - 2
-
-
-
-
-
 
     {
         id: 26000009,
@@ -798,7 +793,7 @@ export const PUZZLE_MAPS = [
         ]
     },
     
-    // LEVEL difficulty 2 : Normal
+    // LEVEL difficulty - Normal, series - 3
 
     {
         id: 26061606,
@@ -1056,6 +1051,9 @@ export const PUZZLE_MAPS = [
             [0, 0, 0, 0, 0, 0]
         ]
     },
+
+    // LEVEL difficulty - Normal, series - 4
+
     { 
         id: 26062314,
         chapter: 1,
@@ -1183,7 +1181,7 @@ export const PUZZLE_MAPS = [
             [2, 2, 0, 0, 0, 2, 2]
         ]
     },
-    { // 15
+    { // 5
         id: 26000023,
         chapter: 1,
         difficulty: 2,
@@ -1422,7 +1420,7 @@ export const PUZZLE_MAPS = [
         ]
     },
 
-    // LEVEL difficulty 3 : Hard
+    // LEVEL difficulty - Hard, series - 5
 
     {
         id: 26000024,

@@ -15,13 +15,15 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PUZZLE_MAPS } from '../src/logic/puzzles';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
+import OptionsScreen from './OptionsScreen';
 import { getTutorialStepsByLevel, tutorialSteps } from '../src/logic/tutorialSteps';
 import { playTap } from '../utils/sound';
 import { registerRef } from '../utils/refRegistry';
 import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Carousel from 'react-native-reanimated-carousel';
+import { Carousel } from 'react-native-reanimated-carousel';
+import * as Localization from 'expo-localization';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -49,9 +51,10 @@ const SERIES_INFO = [
 ];
 
 
-export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
+export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm }) {
   const insets = useSafeAreaInsets();
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
+  const [showOptions, setShowOptions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState(1);
@@ -67,8 +70,18 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
   const carouselRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
   const overlayAnim = useRef(new Animated.Value(1)).current;
+  const optionsPopupAnim = useRef(new Animated.Value(0)).current;
   const tutorialSkipProgress = useRef(new Animated.Value(0)).current;
   const scrollAnim = useRef(new Animated.Value(0)).current;
+
+  const closeOptions = useCallback(() => {
+    Animated.spring(optionsPopupAnim, {
+      toValue: 0,
+      friction: 8,
+      tension: 50,
+      useNativeDriver: true,
+    }).start(() => setShowOptions(false));
+  }, [optionsPopupAnim]);
 
   useEffect(() => {
     Animated.timing(overlayAnim, {
@@ -101,7 +114,17 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         if (optionsJson) {
           const options = JSON.parse(optionsJson);
           setMasterMode(!!options.masterMode);
-          if (options.language === 'ko' || options.language === 'en') setLanguage(options.language);
+          if (options.language === 'ko' || options.language === 'en') {
+            setLanguage(options.language);
+          } else {
+            const locales = Localization.getLocales();
+            const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+            setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
+          }
+        } else {
+          const locales = Localization.getLocales();
+          const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+          setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
         }
         const savedPage = await AsyncStorage.getItem('levelCurrentPage');
         if (savedPage !== null) {
@@ -209,7 +232,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
     }
   }, [currentPage]);
 
-  const handleProgressChange = useCallback((_, absoluteProgress) => {
+  const handleProgressChange = useCallback((absoluteProgress) => {
     setCarouselProgress(Math.max(0, Math.min(groupData.length - 1, absoluteProgress)));
   }, [groupData.length]);
 
@@ -464,7 +487,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
         <View pointerEvents="none" style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Level Select</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); onOptions(); }} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => { playTap(); setShowOptions(true); optionsPopupAnim.setValue(0); Animated.spring(optionsPopupAnim, { toValue: 1, friction: 7, tension: 60, useNativeDriver: true }).start(); }} activeOpacity={0.7}>
           <Ionicons name="options" size={24} color="#2c3e50" />
         </TouchableOpacity>
       </View>
@@ -494,21 +517,14 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
                 {listHeight > 0 && (
                   <Carousel
                     ref={carouselRef}
-                    width={SCREEN_WIDTH}
-                    height={listHeight}
+                    style={{ width: SCREEN_WIDTH, height: listHeight }}
                     data={groupData}
                     renderItem={renderPage}
                     defaultIndex={currentPage}
-                    mode="parallax"
-                    modeConfig={{
-                      parallaxScrollingScale: 0.94,
-                      parallaxAdjacentItemScale: 0.8,
-                      parallaxScrollingOffset: 64,
-                    }}
+                    layout={{ type: 'parallax', scale: 0.94, adjacentScale: 0.8, offset: 64 }}
                     loop={false}
-                    pagingEnabled
-                    snapEnabled
-                    minScrollDistancePerSwipe={SCREEN_WIDTH * 0.2}
+                    snapMode="page"
+                    onConfigurePanGesture={(gesture) => gesture.activeOffsetX([-SCREEN_WIDTH * 0.2, SCREEN_WIDTH * 0.2])}
                     overscrollEnabled={false}
                     onProgressChange={handleProgressChange}
                     onSnapToItem={handleSnapToItem}
@@ -570,6 +586,44 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
           />
         </View>
       )}
+      {showOptions && (
+        <Animated.View
+          style={[styles.optionsOverlay, {
+            opacity: optionsPopupAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 1],
+            }),
+          }]}
+          onStartShouldSetResponder={() => true}
+          onResponderRelease={closeOptions}
+        >
+          <Animated.View
+            style={[styles.optionsCardWrap, {
+              transform: [
+                {
+                  translateY: optionsPopupAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [32, 0],
+                  }),
+                },
+                {
+                  scale: optionsPopupAnim.interpolate({
+                    inputRange: [0, 0.7, 1],
+                    outputRange: [0.82, 1.04, 1],
+                  }),
+                },
+              ],
+            }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <OptionsScreen
+              embedded
+              onClose={closeOptions}
+              onChangeBgm={onChangeBgm}
+            />
+          </Animated.View>
+        </Animated.View>
+      )}
       <Animated.View
         pointerEvents="none"
         style={[styles.fadeOverlay, { opacity: overlayAnim }]}
@@ -579,6 +633,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onOptions }) {
 }
 
 const styles = StyleSheet.create({
+  optionsOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(27, 42, 58, 0.38)',
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 2000, elevation: 2000, padding: 24,
+  },
+  optionsCardWrap: {
+    width: '100%', maxWidth: 420, alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: 'transparent',

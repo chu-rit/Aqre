@@ -6,14 +6,17 @@ import {
   StyleSheet,
   SafeAreaView,
   Animated,
+  Easing,
   Platform,
   Dimensions,
 } from 'react-native';
 import { Svg, Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import * as Localization from 'expo-localization';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from '../components/Toast';
+import OptionsScreen from './OptionsScreen';
 import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen';
 import { getTutorialStepsByLevel } from '../src/logic/tutorialSteps';
 import { playTap, playClear, playVibrate, setSoundEnabled } from '../utils/sound';
@@ -166,7 +169,7 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey, hintMode }) {
+const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey, hintMode, clearEffectVisible, clearEffectIndex, clearWaveAnim }) {
   const dotAnim = useRef(new Animated.Value(0)).current;
   const lockAnim = useRef(new Animated.Value(0)).current;
   const holdAnim = useRef(new Animated.Value(0)).current;
@@ -231,6 +234,26 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   const bgColor = cell === 0 ? '#f8f9fb' : cell === 1 ? '#3a6b9c' : '#34495e';
   const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
   const dotOpacity = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
+  const clearCellOpacity = !clearEffectVisible || clearEffectIndex == null ? null : clearWaveAnim.interpolate({
+    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
+    outputRange: [0, 1, 0],
+    extrapolate: 'clamp',
+  });
+  const clearFlipRotation = !clearEffectVisible || clearEffectIndex == null ? '0deg' : clearWaveAnim.interpolate({
+    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
+    outputRange: ['0deg', '180deg', '360deg'],
+    extrapolate: 'clamp',
+  });
+  const clearBackRotation = !clearEffectVisible || clearEffectIndex == null ? '180deg' : clearWaveAnim.interpolate({
+    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
+    outputRange: ['180deg', '360deg', '540deg'],
+    extrapolate: 'clamp',
+  });
+  const clearFlipScale = !clearEffectVisible || clearEffectIndex == null ? 1 : clearWaveAnim.interpolate({
+    inputRange: [clearEffectIndex, clearEffectIndex + 0.5, clearEffectIndex + 1, clearEffectIndex + 2],
+    outputRange: [1, 1.5, 1.5, 1],
+    extrapolate: 'clamp',
+  });
 
   const showLabel = (() => {
     if (areaIdx === -1) return false;
@@ -241,7 +264,20 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   const areaSatisfied = showLabel && areaFilledCounts[areaIdx] === Number(puzzle.areas[areaIdx].required);
 
   return (
-    <TouchableOpacity
+    <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <Animated.View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          backfaceVisibility: 'hidden',
+          transform: [
+            { perspective: 600 },
+            { scale: clearFlipScale },
+            { rotateY: clearFlipRotation },
+          ],
+        }}
+      >
+        <TouchableOpacity
       ref={cellRef}
       style={[{
         width: '100%', height: '100%',
@@ -308,6 +344,31 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
           </View>
         </Animated.View>
       )}
+      {clearCellOpacity && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: 2,
+            right: 2,
+            bottom: 2,
+            borderRadius: 5,
+            borderWidth: 3,
+            borderColor: '#ffd34e',
+            backgroundColor: 'rgba(255,211,78,0.16)',
+            opacity: clearCellOpacity,
+            transform: [{
+              scale: clearWaveAnim.interpolate({
+                inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
+                outputRange: [0.96, 1.05, 0.98],
+                extrapolate: 'clamp',
+              }),
+            }],
+            zIndex: 25,
+          }}
+        />
+      )}
       {isViolation && (
         <Animated.View style={{
           position: 'absolute', top: '50%', left: '50%',
@@ -349,11 +410,31 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          borderRadius: 4,
+          backgroundColor: '#ffd34e',
+          backfaceVisibility: 'hidden',
+          justifyContent: 'center',
+          alignItems: 'center',
+          transform: [
+            { perspective: 600 },
+            { scale: clearFlipScale },
+            { rotateY: clearBackRotation },
+          ],
+        }}
+      >
+        <Ionicons name="checkmark" size={Math.round(cellSize * 0.42)} color="#fff7cc" />
+      </Animated.View>
+    </View>
   );
 });
 
-export default function GameScreen({ puzzle, onBack, onOptions }) {
+export default function GameScreen({ puzzle, onBack, onChangeBgm }) {
   const insets = useSafeAreaInsets();
   const [board, setBoard] = useState(() => puzzle.initialState.map(r => [...r]));
   const [moveCount, setMoveCount] = useState(0);
@@ -371,6 +452,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     return null;
   }, [selectedViolation]);
   const [clearVisible, setClearVisible] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
@@ -383,9 +465,19 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
   const [lockedCells, setLockedCells] = useState({});
   const [clearEffectVisible, setClearEffectVisible] = useState(false);
   const screenEnterAnim = useRef(new Animated.Value(0)).current;
-  const clearEffectAnim = useRef(new Animated.Value(0)).current;
-  const clearRippleAnim = useRef(new Animated.Value(0)).current;
+  const clearWaveAnim = useRef(new Animated.Value(0)).current;
+  const clearPopupAnim = useRef(new Animated.Value(0)).current;
+  const optionsPopupAnim = useRef(new Animated.Value(0)).current;
   const clearTriggeredRef = useRef(false);
+
+  const closeOptions = useCallback(() => {
+    Animated.spring(optionsPopupAnim, {
+      toValue: 0,
+      friction: 8,
+      tension: 50,
+      useNativeDriver: true,
+    }).start(() => setShowOptions(false));
+  }, [optionsPopupAnim]);
 
   const tutorialSteps = getTutorialStepsByLevel(puzzle.id);
   const cellRefs = useRef(null);
@@ -456,12 +548,12 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearTime(null);
     setViolations([]);
     setClearVisible(false);
+    clearPopupAnim.stopAnimation();
+    clearPopupAnim.setValue(0);
     setClearEffectVisible(false);
     clearTriggeredRef.current = false;
-    clearEffectAnim.stopAnimation();
-    clearEffectAnim.setValue(0);
-    clearRippleAnim.stopAnimation();
-    clearRippleAnim.setValue(0);
+    clearWaveAnim.stopAnimation();
+    clearWaveAnim.setValue(0);
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
@@ -473,17 +565,23 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
       : null;
     return () => {
       if (tutorialTimer) clearTimeout(tutorialTimer);
-      clearEffectAnim.stopAnimation();
-      clearRippleAnim.stopAnimation();
+      clearWaveAnim.stopAnimation();
     };
-  }, [puzzle, clearEffectAnim, clearRippleAnim]);
+  }, [puzzle, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
     AsyncStorage.getItem('options').then(json => {
       if (json) {
         const options = JSON.parse(json);
-        if (options.language === 'ko' || options.language === 'en') setLanguage(options.language);
+        if (options.language === 'ko' || options.language === 'en') {
+          setLanguage(options.language);
+          return;
+        }
       }
+      const locales = Localization.getLocales();
+      const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+      const detected = String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
+      setLanguage(detected);
     });
   }, []);
 
@@ -500,19 +598,24 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
       clearTriggeredRef.current = true;
       playClear();
       setClearEffectVisible(true);
-      clearEffectAnim.setValue(0);
-      clearRippleAnim.setValue(0);
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(clearEffectAnim, { toValue: 1, duration: 260, useNativeDriver: true }),
-          Animated.delay(550),
-          Animated.timing(clearEffectAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
-        ]),
-        Animated.timing(clearRippleAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
-      ]).start(({ finished }) => {
+      clearWaveAnim.setValue(0);
+      const waveSteps = (size - 1) * 2 + 3;
+      Animated.timing(clearWaveAnim, {
+        toValue: waveSteps,
+        duration: Math.max(2000, waveSteps * 240),
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
         if (finished) {
           setClearEffectVisible(false);
           setClearVisible(true);
+          clearPopupAnim.setValue(0);
+          Animated.spring(clearPopupAnim, {
+            toValue: 1,
+            friction: 7,
+            tension: 70,
+            useNativeDriver: true,
+          }).start();
         }
       });
       if (!clearTime) setClearTime(Date.now());
@@ -523,7 +626,7 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
         }
       });
     }
-  }, [board, puzzle, isEnglish, clearTime, clearEffectAnim, clearRippleAnim]);
+  }, [board, puzzle, isEnglish, clearTime, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
     setSelectedViolation(null);
@@ -578,17 +681,17 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
     setClearTime(null);
     setViolations([]);
     setClearVisible(false);
+    clearPopupAnim.stopAnimation();
+    clearPopupAnim.setValue(0);
     setClearEffectVisible(false);
     clearTriggeredRef.current = false;
-    clearEffectAnim.stopAnimation();
-    clearEffectAnim.setValue(0);
-    clearRippleAnim.stopAnimation();
-    clearRippleAnim.setValue(0);
+    clearWaveAnim.stopAnimation();
+    clearWaveAnim.setValue(0);
     setHighlightedCells([]);
     setSelectedViolation(null);
     setLockedCells({});
     setHintMode(false);
-  }, [puzzle, clearEffectAnim]);
+  }, [puzzle, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
     if (clearTime) return undefined;
@@ -623,13 +726,21 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             <TouchableOpacity style={styles.iconBtn} onPress={reset} testID="reset-level" ref={r => registerRef('reset-level', r)}>
               <ResetButton />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={onOptions}>
+            <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={() => {
+              setShowOptions(true);
+              optionsPopupAnim.setValue(0);
+              Animated.spring(optionsPopupAnim, {
+                toValue: 1,
+                friction: 7,
+                tension: 60,
+                useNativeDriver: true,
+              }).start();
+            }}>
               <SettingsButton />
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.stopwatch}>
+      <View style={styles.stopwatch}>
           <View style={styles.stopwatchIcon}>
             <Ionicons name="time-outline" size={20} color="#fff" />
           </View>
@@ -723,8 +834,18 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
             const cellElements = [];
             for (let r = 0; r < size; r++) {
               for (let c = 0; c < size; c++) {
+                const clearEffectIndex = r + c;
                 cellElements.push(
-                  <View key={`cell-${r}-${c}`} style={{ position: 'absolute', left: xs[c], top: ys[r], width: cellSize, height: cellSize }}>
+                  <View
+                    key={`cell-${r}-${c}`}
+                    style={[
+                      { position: 'absolute', left: xs[c], top: ys[r], width: cellSize, height: cellSize },
+                      clearEffectVisible && {
+                        zIndex: 1000 - clearEffectIndex,
+                        elevation: 1000 - clearEffectIndex,
+                      },
+                    ]}
+                  >
                     <BoardCell
                       rowIdx={r}
                       colIdx={c}
@@ -741,6 +862,9 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                       puzzle={puzzle}
                       cellRef={cellRefs.current[r][c]}
                       dotResetKey={dotResetKey}
+                      clearEffectVisible={clearEffectVisible}
+                      clearEffectIndex={clearEffectIndex}
+                      clearWaveAnim={clearWaveAnim}
                     />
                   </View>
                 );
@@ -759,40 +883,6 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
               </View>
             );
           })()}
-          {clearEffectVisible && (
-            <View pointerEvents="auto" style={styles.clearBoardEffect}>
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.clearBoardGlow, {
-                  opacity: clearEffectAnim.interpolate({
-                    inputRange: [0, 0.25, 0.7, 1],
-                    outputRange: [0, 0.95, 0.55, 0],
-                  }),
-                  transform: [{
-                    scale: clearEffectAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.04],
-                    }),
-                  }],
-                }]}
-              />
-              <Animated.View
-                pointerEvents="none"
-                style={[styles.clearBoardRipple, {
-                  opacity: clearRippleAnim.interpolate({
-                    inputRange: [0, 0.35, 1],
-                    outputRange: [0.9, 0.5, 0],
-                  }),
-                  transform: [{
-                    scale: clearRippleAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.8, 7.5],
-                    }),
-                  }],
-                }]}
-              />
-            </View>
-          )}
         </View>
 
 {(() => {
@@ -853,8 +943,35 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
         })()}
 
         {clearVisible && (
-          <View style={styles.overlay}>
-            <View style={styles.clearCard}>
+          <Animated.View
+            style={[styles.overlay, {
+              opacity: clearPopupAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            }]}
+          >
+            <Animated.View
+              style={[styles.clearCard, {
+                opacity: clearPopupAnim.interpolate({
+                  inputRange: [0, 0.35, 1],
+                  outputRange: [0, 0.9, 1],
+                }),
+                transform: [
+                  {
+                    translateY: clearPopupAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [32, 0],
+                    }),
+                  },
+                  {
+                    scale: clearPopupAnim.interpolate({
+                      inputRange: [0, 0.7, 1],
+                      outputRange: [0.82, 1.04, 1],
+                    }),
+                  },
+                ],
+              }]}>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setClearVisible(false)}>
                 <Ionicons name="close" size={20} color="#8a96a3" />
               </TouchableOpacity>
@@ -878,8 +995,8 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
                 <Text style={styles.clearBtnText}>LEVELS</Text>
                 <Ionicons name="arrow-forward" size={18} color="#fff" />
               </TouchableOpacity>
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
         )}
         </View>
       </Animated.View>
@@ -909,11 +1026,59 @@ export default function GameScreen({ puzzle, onBack, onOptions }) {
           />
         </View>
       )}
+      {showOptions && (
+        <Animated.View
+          style={[styles.optionsOverlay, {
+            opacity: optionsPopupAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 1],
+            }),
+          }]}
+          onStartShouldSetResponder={() => true}
+          onResponderRelease={closeOptions}
+        >
+          <Animated.View
+            style={[styles.optionsCardWrap, {
+              transform: [
+                {
+                  translateY: optionsPopupAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [32, 0],
+                  }),
+                },
+                {
+                  scale: optionsPopupAnim.interpolate({
+                    inputRange: [0, 0.7, 1],
+                    outputRange: [0.82, 1.04, 1],
+                  }),
+                },
+              ],
+            }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <OptionsScreen
+              embedded
+              onClose={closeOptions}
+              onChangeBgm={onChangeBgm}
+              renderToast={false}
+            />
+          </Animated.View>
+        </Animated.View>
+      )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  optionsOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(27, 42, 58, 0.38)',
+    justifyContent: 'center', alignItems: 'center',
+    zIndex: 2000, elevation: 2000, padding: 24,
+  },
+  optionsCardWrap: {
+    width: '100%', maxWidth: 420, alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#dde4ed',
@@ -1130,20 +1295,7 @@ const styles = StyleSheet.create({
   violationTextWrap: { flex: 1 },
   violationTitle: { color: '#2c3e50', fontWeight: '800', fontSize: 15, marginBottom: 2 },
   violationDesc: { color: '#8a96a3', fontSize: 13, fontWeight: '500' },
-  clearBoardEffect: {
-    position: 'absolute', top: -8, left: -8, right: -8, bottom: -8,
-    justifyContent: 'center', alignItems: 'center', zIndex: 30, elevation: 30,
-  },
-  clearBoardGlow: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    borderRadius: 24, borderWidth: 5, borderColor: '#ffd34e',
-    shadowColor: '#ffd34e', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 18, elevation: 10,
-  },
-  clearBoardRipple: {
-    width: 72, height: 72, borderRadius: 36,
-    borderWidth: 5, borderColor: 'rgba(255,211,78,0.95)',
-    shadowColor: '#ffd34e', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
-  },
+
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(27, 42, 58, 0.18)',
