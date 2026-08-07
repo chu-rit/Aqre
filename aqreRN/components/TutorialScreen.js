@@ -1003,8 +1003,8 @@ const TutorialScreen = ({
                     <View style={styles.speechBubbleTriangle} />
                     <TypeWriterText
                       text={language === 'en'
-                        ? (currentStepData.textEn || currentStepData.text || "Hello, Doctor. I'm Aqre, your assistant nurse.")
-                        : (currentStepData.text || '안녕하세요. 선생님! 저는 선생님을 보조할 간호사 아크라입니다.')}
+                        ? (currentStepData.textEn || currentStepData.text || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")
+                        : (currentStepData.text || '안녕하세요. 저는 퍼즐을 푸는 것을 도울 AI 로봇 아크입니다.')}
                       style={styles.tooltipText}
                       onTypingDone={() => setShowNextButton(!!currentStepData.showNextButton)}
                     />

@@ -121,7 +121,7 @@ export const tutorialSteps = {
     },
     {
       text: '퍼즐판을 보시면, 색칠된 칸이 연결되어 있지 않고 서로 떨어져 있습니다.',
-      textEn: 'As you can see, the active (gray) neurons are split into three separate groups.',
+      textEn: 'As you can see, the colored cells are not connected and are separated from each other.',
       highlight: {
         cells: [
           [
@@ -199,7 +199,7 @@ export const tutorialSteps = {
   'level26000003': [
     {
       text: '마지막 세 번째 규칙은 4연속 금지 규칙입니다. 룰 체크에서 4연속 규칙을 눌러 볼까요?',
-      textEn: 'The final third rule is the No Four rule. Select the No Four rule in Rule Check.',
+      textEn: 'The third and final rule is the No Four rule. Let\'s tap it in the Rule Check.',
       highlight: {
         selectors: ['data-testid=rule-card-seq'],
       },
@@ -238,7 +238,7 @@ export const tutorialSteps = {
     },
     {
       text: '또한 이미 색칠된 칸들과 연결되어야 하므로, 표시된 칸을 색칠해 볼까요?',
-      textEn: 'It must also remain connected to the colored cells, so color the highlighted cell.',
+      textEn: 'It also needs to connect to the already colored cells, so let\'s color the highlighted cell.',
       highlight: {
         cells: [
             {row: 0, col: 1}
@@ -326,7 +326,7 @@ export const tutorialSteps = {
   'level26000005': [
     {
       text: '드디어 마지막 튜토리얼입니다.',
-      textEn: 'Finally, the last tutorial.',
+      textEn: 'This is the final tutorial.',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -340,7 +340,7 @@ export const tutorialSteps = {
     },
     {
       text: '임시로 힌트를 열어드릴테니 눌러보실까요?',
-      textEn: 'Let\'s open the hint temporarily. Would you like to press it?',
+      textEn: 'I\'ll temporarily enable the hint button for you. Why don\'t you tap it?',
       highlight: {
         selectors: ['[data-testid="hint"]', '#hint-button']
       },
@@ -413,7 +413,7 @@ export const tutorialSteps = {
     },
     {
       text: '카드를 집고 왼쪽으로 밀어 다음 레벨로 이동하세요.',
-      textEn: 'Swipe the level card left or right. Swipe right for the next series and left for the previous one.',
+      textEn: 'Swipe the card left to move to the next series.',
       highlight: {
         selectors: ['data-testid=level-card'],
         padding: 50
