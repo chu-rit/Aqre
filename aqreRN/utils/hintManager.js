@@ -71,8 +71,13 @@ export function createApplyHintCell(
   addHintPoints,
   showTutorial,
   tutorialStep,
+  masterModeRef = { current: false },
 ) {
   return async (r, c) => {
+    const isMasterHint = masterModeRef.current;
+    if (board[r][c] === 2) {
+      return;
+    }
     try {
       const correctValue = getSolutionCell(puzzleId, r, c);
       if (correctValue === null) {
@@ -88,10 +93,10 @@ export function createApplyHintCell(
         return next;
       });
       setMoveCount(n => n + 1);
-      if (!(showTutorial && puzzleId === 26000005 && tutorialStep === 2)) {
+      if (!isMasterHint && !(showTutorial && puzzleId === 26000005 && tutorialStep === 2)) {
         addHintPoints(-1);
       }
-      setHintMode(false);
+      if (!isMasterHint) setHintMode(false);
       setLockedCells(prev => ({ ...prev, [`${r}-${c}`]: true }));
       const isEnglish = await getIsEnglish();
       showToast(isEnglish ? `Hint: Row ${r + 1}, Col ${c + 1} revealed.` : `힌트: ${r + 1}행 ${c + 1}열을 확인했습니다.`);

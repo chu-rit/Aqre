@@ -458,6 +458,8 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
   const [hintPoints, setHintPoints] = useState(0);
   const [hintMode, setHintMode] = useState(false);
+  const [masterMode, setMasterMode] = useState(false);
+  const masterHintModeRef = useRef(false);
   const [language, setLanguage] = useState(() => {
     const locales = Localization.getLocales();
     const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
@@ -596,6 +598,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
     AsyncStorage.getItem('options').then(json => {
       if (json) {
         const options = JSON.parse(json);
+        setMasterMode(!!options.masterMode);
         if (options.language === 'ko' || options.language === 'en') {
           setLanguage(options.language);
           return;
@@ -681,7 +684,10 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   }, [clearEffectVisible, clearVisible]);
 
   const useHint = useCallback(
-    createUseHint(hintPoints, addHintPoints, setHintMode),
+    () => {
+      masterHintModeRef.current = false;
+      createUseHint(hintPoints, addHintPoints, setHintMode)();
+    },
     [hintPoints, addHintPoints]
   );
 
@@ -696,8 +702,9 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
       addHintPoints,
       showTutorial,
       tutorialStep,
+      masterHintModeRef,
     ),
-    [board, puzzle.id, addHintPoints, showTutorial, tutorialStep]
+    [board, puzzle.id, addHintPoints, showTutorial, tutorialStep, masterHintModeRef]
   );
 
   const reset = useCallback(() => {
@@ -776,6 +783,11 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
           <TouchableOpacity
             style={[styles.hintButton, hintMode && styles.hintButtonActive]}
             onPress={showTutorial && puzzle.id === 26000005 && tutorialStep === 2 ? () => setHintMode(prev => !prev) : useHint}
+            onLongPress={masterMode ? () => {
+              masterHintModeRef.current = !hintMode;
+              setHintMode(prev => !prev);
+            } : undefined}
+            delayLongPress={500}
             testID="hint"
             nativeID="hint-button"
             ref={r => registerRef('hint', r)}
