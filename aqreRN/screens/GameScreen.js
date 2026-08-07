@@ -458,7 +458,11 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   const [hasCompletedTutorialsWithoutSkipping, setHasCompletedTutorialsWithoutSkipping] = useState(false);
   const [hintPoints, setHintPoints] = useState(0);
   const [hintMode, setHintMode] = useState(false);
-  const [language, setLanguage] = useState('ko');
+  const [language, setLanguage] = useState(() => {
+    const locales = Localization.getLocales();
+    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
+  });
   const isEnglish = language === 'en';
 
   const [dotResetKey, setDotResetKey] = useState(0);

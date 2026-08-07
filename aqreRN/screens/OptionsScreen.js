@@ -83,7 +83,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [language, setLanguage] = useState('ko');
+  const [language, setLanguage] = useState(getDeviceLanguage);
   const [masterModeReady, setMasterModeReady] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
   const isEnglish = language === 'en';

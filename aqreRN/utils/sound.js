@@ -13,6 +13,7 @@ try {
 } catch (e) {}
 
 let bgmPlayer = null;
+let isBGMLoading = false;
 let soundEnabled = true;
 let bgmEnabled = true;
 let soundVolume = 1.0;
@@ -63,15 +64,26 @@ export async function loadSoundSettings() {
 export async function initBGM() {
   if (!bgmEnabled) return;
   if (await isSilentMode()) return;
+  if (isBGMLoading) return;
+  if (bgmPlayer) {
+    try { await bgmPlayer.playAsync(); } catch (e) {}
+    return;
+  }
+  isBGMLoading = true;
   try {
-    if (bgmPlayer) await bgmPlayer.unloadAsync();
     const { sound } = await Audio.Sound.createAsync(
       require('../assets/bgm.mp3'),
       { shouldPlay: true, isLooping: true, volume: bgmVolume }
     );
-    bgmPlayer = sound;
+    if (bgmPlayer) {
+      await sound.unloadAsync();
+    } else {
+      bgmPlayer = sound;
+    }
   } catch (e) {
     console.log('BGM init error:', e);
+  } finally {
+    isBGMLoading = false;
   }
 }
 

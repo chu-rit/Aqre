@@ -100,7 +100,11 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
   const [masterMode, setMasterMode] = useState(false);
-  const [language, setLanguage] = useState('ko');
+  const [language, setLanguage] = useState(() => {
+    const locales = Localization.getLocales();
+    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
+  });
   const isEnglish = language === 'en';
   const carouselRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
