@@ -103,7 +103,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
   const [masterMode, setMasterMode] = useState(false);
-  const [language, setLanguage] = useState(() => {
+  const [language] = useState(() => {
     const locales = Localization.getLocales();
     const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
     return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
@@ -171,17 +171,6 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
       if (optionsJson) {
         const options = JSON.parse(optionsJson);
         setMasterMode(!!options.masterMode);
-        if (options.language === 'ko' || options.language === 'en') {
-          setLanguage(options.language);
-        } else {
-          const locales = Localization.getLocales();
-          const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-          setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
-        }
-      } else {
-        const locales = Localization.getLocales();
-        const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-        setLanguage(String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en');
       }
       const savedPage = await AsyncStorage.getItem('levelCurrentPage');
       if (savedPage !== null) {

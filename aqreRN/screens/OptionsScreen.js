@@ -83,7 +83,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [language, setLanguage] = useState(getDeviceLanguage);
+  const [language] = useState(getDeviceLanguage);
   const [masterModeReady, setMasterModeReady] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
   const isEnglish = language === 'en';
@@ -108,17 +108,6 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
           if (typeof p.bgmVolumeStep === 'number') setBgmVolumeState(p.bgmVolumeStep);
           if (typeof p.vibrationEnabled === 'boolean') setVibrationEnabled(p.vibrationEnabled);
           if (p.masterMode) setMasterMode(true);
-          if (p.language === 'ko' || p.language === 'en') {
-            setLanguage(p.language);
-          } else {
-            const deviceLanguage = getDeviceLanguage();
-            setLanguage(deviceLanguage);
-            await AsyncStorage.setItem('options', JSON.stringify({ ...p, language: deviceLanguage }));
-          }
-        } else {
-          const deviceLanguage = getDeviceLanguage();
-          setLanguage(deviceLanguage);
-          await AsyncStorage.setItem('options', JSON.stringify({ language: deviceLanguage }));
         }
       } catch {}
     };
@@ -219,26 +208,6 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
               trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
               thumbColor="#fff"
             />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Language' : '언어'}</Text>
-            <View style={styles.languageSelector}>
-              <TouchableOpacity
-                style={[styles.languageButton, language === 'ko' && styles.languageButtonActive]}
-                onPress={() => { playTap(); setLanguage('ko'); saveMultiple({ language: 'ko' }); }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.languageButtonText, language === 'ko' && styles.languageButtonTextActive]} selectable={false}>{isEnglish ? 'Korean' : '한국어'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
-                onPress={() => { playTap(); setLanguage('en'); saveMultiple({ language: 'en' }); }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]} selectable={false}>English</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
 
@@ -401,28 +370,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1, backgroundColor: 'rgba(0,0,0,0.07)', marginHorizontal: 16,
-  },
-  languageSelector: {
-    flexDirection: 'row',
-    padding: 3,
-    borderRadius: 10,
-    backgroundColor: '#d9e5f1',
-  },
-  languageButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  languageButtonActive: {
-    backgroundColor: '#3b82c4',
-  },
-  languageButtonText: {
-    color: '#58708a',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  languageButtonTextActive: {
-    color: '#fff',
   },
   dangerBtn: {
     paddingVertical: 14,

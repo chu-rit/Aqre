@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Localization from 'expo-localization';
 import { getSolutionCell } from '../src/logic/hints';
 import { showToast } from '../components/Toast';
 import { playTap } from '../utils/sound';
@@ -7,11 +8,11 @@ import { showTestRewardedAd } from '../utils/ads';
 
 async function getIsEnglish() {
   try {
-    const json = await AsyncStorage.getItem('options');
-    const options = json ? JSON.parse(json) : {};
-    return options.language === 'en';
+    const locales = Localization.getLocales();
+    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+    return !String(locale).toLowerCase().startsWith('ko');
   } catch {
-    return false;
+    return true;
   }
 }
 

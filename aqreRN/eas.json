@@ -9,7 +9,8 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "autoIncrement": true
     },
     "apk": {
       "distribution": "internal",
@@ -22,6 +23,15 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6797718009"
+      }
+    },
+    "preview": {
+      "ios": {
+        "ascAppId": "6797718009"
+      }
+    }
   }
 }

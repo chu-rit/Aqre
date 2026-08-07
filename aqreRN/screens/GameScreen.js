@@ -460,7 +460,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   const [hintMode, setHintMode] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
   const masterHintModeRef = useRef(false);
-  const [language, setLanguage] = useState(() => {
+  const [language] = useState(() => {
     const locales = Localization.getLocales();
     const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
     return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
@@ -599,15 +599,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
       if (json) {
         const options = JSON.parse(json);
         setMasterMode(!!options.masterMode);
-        if (options.language === 'ko' || options.language === 'en') {
-          setLanguage(options.language);
-          return;
-        }
       }
-      const locales = Localization.getLocales();
-      const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-      const detected = String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
-      setLanguage(detected);
     });
   }, []);
 

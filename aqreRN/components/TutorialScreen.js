@@ -128,10 +128,10 @@ const TutorialScreen = ({
   bottomInset = 0,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [language, setLanguage] = useState(() => {
+  const [language] = useState(() => {
     const locales = Localization.getLocales();
     const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-    return String(locale).toLowerCase().startsWith('en') ? 'en' : 'ko';
+    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
   });
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -234,17 +234,6 @@ const TutorialScreen = ({
     (!step.hintRewardKey || !claimedRewards[step.hintRewardKey])
   ));
   const currentStepData = currentLevelSteps[currentStep] || {};
-
-  useEffect(() => {
-    const loadLanguage = async () => {
-      try {
-        const json = await AsyncStorage.getItem('options');
-        const options = json ? JSON.parse(json) : {};
-        setLanguage(options.language === 'en' ? 'en' : 'ko');
-      } catch {}
-    };
-    loadLanguage();
-  }, []);
 
   // 스텝 변경/표시 상태 변경 시, 스텝 진입과 동시에 차단/버튼 노출 상태를 반영
   // (텍스트 타이핑 완료를 기다리지 않고 즉시 적용)
