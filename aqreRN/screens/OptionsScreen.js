@@ -140,6 +140,9 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
         await AsyncStorage.removeItem('completedTutorials');
         await AsyncStorage.removeItem('skippedTutorials');
         await AsyncStorage.removeItem('levelSwipeTutorialShown');
+        await AsyncStorage.removeItem('basicTutorialsCompletedDate');
+        await AsyncStorage.removeItem('lastDailyEventDate');
+        await AsyncStorage.removeItem('claimedHintRewards');
         if (masterModeReady) {
           const json = await AsyncStorage.getItem('options');
           const current = json ? JSON.parse(json) : {};
@@ -240,7 +243,23 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity style={styles.dangerBtn} onPress={() => { playTap(); clearAllData(); }}>
+          <TouchableOpacity
+            style={styles.dangerBtn}
+            onPress={() => { playTap(); clearAllData(); }}
+            delayLongPress={1500}
+            onLongPress={async () => {
+              if (!masterMode) return;
+              const todayStr = new Date().toDateString();
+              const yesterday = new Date(Date.now() - 86400000).toDateString();
+              await AsyncStorage.setItem('basicTutorialsCompletedDate', yesterday);
+              await AsyncStorage.removeItem('lastDailyEventDate');
+              const claimedJson = await AsyncStorage.getItem('claimedHintRewards');
+              const claimed = claimedJson ? JSON.parse(claimedJson) : {};
+              delete claimed[`daily-event-reward-${todayStr}`];
+              await AsyncStorage.setItem('claimedHintRewards', JSON.stringify(claimed));
+              showToast(isEnglish ? 'Daily event has been reset.' : '데일리 이벤트를 초기화하였습니다.');
+            }}
+          >
             <Text style={styles.dangerBtnText} selectable={false}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
           </TouchableOpacity>
         </View>

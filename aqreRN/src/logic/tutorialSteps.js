@@ -421,6 +421,25 @@ export const tutorialSteps = {
       condition: null,
       showNextButton: false
     }
+  ],
+
+  dailyEvent: [
+    {
+      text: '오늘도 접속해주셨군요! 환영합니다.',
+      textEn: 'Welcome back today! It\'s great to see you.',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    },
+    {
+      hintPoints: 1,
+      hintRewardKey: `daily-event-reward-${new Date().toDateString()}`,
+      text: '게임 플레이를 응원하기 위해 작은 선물을 준비했습니다. 오늘도 즐거운 시간 보내세요!',
+      textEn: 'Here is a small gift to support your gameplay. Have a great time solving puzzles today!',
+      highlight: null,
+      condition: null,
+      showNextButton: true
+    }
   ]
 };
 

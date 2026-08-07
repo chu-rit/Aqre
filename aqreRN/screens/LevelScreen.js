@@ -19,6 +19,7 @@ import TutorialScreen, { handleSkipTutorial } from '../components/TutorialScreen
 import OptionsScreen from './OptionsScreen';
 import { getTutorialStepsByLevel, tutorialSteps } from '../src/logic/tutorialSteps';
 import { playTap } from '../utils/sound';
+import { createAddHintPoints } from '../utils/hintManager';
 import { registerRef } from '../utils/refRegistry';
 import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground } from 'react-native';
@@ -91,6 +92,8 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   const [showOptions, setShowOptions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
+  const [showDailyTutorial, setShowDailyTutorial] = useState(false);
+  const addHintPoints = useCallback(createAddHintPoints(() => {}), []);
   const [swipeTutorialStep, setSwipeTutorialStep] = useState(0);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [loaded, setLoaded] = useState(false);
@@ -146,6 +149,24 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
       if (completedInitialTutorial && swipeTutorialShown !== 'true') {
         setShowSwipeTutorial(true);
       }
+
+      if (completedInitialTutorial) {
+        const todayStr = new Date().toDateString();
+        const completedDateStr = await AsyncStorage.getItem('basicTutorialsCompletedDate');
+        
+        if (!completedDateStr) {
+           await AsyncStorage.setItem('basicTutorialsCompletedDate', todayStr);
+        } else if (completedDateStr !== todayStr) {
+           const lastDailyDate = await AsyncStorage.getItem('lastDailyEventDate');
+           const claimedJson = await AsyncStorage.getItem('claimedHintRewards');
+           const claimed = claimedJson ? JSON.parse(claimedJson) : {};
+           const todayRewardKey = `daily-event-reward-${todayStr}`;
+           if (lastDailyDate !== todayStr && !claimed[todayRewardKey]) {
+             setShowDailyTutorial(true);
+           }
+        }
+      }
+
       const optionsJson = await AsyncStorage.getItem('options');
       if (optionsJson) {
         const options = JSON.parse(optionsJson);
@@ -203,6 +224,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
 
   const completeSwipeTutorial = async () => {
     await AsyncStorage.setItem('levelSwipeTutorialShown', 'true');
+    await AsyncStorage.setItem('basicTutorialsCompletedDate', new Date().toDateString());
     setShowSwipeTutorial(false);
   };
 
@@ -322,6 +344,8 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
       AsyncStorage.setItem('clearedPuzzles', JSON.stringify(updatedClearedPuzzles)),
       AsyncStorage.setItem('completedTutorials', JSON.stringify(completedTutorials)),
       AsyncStorage.setItem('skippedTutorials', JSON.stringify(skippedTutorials)),
+      AsyncStorage.setItem('levelSwipeTutorialShown', 'true'),
+      AsyncStorage.setItem('basicTutorialsCompletedDate', new Date().toDateString()),
     ]);
     setClearedPuzzles(updatedClearedPuzzles);
     setShowTutorial(false);
@@ -651,6 +675,27 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
             levelId="levelSwipe"
             steps={getTutorialStepsByLevel('levelSwipe')}
             onStepChange={setSwipeTutorialStep}
+            bottomInset={insets.bottom}
+          />
+        </View>
+      )}
+      {showDailyTutorial && (
+        <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, elevation: 50 }}>
+          <TutorialScreen
+            isVisible={showDailyTutorial}
+            onClose={async () => {
+              playTap();
+              await AsyncStorage.setItem('lastDailyEventDate', new Date().toDateString());
+              setShowDailyTutorial(false);
+            }}
+            onSkip={async () => {
+              playTap();
+              await AsyncStorage.setItem('lastDailyEventDate', new Date().toDateString());
+              setShowDailyTutorial(false);
+            }}
+            levelId="dailyEvent"
+            steps={getTutorialStepsByLevel('dailyEvent')}
+            onGrantHintPoints={addHintPoints}
             bottomInset={insets.bottom}
           />
         </View>

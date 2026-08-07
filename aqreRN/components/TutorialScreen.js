@@ -128,7 +128,11 @@ const TutorialScreen = ({
   bottomInset = 0,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [language, setLanguage] = useState(Localization.locale.startsWith('en') ? 'en' : 'ko');
+  const [language, setLanguage] = useState(() => {
+    const locales = Localization.getLocales();
+    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
+    return String(locale).toLowerCase().startsWith('en') ? 'en' : 'ko';
+  });
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
