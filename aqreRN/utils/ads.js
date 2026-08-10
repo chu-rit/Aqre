@@ -19,12 +19,12 @@ try {
 
 const AD_UNIT_IDS = {
   interstitial: {
-    android: 'ca-app-pub-3940256099942544/1033173712',
-    ios: 'ca-app-pub-3940256099942544/4411468910',
+    android: 'ca-app-pub-4086309578344734/7854843780',
+    ios: 'ca-app-pub-4086309578344734/9436679883',
   },
   rewarded: {
-    android: 'ca-app-pub-3940256099942544/5224354917',
-    ios: 'ca-app-pub-3940256099942544/1712485313',
+    android: 'ca-app-pub-4086309578344734/5406201465',
+    ios: 'ca-app-pub-4086309578344734/8962303096',
   },
 };
 
