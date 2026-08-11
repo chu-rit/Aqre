@@ -7,16 +7,22 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Platform,
 } from 'react-native';
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 import { StatusBar } from 'expo-status-bar';
 import { initializeAds } from '../utils/ads';
 import { loadSoundSettings, initBGM } from '../utils/sound';
+import { scaleStyles } from '../utils/responsive';
 
 
 const { width, height } = Dimensions.get('window');
 const aspectRatio = height / width;
 const is16x9 = aspectRatio >= 1.6 && aspectRatio <= 1.85;
+const isTablet = Platform.isPad || width > 600;
+const startBg = isTablet
+  ? require('../assets/tablet/start.png')
+  : require('../assets/mobile/start.png');
 
 const LOADING_DURATION = 2500;
 
@@ -100,7 +106,7 @@ export default function StartScreen({ onStart }) {
     <View style={styles.container}>
       <StatusBar style="dark" />
       <Image
-        source={require('../assets/img/Loading.png')}
+        source={startBg}
         style={styles.bgImage}
       />
       {!loaded && (
@@ -130,7 +136,7 @@ export default function StartScreen({ onStart }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(scaleStyles({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
@@ -174,7 +180,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   logo: {
-    width: 220,
+    width: width / 2,
     height: 80,
     resizeMode: 'contain',
     marginTop: 20,
@@ -223,4 +229,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 2.5,
   },
-});
+}));

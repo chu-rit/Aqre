@@ -28,6 +28,7 @@ import {
   createApplyHintCell,
 } from '../utils/hintManager';
 import { registerRef } from '../utils/refRegistry';
+import { scaleStyles, UI_SCALE } from '../utils/responsive';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,7 +51,9 @@ function getPuzzleTitle(puzzle) {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const BOARD_SIZE = Math.min(SCREEN_WIDTH - 32, 480);
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const BOARD_PADDING = 16;
+const BOARD_SIZE = Math.min(SCREEN_WIDTH - BOARD_PADDING * 2, SCREEN_HEIGHT * 0.6);
 const LOCK_HOLD_DURATION = 1000;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -126,8 +129,9 @@ function checkGameRules(board, puzzle, isEnglish) {
   return Array.from(violationMessages).map(m => JSON.parse(m));
 }
 
-const GAP = 14;
-const AREA_GAP = 6;
+const REFERENCE_BOARD_SIZE = 480;
+const GAP = Math.round(14 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
+const AREA_GAP = Math.round(6 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
 
 function getViolationMeta(type, isEnglish) {
   if (type === 'area_overflow' || type === 'area_underflow') {
@@ -790,9 +794,9 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
           </TouchableOpacity>
         </View>
 
-        <View style={styles.boardWrapper} testID="board" ref={r => registerRef('board', r)}>
+        <View style={[styles.boardWrapper, { width: BOARD_SIZE, height: BOARD_SIZE }]} testID="board" ref={r => registerRef('board', r)}>
           {(() => {
-            const pad = 14;
+            const pad = Math.round(14 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
             const cellSize = (BOARD_SIZE - pad * 2 - GAP * (size - 1)) / size;
             const LINE_OFFSET = GAP / 2;
             const xs = [];
@@ -803,7 +807,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
             for (let r = 0; r < size; r++) { ys.push(cy); cy += cellSize + GAP; }
             // Build SVG path for area boundaries - draw each area's outline edges
             const LINE_COLOR = '#acd4f5';
-            const STROKE_W = 6;
+            const STROKE_W = Math.round(6 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
             const round = v => Math.round(v * 10) / 10;
             const inArea = (r, c, a) => r >= 0 && r < size && c >= 0 && c < size && areaMap[r][c] === a;
 
@@ -1099,7 +1103,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(scaleStyles({
   optionsOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(27, 42, 58, 0.38)',
@@ -1211,13 +1215,12 @@ const styles = StyleSheet.create({
     padding: 0,
     borderRadius: 16,
     overflow: 'visible',
-    width: BOARD_SIZE,
-    height: BOARD_SIZE,
     alignSelf: 'center',
     marginTop: 16,
   },
   violationSection: {
-    marginHorizontal: 16,
+    width: BOARD_SIZE,
+    alignSelf: 'center',
     marginTop: 16,
     marginBottom: 8,
     backgroundColor: '#f0f4f8',
@@ -1365,4 +1368,4 @@ const styles = StyleSheet.create({
     shadowColor: '#4a90d9', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.24, shadowRadius: 9, elevation: 4,
   },
   clearBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-});
+}));

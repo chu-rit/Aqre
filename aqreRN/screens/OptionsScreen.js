@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap, setVibrationEnabled as setGlobalVibrationEnabled } from '../utils/sound';
+import { scaleStyles } from '../utils/responsive';
 
 const VOLUME_STEPS = [0, 0.1, 0.25, 0.5, 0.75, 1.0];
 const STEP_WIDTH = 18;
@@ -271,7 +272,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(scaleStyles({
   container: {
     flex: 1,
     backgroundColor: '#dde4ed',
@@ -391,4 +392,4 @@ const styles = StyleSheet.create({
   creditLine: {
     fontSize: 14, color: '#6b7c8d', fontWeight: '500', lineHeight: 22,
   },
-});
+}));

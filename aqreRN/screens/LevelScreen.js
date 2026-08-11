@@ -21,6 +21,7 @@ import { getTutorialStepsByLevel, tutorialSteps } from '../src/logic/tutorialSte
 import { playTap } from '../utils/sound';
 import { createAddHintPoints } from '../utils/hintManager';
 import { registerRef } from '../utils/refRegistry';
+import { scaleStyles } from '../utils/responsive';
 import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -30,6 +31,10 @@ import * as Localization from 'expo-localization';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const LEVELS_PER_ROW = 5;
+const isTablet = Platform.isPad || SCREEN_WIDTH > 600;
+const bg1Image = isTablet
+  ? require('../assets/tablet/bg1.png')
+  : require('../assets/mobile/bg1.png');
 
 const AnimatedCheckmark = ({ isNew }) => {
   const scale = useRef(new Animated.Value(isNew ? 1 : 1)).current;
@@ -57,7 +62,7 @@ const AnimatedCheckmark = ({ isNew }) => {
   }, [isNew]);
   return (
     <Animated.View style={[styles.checkmark, { transform: [{ scale }], opacity }]}>
-      <Ionicons name="checkmark" size={16} color="#fff" />
+      <Ionicons name="checkmark" size={Math.floor(LEVEL_BTN_SIZE * 0.25)} color="#fff" />
     </Animated.View>
   );
 };
@@ -66,7 +71,7 @@ const CARD_PADDING = 16 * 2;
 const GRID_PADDING = 0;
 const BTN_MARGIN = 5 * 2;
 const CARD_WIDTH = SCREEN_WIDTH - PAGE_PADDING;
-const LEVEL_BTN_SIZE = Math.min(64, Math.floor((CARD_WIDTH - CARD_PADDING - GRID_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
+const LEVEL_BTN_SIZE = Math.min(isTablet ? 96 : 64, Math.floor((CARD_WIDTH - CARD_PADDING - GRID_PADDING - BTN_MARGIN * LEVELS_PER_ROW) / LEVELS_PER_ROW));
 const REFERENCE_CARD_HEIGHT = 92 + LEVEL_BTN_SIZE * 3;
 const TUTORIAL_SKIP_SIZE = 84;
 const TUTORIAL_SKIP_STROKE = 5;
@@ -523,13 +528,13 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
         {groupData.map((g, i) => {
           const emphasis = Math.max(0, 1 - Math.abs(carouselProgress - i));
           const isHovered = hoveredIndicatorIndex === i;
-          const dotSize = 10 + emphasis * 5 + (isHovered ? 2 : 0);
+          const dotSize = (isTablet ? 15 : 10) + emphasis * (isTablet ? 7 : 5) + (isHovered ? 2 : 0);
           return (
             <TouchableOpacity
               key={g.key}
               style={[
                 styles.indicatorDotWrap,
-                { width: Math.min(56, SCREEN_WIDTH * 0.15) },
+                { width: Math.min(isTablet ? 120 : 56, SCREEN_WIDTH * 0.15) },
                 isHovered && styles.indicatorDotWrapHovered,
               ]}
               onPress={() => { playTap(); handlePageChange(i); }}
@@ -549,7 +554,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
                   },
                 ]}
               />
-              <Text style={[styles.indicatorLabel, { color: g.color, opacity: emphasis }]}>{g.label}</Text>
+              <Text style={[styles.indicatorLabel, { color: g.color, opacity: emphasis }]} numberOfLines={1}>{g.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -558,7 +563,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   };
 
   return (
-    <ImageBackground source={require('../assets/bg1.png')} style={{ flex: 1, width: SCREEN_WIDTH }} resizeMode="cover">
+    <ImageBackground source={bg1Image} style={{ flex: 1, width: SCREEN_WIDTH, height: '100%' }} resizeMode="contain">
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
       <StatusBar style="dark" />
       <View style={styles.header}>
@@ -736,7 +741,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(scaleStyles({
   optionsOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(27, 42, 58, 0.38)',
@@ -984,7 +989,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingBottom: 16,
-    gap: 2,
+    gap: isTablet ? 8 : 2,
     position: 'absolute',
     top: 12,
     left: 0,
@@ -994,7 +999,7 @@ const styles = StyleSheet.create({
   indicatorDotWrap: {
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 0,
+    paddingHorizontal: isTablet ? 6 : 0,
     paddingVertical: 4,
     cursor: 'pointer',
   },
@@ -1002,20 +1007,21 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.12 }],
   },
   indicatorDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: isTablet ? 11 : 7,
+    height: isTablet ? 11 : 7,
+    borderRadius: isTablet ? 6 : 4,
     backgroundColor: '#c5cdd6',
   },
   indicatorDotActive: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    width: isTablet ? 14 : 9,
+    height: isTablet ? 14 : 9,
+    borderRadius: isTablet ? 7 : 5,
   },
   indicatorLabel: {
-    fontSize: 9,
+    fontSize: isTablet ? 13 : 9,
     fontWeight: '800',
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   // 퍼즐 그리드
   row: {
@@ -1054,9 +1060,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: LEVEL_BTN_SIZE * 0.4,
+    height: LEVEL_BTN_SIZE * 0.4,
+    borderRadius: LEVEL_BTN_SIZE * 0.2,
     backgroundColor: '#a8c8e0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1121,4 +1127,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 3,
   },
-});
+}));
