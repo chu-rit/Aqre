@@ -53,7 +53,8 @@ function getPuzzleTitle(puzzle) {
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const BOARD_PADDING = 16;
-const BOARD_SIZE = Math.min(SCREEN_WIDTH - BOARD_PADDING * 2, SCREEN_HEIGHT * 0.6);
+const BOARD_SIZE = Math.round(SCREEN_WIDTH * 0.9);
+const isTablet = Platform.isPad || SCREEN_WIDTH > 600;
 const LOCK_HOLD_DURATION = 1000;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -179,6 +180,8 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   const holdAnim = useRef(new Animated.Value(0)).current;
   const holdGaugeTimer = useRef(null);
   const [isHolding, setIsHolding] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const prevCellRef = useRef(cell);
 
   useEffect(() => {
     Animated.timing(lockAnim, {
@@ -187,6 +190,27 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
       useNativeDriver: true,
     }).start();
   }, [isLocked]);
+
+  useEffect(() => {
+    if (prevCellRef.current !== cell) {
+      prevCellRef.current = cell;
+      flipAnim.setValue(0);
+      Animated.timing(flipAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [cell]);
+
+  const flipRotation = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['0deg', '90deg', '0deg'],
+  });
+  const flipScale = flipAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0.8, 1],
+  });
   const loopRef = useRef(null);
   useEffect(() => {
     dotAnim.stopAnimation();
@@ -236,7 +260,8 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
   const marginBottom = 0;
 
   const bgColor = cell === 0 ? '#f8f9fb' : cell === 1 ? '#3a6b9c' : '#34495e';
-  const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 14] });
+  const dotBaseSize = Math.max(8, Math.round(cellSize * 0.18));
+  const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [dotBaseSize, dotBaseSize * 1.75] });
   const dotOpacity = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
   const clearCellOpacity = !clearEffectVisible || clearEffectIndex == null ? null : clearWaveAnim.interpolate({
     inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
@@ -289,6 +314,11 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
         backgroundColor: bgColor,
         justifyContent: 'center',
         alignItems: 'center',
+        transform: [
+          { perspective: 600 },
+          { rotateY: flipRotation },
+          { scale: flipScale },
+        ],
       }]}
       onPress={isLocked ? undefined : onPress}
       onPressIn={hintMode ? undefined : startHoldProgress}
@@ -377,10 +407,10 @@ const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, ce
         <Animated.View style={{
           position: 'absolute', top: '50%', left: '50%',
           transform: [
-            { translateX: dotSize.interpolate({ inputRange: [8, 14], outputRange: [-4, -7] }) },
-            { translateY: dotSize.interpolate({ inputRange: [8, 14], outputRange: [-4, -7] }) },
+            { translateX: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [-dotBaseSize / 2, -dotBaseSize * 0.875] }) },
+            { translateY: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [-dotBaseSize / 2, -dotBaseSize * 0.875] }) },
           ],
-          width: dotSize, height: dotSize, borderRadius: 7,
+          width: dotSize, height: dotSize, borderRadius: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [dotBaseSize / 2, dotBaseSize * 0.875] }),
           backgroundColor: 'rgba(46,204,113,1)', opacity: dotOpacity,
         }} />
       )}
@@ -959,7 +989,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
                   >
                     <Ionicons
                       name={isViolated ? rule.icon : 'checkmark-circle'}
-                      size={22}
+                      size={isTablet ? 32 : 22}
                       color={isViolated ? '#ef4444' : '#10b981'}
                     />
                     <Text
@@ -1140,7 +1170,7 @@ const styles = StyleSheet.create(scaleStyles({
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#2c3e50', letterSpacing: 0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   stopwatch: {
-    width: BOARD_SIZE,
+    width: SCREEN_WIDTH - 32,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
@@ -1219,7 +1249,7 @@ const styles = StyleSheet.create(scaleStyles({
     marginTop: 16,
   },
   violationSection: {
-    width: BOARD_SIZE,
+    width: SCREEN_WIDTH - 32,
     alignSelf: 'center',
     marginTop: 16,
     marginBottom: 8,
@@ -1245,7 +1275,7 @@ const styles = StyleSheet.create(scaleStyles({
   },
   violationSectionBadgeText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: isTablet ? 20 : 11,
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -1256,17 +1286,17 @@ const styles = StyleSheet.create(scaleStyles({
   },
   violationBox: {
     flexDirection: 'row',
-    gap: 8,
+    gap: isTablet ? 12 : 8,
   },
   violationCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: isTablet ? 10 : 6,
     backgroundColor: '#fff',
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: isTablet ? 16 : 10,
+    paddingHorizontal: isTablet ? 16 : 10,
     borderWidth: 1.5,
     borderColor: 'transparent',
     ...Platform.select({
@@ -1287,7 +1317,7 @@ const styles = StyleSheet.create(scaleStyles({
     backgroundColor: '#f5f9fd',
   },
   violationCardText: {
-    fontSize: 13,
+    fontSize: isTablet ? 22 : 13,
     fontWeight: '700',
     color: '#2c3e50',
     flex: 1,
@@ -1321,13 +1351,13 @@ const styles = StyleSheet.create(scaleStyles({
     borderColor: '#86efac',
   },
   violationIcon: {
-    width: 40, height: 40, borderRadius: 20,
+    width: isTablet ? 56 : 40, height: isTablet ? 56 : 40, borderRadius: isTablet ? 28 : 20,
     justifyContent: 'center', alignItems: 'center',
     marginRight: 14,
   },
   violationTextWrap: { flex: 1 },
-  violationTitle: { color: '#2c3e50', fontWeight: '800', fontSize: 15, marginBottom: 2 },
-  violationDesc: { color: '#8a96a3', fontSize: 13, fontWeight: '500' },
+  violationTitle: { color: '#2c3e50', fontWeight: '800', fontSize: isTablet ? 21 : 15, marginBottom: 2 },
+  violationDesc: { color: '#8a96a3', fontSize: isTablet ? 18 : 13, fontWeight: '500' },
 
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

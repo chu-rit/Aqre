@@ -563,7 +563,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   };
 
   return (
-    <ImageBackground source={bg1Image} style={{ flex: 1, width: SCREEN_WIDTH, height: '100%' }} resizeMode="contain">
+    <ImageBackground source={bg1Image} style={{ flex: 1, width: SCREEN_WIDTH, height: '100%' }} resizeMode="cover">
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
       <StatusBar style="dark" />
       <View style={styles.header}>
