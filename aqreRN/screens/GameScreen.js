@@ -29,6 +29,7 @@ import {
 } from '../utils/hintManager';
 import { registerRef } from '../utils/refRegistry';
 import { scaleStyles, UI_SCALE } from '../utils/responsive';
+import CardCell from '../components/CardCell';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -174,303 +175,12 @@ const ResetButton = () => (
   </Svg>
 );
 
-const BoardCell = React.memo(function BoardCell({ rowIdx, colIdx, cell, size, cellSize, areaMap, areaFilledCounts, isViolation, onPress, onLongPress, isLocked, puzzle, cellRef, dotResetKey, hintMode, clearEffectVisible, clearEffectIndex, clearWaveAnim }) {
-  const dotAnim = useRef(new Animated.Value(0)).current;
-  const lockAnim = useRef(new Animated.Value(0)).current;
-  const holdAnim = useRef(new Animated.Value(0)).current;
-  const holdGaugeTimer = useRef(null);
-  const [isHolding, setIsHolding] = useState(false);
-  const flipAnim = useRef(new Animated.Value(0)).current;
-  const prevCellRef = useRef(cell);
-
-  useEffect(() => {
-    Animated.timing(lockAnim, {
-      toValue: isLocked ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [isLocked]);
-
-  useEffect(() => {
-    if (prevCellRef.current !== cell) {
-      prevCellRef.current = cell;
-      flipAnim.setValue(0);
-      Animated.timing(flipAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [cell]);
-
-  const flipRotation = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '90deg', '0deg'],
-  });
-  const flipScale = flipAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 0.8, 1],
-  });
-  const loopRef = useRef(null);
-  useEffect(() => {
-    dotAnim.stopAnimation();
-    dotAnim.setValue(0);
-    if (loopRef.current) { loopRef.current.stop(); loopRef.current = null; }
-    if (!isViolation) return;
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(dotAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
-      Animated.timing(dotAnim, { toValue: 0, duration: 1500, useNativeDriver: false }),
-    ]));
-    loopRef.current = loop;
-    loop.start();
-    return () => { loop.stop(); dotAnim.stopAnimation(); loopRef.current = null; };
-  }, [isViolation, dotResetKey]);
-
-  const startHoldProgress = () => {
-    holdAnim.stopAnimation();
-    holdAnim.setValue(0);
-    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
-    holdGaugeTimer.current = setTimeout(() => setIsHolding(true), 500);
-    Animated.timing(holdAnim, {
-      toValue: 1,
-      duration: LOCK_HOLD_DURATION,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const stopHoldProgress = () => {
-    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
-    holdGaugeTimer.current = null;
-    holdAnim.stopAnimation();
-    holdAnim.setValue(0);
-    setIsHolding(false);
-  };
-
-  useEffect(() => () => {
-    if (holdGaugeTimer.current) clearTimeout(holdGaugeTimer.current);
-  }, []);
-
-  const areaIdx = areaMap[rowIdx][colIdx];
-  const isAreaBoundaryTop = areaIdx !== -1 && (rowIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx - 1]?.[colIdx]);
-  const isAreaBoundaryBottom = areaIdx !== -1 && (rowIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx + 1]?.[colIdx]);
-  const isAreaBoundaryLeft = areaIdx !== -1 && (colIdx === 0 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx - 1]);
-  const isAreaBoundaryRight = areaIdx !== -1 && (colIdx === size - 1 || areaMap[rowIdx][colIdx] !== areaMap[rowIdx][colIdx + 1]);
-
-  const marginRight = 0;
-  const marginBottom = 0;
-
-  const bgColor = cell === 0 ? '#f8f9fb' : cell === 1 ? '#3a6b9c' : '#34495e';
-  const dotBaseSize = Math.max(8, Math.round(cellSize * 0.18));
-  const dotSize = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [dotBaseSize, dotBaseSize * 1.75] });
-  const dotOpacity = dotAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] });
-  const clearCellOpacity = !clearEffectVisible || clearEffectIndex == null ? null : clearWaveAnim.interpolate({
-    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
-    outputRange: [0, 1, 0],
-    extrapolate: 'clamp',
-  });
-  const clearFlipRotation = !clearEffectVisible || clearEffectIndex == null ? '0deg' : clearWaveAnim.interpolate({
-    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
-    outputRange: ['0deg', '180deg', '360deg'],
-    extrapolate: 'clamp',
-  });
-  const clearBackRotation = !clearEffectVisible || clearEffectIndex == null ? '180deg' : clearWaveAnim.interpolate({
-    inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
-    outputRange: ['180deg', '360deg', '540deg'],
-    extrapolate: 'clamp',
-  });
-  const clearFlipScale = !clearEffectVisible || clearEffectIndex == null ? 1 : clearWaveAnim.interpolate({
-    inputRange: [clearEffectIndex, clearEffectIndex + 0.5, clearEffectIndex + 1, clearEffectIndex + 2],
-    outputRange: [1, 1.5, 1.5, 1],
-    extrapolate: 'clamp',
-  });
-
-  const showLabel = (() => {
-    if (areaIdx === -1) return false;
-    const area = puzzle.areas[areaIdx];
-    if (area.required === 'J') return false;
-    return area.cells[0][0] === rowIdx && area.cells[0][1] === colIdx;
-  })();
-  const areaSatisfied = showLabel && areaFilledCounts[areaIdx] === Number(puzzle.areas[areaIdx].required);
-
-  return (
-    <View style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <Animated.View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          backfaceVisibility: 'hidden',
-          transform: [
-            { perspective: 600 },
-            { scale: clearFlipScale },
-            { rotateY: clearFlipRotation },
-          ],
-        }}
-      >
-        <TouchableOpacity
-      ref={cellRef}
-      style={[{
-        width: '100%', height: '100%',
-        borderRadius: 4,
-        backgroundColor: bgColor,
-        justifyContent: 'center',
-        alignItems: 'center',
-        transform: [
-          { perspective: 600 },
-          { rotateY: flipRotation },
-          { scale: flipScale },
-        ],
-      }]}
-      onPress={isLocked ? undefined : onPress}
-      onPressIn={hintMode ? undefined : startHoldProgress}
-      onPressOut={hintMode ? undefined : stopHoldProgress}
-      onLongPress={onLongPress}
-      delayLongPress={LOCK_HOLD_DURATION}
-      activeOpacity={0.7}
-    >
-      {isHolding && (
-        <Svg
-          pointerEvents="none"
-          width={Math.round(cellSize * 0.72)}
-          height={Math.round(cellSize * 0.72)}
-          style={{ position: 'absolute', zIndex: 15 }}
-        >
-          <Circle
-            cx={Math.round(cellSize * 0.36)}
-            cy={Math.round(cellSize * 0.36)}
-            r={Math.round(cellSize * 0.29)}
-            stroke="rgba(30, 58, 95, 0.22)"
-            strokeWidth={3}
-            fill="none"
-          />
-          <AnimatedCircle
-            cx={Math.round(cellSize * 0.36)}
-            cy={Math.round(cellSize * 0.36)}
-            r={Math.round(cellSize * 0.29)}
-            stroke="#3b82c4"
-            strokeWidth={3}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={2 * Math.PI * Math.round(cellSize * 0.29)}
-            strokeDashoffset={holdAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [2 * Math.PI * Math.round(cellSize * 0.29), 0],
-            })}
-            rotation="-90"
-            origin={`${Math.round(cellSize * 0.36)}, ${Math.round(cellSize * 0.36)}`}
-          />
-        </Svg>
-      )}
-      {isLocked && (
-        <Animated.View style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          justifyContent: 'center',
-          alignItems: 'center',
-          opacity: lockAnim,
-          zIndex: 20,
-        }}>
-          <View style={{
-            width: '100%', height: '100%',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-            <Ionicons name="lock-closed" size={Math.round(cellSize * 0.5)} color="#1e3a5f" />
-          </View>
-        </Animated.View>
-      )}
-      {clearCellOpacity && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 2,
-            left: 2,
-            right: 2,
-            bottom: 2,
-            borderRadius: 5,
-            borderWidth: 3,
-            borderColor: '#ffd34e',
-            backgroundColor: 'rgba(255,211,78,0.16)',
-            opacity: clearCellOpacity,
-            transform: [{
-              scale: clearWaveAnim.interpolate({
-                inputRange: [clearEffectIndex, clearEffectIndex + 1, clearEffectIndex + 2],
-                outputRange: [0.96, 1.05, 0.98],
-                extrapolate: 'clamp',
-              }),
-            }],
-            zIndex: 25,
-          }}
-        />
-      )}
-      {isViolation && (
-        <Animated.View style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: [
-            { translateX: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [-dotBaseSize / 2, -dotBaseSize * 0.875] }) },
-            { translateY: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [-dotBaseSize / 2, -dotBaseSize * 0.875] }) },
-          ],
-          width: dotSize, height: dotSize, borderRadius: dotSize.interpolate({ inputRange: [dotBaseSize, dotBaseSize * 1.75], outputRange: [dotBaseSize / 2, dotBaseSize * 0.875] }),
-          backgroundColor: 'rgba(46,204,113,1)', opacity: dotOpacity,
-        }} />
-      )}
-      {hintMode && cell !== 2 && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 2, left: 2, right: 2, bottom: 2,
-            borderRadius: 4,
-            borderWidth: 2,
-            borderColor: 'rgba(255, 215, 0, 0.7)',
-            zIndex: 5,
-          }}
-        />
-      )}
-      {showLabel && (
-        <View
-          testID={`area-${rowIdx}-${colIdx}`}
-          style={{ position: 'absolute', left: 2, top: 2, zIndex: 10, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <Text style={{
-            color: '#1e3a5f',
-            fontWeight: 'bold',
-            fontSize: Math.min(Math.round(cellSize * 0.4), 24),
-            textShadowColor: areaSatisfied ? '#10b981' : '#fff',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: areaSatisfied ? 4 : 3,
-          }}>
-            {puzzle.areas[areaIdx]?.required}
-          </Text>
-        </View>
-      )}
-        </TouchableOpacity>
-      </Animated.View>
-      <Animated.View
-        pointerEvents="none"
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          borderRadius: 4,
-          backgroundColor: '#ffd34e',
-          backfaceVisibility: 'hidden',
-          justifyContent: 'center',
-          alignItems: 'center',
-          transform: [
-            { perspective: 600 },
-            { scale: clearFlipScale },
-            { rotateY: clearBackRotation },
-          ],
-        }}
-      >
-        <Ionicons name="checkmark" size={Math.round(cellSize * 0.42)} color="#fff7cc" />
-      </Animated.View>
-    </View>
-  );
-});
-
-export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData }) {
+export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, isActive = true }) {
   const insets = useSafeAreaInsets();
   const [board, setBoard] = useState(() => puzzle.initialState.map(r => [...r]));
+  const boardRef = useRef(board);
+  const previousBoardRef = useRef(board);
+  boardRef.current = board;
   const [moveCount, setMoveCount] = useState(0);
   const [startTime] = useState(Date.now());
   const [clearTime, setClearTime] = useState(null);
@@ -503,12 +213,15 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
 
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
+  const [clearPending, setClearPending] = useState(false);
+  const clearPendingRef = useRef(false);
   const [clearEffectVisible, setClearEffectVisible] = useState(false);
-  const screenEnterAnim = useRef(new Animated.Value(0)).current;
+  const clearStartTimerRef = useRef(null);
   const clearWaveAnim = useRef(new Animated.Value(0)).current;
   const clearPopupAnim = useRef(new Animated.Value(0)).current;
   const optionsPopupAnim = useRef(new Animated.Value(0)).current;
   const clearTriggeredRef = useRef(false);
+  const isInitialPuzzleRef = useRef(true);
 
   const closeOptions = useCallback(() => {
     Animated.spring(optionsPopupAnim, {
@@ -582,15 +295,6 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
     loadHintPointsFn(setHintPoints);
   }, []);
 
-  useEffect(() => {
-    screenEnterAnim.setValue(0);
-    Animated.timing(screenEnterAnim, {
-      toValue: 1,
-      duration: 260,
-      useNativeDriver: true,
-    }).start();
-  }, [puzzle.id, screenEnterAnim]);
-
   const size = puzzle.size;
   const areaFilledCounts = React.useMemo(() => puzzle.areas.map(area => (
     area.cells.reduce((count, [row, col]) => count + (board[row][col] === 1 ? 1 : 0), 0)
@@ -602,22 +306,30 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   }, [puzzle]);
 
   useEffect(() => {
-    setBoard(puzzle.initialState.map(r => [...r]));
-    setMoveCount(0);
-    setClearTime(null);
-    setViolations([]);
-    setClearVisible(false);
-    clearPopupAnim.stopAnimation();
-    clearPopupAnim.setValue(0);
-    setClearEffectVisible(false);
-    clearTriggeredRef.current = false;
-    clearWaveAnim.stopAnimation();
-    clearWaveAnim.setValue(0);
-    setHighlightedCells([]);
-    setSelectedViolation(null);
-    setLockedCells({});
-    setShowTutorial(false);
-    setHintMode(false);
+    if (!isInitialPuzzleRef.current) {
+      const initialBoard = puzzle.initialState.map(r => [...r]);
+      previousBoardRef.current = initialBoard;
+      boardRef.current = initialBoard;
+      setBoard(initialBoard);
+      setMoveCount(0);
+      setClearTime(null);
+      setViolations([]);
+      setClearVisible(false);
+      clearPopupAnim.stopAnimation();
+      clearPopupAnim.setValue(0);
+      setClearEffectVisible(false);
+      clearPendingRef.current = false;
+      setClearPending(false);
+      clearTriggeredRef.current = false;
+      clearWaveAnim.stopAnimation();
+      clearWaveAnim.setValue(0);
+      setHighlightedCells([]);
+      setSelectedViolation(null);
+      setLockedCells({});
+      setShowTutorial(false);
+      setHintMode(false);
+    }
+    isInitialPuzzleRef.current = false;
     const steps = getTutorialStepsByLevel(puzzle.id);
     const tutorialTimer = steps.length > 0
       ? setTimeout(() => setShowTutorial(true), 500)
@@ -640,7 +352,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   useEffect(() => {
     if (!board || board.length !== size) return;
     const msgs = checkGameRules(board, puzzle, isEnglish);
-    setViolations(msgs);
+    setViolations(prev => JSON.stringify(prev) === JSON.stringify(msgs) ? prev : msgs);
     if (msgs.length > 0) {
       clearTriggeredRef.current = false;
       return;
@@ -648,28 +360,31 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
 
     if (!clearTriggeredRef.current) {
       clearTriggeredRef.current = true;
-      setClearEffectVisible(true);
-      clearWaveAnim.setValue(0);
-      const waveSteps = (size - 1) * 2 + 3;
-      Animated.timing(clearWaveAnim, {
-        toValue: waveSteps,
-        duration: Math.max(2000, waveSteps * 240),
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) {
-          setClearEffectVisible(false);
-          setClearVisible(true);
-          playClear();
-          clearPopupAnim.setValue(0);
-          Animated.spring(clearPopupAnim, {
-            toValue: 1,
-            friction: 7,
-            tension: 70,
-            useNativeDriver: true,
-          }).start();
-        }
-      });
+      setClearPending(true);
+      clearStartTimerRef.current = setTimeout(() => {
+        setClearEffectVisible(true);
+        clearWaveAnim.setValue(0);
+        const waveSteps = (size - 1) * 2 + 3;
+        Animated.timing(clearWaveAnim, {
+          toValue: waveSteps,
+          duration: Math.max(2000, waveSteps * 240),
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) {
+            setClearEffectVisible(false);
+            setClearVisible(true);
+            playClear();
+            clearPopupAnim.setValue(0);
+            Animated.spring(clearPopupAnim, {
+              toValue: 1,
+              friction: 7,
+              tension: 70,
+              useNativeDriver: true,
+            }).start();
+          }
+        });
+      }, 300);
       if (!clearTime) setClearTime(Date.now());
       AsyncStorage.getItem('clearedPuzzles').then(json => {
         const arr = json ? JSON.parse(json) : [];
@@ -678,28 +393,42 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
         }
       });
     }
-  }, [board, puzzle, isEnglish, clearTime, clearWaveAnim, clearPopupAnim]);
+    return () => {
+      if (clearStartTimerRef.current) {
+        clearTimeout(clearStartTimerRef.current);
+        clearStartTimerRef.current = null;
+      }
+    };
+  }, [board, puzzle, isEnglish, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
-    setSelectedViolation(null);
-    setHighlightedCells([]);
+    setSelectedViolation(prev => prev === null ? prev : null);
+    setHighlightedCells(prev => prev.length === 0 ? prev : []);
   }, [board]);
 
-  const toggleCell = useCallback((r, c) => {
-    if (clearEffectVisible || clearVisible) return;
+  const tapFeedback = useCallback(() => {
     playTap();
     playVibrate();
-    setBoard(prev => {
-      if (prev[r][c] === 2) return prev;
-      const next = prev.map(row => [...row]);
-      next[r][c] = next[r][c] === 0 ? 1 : 0;
-      return next;
-    });
+  }, []);
+
+  const toggleCell = useCallback((r, c) => {
+    if (clearPendingRef.current || clearPending || clearEffectVisible || clearVisible) return;
+    const currentBoard = boardRef.current;
+    if (currentBoard[r][c] === 2) return;
+    const nextBoard = currentBoard.map(row => [...row]);
+    nextBoard[r][c] = nextBoard[r][c] === 0 ? 1 : 0;
+    if (checkGameRules(nextBoard, puzzle, isEnglish).length === 0) {
+      clearPendingRef.current = true;
+      setClearPending(true);
+    }
+    previousBoardRef.current = currentBoard.map(row => [...row]);
+    boardRef.current = nextBoard;
+    setBoard(nextBoard);
     setMoveCount(n => n + 1);
-  }, [clearEffectVisible, clearVisible]);
+  }, [clearEffectVisible, clearVisible, puzzle, isEnglish]);
 
   const toggleLock = useCallback((r, c) => {
-    if (clearEffectVisible || clearVisible) return;
+    if (clearPendingRef.current || clearPending || clearEffectVisible || clearVisible) return;
     const key = `${r}-${c}`;
     setLockedCells(prev => {
       const next = { ...prev };
@@ -734,7 +463,14 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   );
 
   const reset = useCallback(() => {
-    setBoard(puzzle.initialState.map(r => [...r]));
+    if (clearStartTimerRef.current) {
+      clearTimeout(clearStartTimerRef.current);
+      clearStartTimerRef.current = null;
+    }
+    const initialBoard = puzzle.initialState.map(r => [...r]);
+    previousBoardRef.current = initialBoard;
+    boardRef.current = initialBoard;
+    setBoard(initialBoard);
     setMoveCount(0);
     setClearTime(null);
     setViolations([]);
@@ -742,6 +478,8 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
     clearPopupAnim.stopAnimation();
     clearPopupAnim.setValue(0);
     setClearEffectVisible(false);
+    clearPendingRef.current = false;
+    setClearPending(false);
     clearTriggeredRef.current = false;
     clearWaveAnim.stopAnimation();
     clearWaveAnim.setValue(0);
@@ -752,25 +490,19 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
   }, [puzzle, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
-    if (clearTime) return undefined;
+    if (!isActive || clearTime) return undefined;
     const timer = setInterval(() => {
       setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
     return () => clearInterval(timer);
-  }, [clearTime, startTime]);
+  }, [clearTime, startTime, isActive]);
 
   const elapsed = clearTime && startTime ? Math.floor((clearTime - startTime) / 1000) : elapsedSeconds;
   const formattedElapsed = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
 
   return (
     <>
-      <Animated.View
-        style={{
-          flex: 1,
-          opacity: screenEnterAnim,
-          transform: [{ translateY: screenEnterAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
-        }}
-      >
+      <View style={{ flex: 1 }}>
         <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
         <StatusBar style="dark" />
         <View style={styles.header}>
@@ -900,7 +632,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
                 const clearEffectIndex = r + c;
                 cellElements.push(
                   <View
-                    key={`cell-${r}-${c}`}
+                    key={`cell-${puzzle.id}-${r}-${c}`}
                     style={[
                       { position: 'absolute', left: xs[c], top: ys[r], width: cellSize, height: cellSize },
                       clearEffectVisible && {
@@ -909,18 +641,21 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
                       },
                     ]}
                   >
-                    <BoardCell
+                    <CardCell
                       rowIdx={r}
                       colIdx={c}
                       cell={board[r][c]}
+                      previousCell={previousBoardRef.current[r][c]}
                       size={size}
                       cellSize={cellSize}
                       areaMap={areaMap}
-                      areaFilledCounts={areaFilledCounts}
+                      areaFilledCount={areaMap[r][c] === -1 ? 0 : areaFilledCounts[areaMap[r][c]]}
                       isViolation={highlightedCells.some(v => v.row === r && v.col === c)}
-                      onPress={hintMode ? () => applyHintCell(r, c) : () => toggleCell(r, c)}
-                      onLongPress={hintMode ? undefined : () => toggleLock(r, c)}
+                      onPress={hintMode ? applyHintCell : toggleCell}
+                      onTapStart={hintMode ? undefined : tapFeedback}
+                      onLongPress={hintMode ? undefined : toggleLock}
                       isLocked={!!lockedCells[`${r}-${c}`]}
+                      clearPending={clearPending}
                       hintMode={hintMode}
                       puzzle={puzzle}
                       cellRef={cellRefs.current[r][c]}
@@ -1035,7 +770,14 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
                   },
                 ],
               }]}>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setClearVisible(false)}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => {
+                  setClearVisible(false);
+                  clearPendingRef.current = false;
+                  setClearPending(false);
+                }}
+              >
                 <Ionicons name="close" size={20} color="#8a96a3" />
               </TouchableOpacity>
               <View style={styles.clearIconWrap}>
@@ -1062,7 +804,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData })
           </Animated.View>
         )}
         </View>
-      </Animated.View>
+      </View>
       <Toast />
       {showTutorial && (
         <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000 }}>

@@ -300,10 +300,8 @@ const styles = StyleSheet.create(scaleStyles({
     borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.96)',
     overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: '#172b43', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.22, shadowRadius: 24 },
-      android: { elevation: 14 },
-    }),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
   },
   embeddedContent: {
     flex: 1,
@@ -319,10 +317,6 @@ const styles = StyleSheet.create(scaleStyles({
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.08)',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
-      android: { elevation: 3 },
-    }),
   },
   iconBtn: {
     width: 44, height: 44, borderRadius: 22,

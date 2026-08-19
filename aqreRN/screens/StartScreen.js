@@ -23,17 +23,25 @@ const isTablet = Platform.isPad || width > 600;
 const startBg = isTablet
   ? require('../assets/tablet/start.png')
   : require('../assets/mobile/start.png');
+const levelBg = isTablet
+  ? require('../assets/tablet/bg1.png')
+  : require('../assets/mobile/bg1.png');
+const tutorialRobot = require('../assets/robot1.png');
 
 const LOADING_DURATION = 2500;
 
 export default function StartScreen({ onStart }) {
   const [loaded, setLoaded] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
+  const [adsReady, setAdsReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const dotAnimRef = useRef(null);
 
   const handleStart = () => {
     Animated.timing(overlayAnim, {
@@ -59,24 +67,32 @@ export default function StartScreen({ onStart }) {
       makeDotAnim(dot2, 267),
       makeDotAnim(dot3, 534),
     ]);
+    dotAnimRef.current = dotAnim;
     dotAnim.start();
 
-    // Preload sounds and finish loading immediately when ready
+    const preloadImages = async () => {
+      const imageModules = [startBg, levelBg, tutorialRobot];
+      await Promise.allSettled(imageModules.map(module => {
+        const uri = Image.resolveAssetSource(module)?.uri;
+        return uri ? Image.prefetch(uri) : Promise.resolve();
+      }));
+      setImageReady(true);
+    };
+    preloadImages();
+
     const preload = async () => {
       try {
         await loadSoundSettings();
         await initBGM();
+      } catch {
+      } finally {
+        setAudioReady(true);
+      }
+      try {
         await initializeAds();
       } catch {
-        // continue loading even if preloading fails
       } finally {
-        dotAnim.stop();
-        setLoaded(true);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }).start();
+        setAdsReady(true);
       }
     };
     preload();
@@ -98,9 +114,22 @@ export default function StartScreen({ onStart }) {
     pulseLoop.start();
 
     return () => {
+      dotAnim.stop();
+      dotAnimRef.current = null;
       pulseLoop.stop();
     };
   }, []);
+
+  useEffect(() => {
+    if (loaded || !imageReady || !audioReady || !adsReady) return;
+    dotAnimRef.current?.stop();
+    setLoaded(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, [loaded, imageReady, audioReady, adsReady, fadeAnim]);
 
   return (
     <View style={styles.container}>
@@ -108,6 +137,8 @@ export default function StartScreen({ onStart }) {
       <Image
         source={startBg}
         style={styles.bgImage}
+        onLoad={() => setImageReady(true)}
+        onError={() => setImageReady(true)}
       />
       {!loaded && (
         <View style={styles.loadingContainer}>

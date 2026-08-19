@@ -116,6 +116,17 @@ export async function initializeAds() {
   }
   loadInterstitial();
   loadRewarded();
+  await new Promise(resolve => {
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      const allLoaded = interstitialLoaded && rewardedLoaded;
+      const timedOut = Date.now() - startedAt >= 5000;
+      if (allLoaded || timedOut) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, 100);
+  });
 }
 
 export function showTestInterstitialAd(onComplete) {

@@ -20,6 +20,7 @@ let soundVolume = 1.0;
 let bgmVolume = 0.5;
 let tapSound = null;
 let vibrationEnabled = true;
+let silentMode = false;
 
 async function isSilentMode() {
   if (Platform.OS !== 'android' || !getRingerMode) return false;
@@ -49,6 +50,7 @@ export async function loadSoundSettings() {
       if (typeof p.bgmVolume === 'number') bgmVolume = p.bgmVolume;
       vibrationEnabled = p.vibrationEnabled !== false;
     }
+    silentMode = await isSilentMode();
     // Preload tap sound
     if (!tapSound) {
       tapSound = await Audio.Sound.createAsync(
@@ -88,10 +90,9 @@ export async function initBGM() {
 }
 
 export async function playTap() {
-  if (!soundEnabled || !tapSound) return;
-  if (await isSilentMode()) return;
+  if (!soundEnabled || !tapSound || silentMode) return;
   try {
-    await tapSound.sound.replayAsync();
+    tapSound.sound.replayAsync();
   } catch (e) {}
 }
 
@@ -127,7 +128,8 @@ export async function setBGMEnabled(enabled) {
 }
 
 export async function refreshSilentMode() {
-  if (await isSilentMode()) {
+  silentMode = await isSilentMode();
+  if (silentMode) {
     if (bgmPlayer) await bgmPlayer.pauseAsync();
   } else {
     if (bgmEnabled && !bgmPlayer) await initBGM();

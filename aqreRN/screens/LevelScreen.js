@@ -194,12 +194,15 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   }, [onBack]);
 
   useEffect(() => {
-    Animated.timing(overlayAnim, {
+    if (!loaded || listHeight <= 0) return undefined;
+    const animation = Animated.timing(overlayAnim, {
       toValue: 0,
       duration: 500,
       useNativeDriver: true,
-    }).start();
-  }, []);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [loaded, listHeight, overlayAnim]);
 
   useEffect(() => {
     if (newlyCleared.length > 0) {
@@ -564,7 +567,10 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
 
   return (
     <ImageBackground source={bg1Image} style={{ flex: 1, width: SCREEN_WIDTH, height: '100%' }} resizeMode="cover">
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
+    <View style={[styles.container, {
+      paddingTop: Math.max(insets.top, 0),
+      opacity: loaded && listHeight > 0 ? 1 : 0,
+    }]}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <View style={{ width: 44 }} />
@@ -759,6 +765,8 @@ const styles = StyleSheet.create(scaleStyles({
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: '#fff',
+    zIndex: 100,
+    elevation: 100,
   },
   header: {
     flexDirection: 'row',
@@ -1085,10 +1093,8 @@ const styles = StyleSheet.create(scaleStyles({
     paddingVertical: 36,
     paddingHorizontal: 40,
     alignItems: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16 },
-      android: { elevation: 3 },
-    }),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   comingSoonBadge: {
     backgroundColor: '#dfe7ef',
