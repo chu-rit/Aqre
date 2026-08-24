@@ -73,8 +73,13 @@ export default function StartScreen({ onStart }) {
     const preloadImages = async () => {
       const imageModules = [startBg, levelBg, tutorialRobot];
       await Promise.allSettled(imageModules.map(module => {
-        const uri = Image.resolveAssetSource(module)?.uri;
-        return uri ? Image.prefetch(uri) : Promise.resolve();
+        const resolved = typeof Image.resolveAssetSource === 'function'
+          ? Image.resolveAssetSource(module)
+          : module;
+        const uri = resolved?.uri;
+        return uri && typeof Image.prefetch === 'function'
+          ? Image.prefetch(uri)
+          : Promise.resolve();
       }));
       setImageReady(true);
     };

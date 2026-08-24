@@ -41,6 +41,8 @@ export const tutorialSteps = {
     {
       text: '첫 번째 규칙은 영역에 따른 규칙입니다.',
       textEn: 'The first rule is the area rule.',
+      textJa: '最初のルールはエリアのルールです。',
+      textZh: '第一条规则是区域规则。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -48,6 +50,8 @@ export const tutorialSteps = {
     {
       text: '룰 체크에 표시된 영역 규칙을 선택해 보세요.',
       textEn: 'Select the highlighted area rule in Rule Check.',
+      textJa: 'ルールチェックでハイライトされたエリアルールを選択してください。',
+      textZh: '请在规则检查中选择突出显示的区域规则。',
       highlight: {
         selectors: ['data-testid=rule-card-area'],
       },
@@ -59,6 +63,8 @@ export const tutorialSteps = {
     {
       text: '표시된 영역에는 숫자 3이 쓰여 있지만, 두 칸만 색칠되어 있습니다.',
       textEn: 'This area is labeled 3, but only two cells are colored.',
+      textJa: 'このエリアには3と表示されていますが、色が付いているのは2マスだけです。',
+      textZh: '这个区域标记为3，但只有两个格子被涂色。',
       highlight: {
         cells: [
           {row: 1, col: 1},
@@ -71,6 +77,8 @@ export const tutorialSteps = {
     {
       text: '표시된 칸을 색칠해 숫자 3을 맞춰 보세요.',
       textEn: 'Color the highlighted cell to make the total 3.',
+      textJa: 'ハイライトされたマスを塗って、合計を3にしてください。',
+      textZh: '请给突出显示的格子涂色，使总数达到3。',
       highlight: {
         cells: [
           {row: 2, col: 1}
@@ -86,6 +94,8 @@ export const tutorialSteps = {
     {
       text: '좋습니다! <br>오른쪽 영역에는 숫자 0이 쓰여 있지만, 한 칸이 색칠되어 있습니다.',
       textEn: 'Great! <br>The area on the right is labeled 0, but one cell is colored.',
+      textJa: 'すばらしいです！<br>右のエリアは0と表示されていますが、1マスに色が付いています。',
+      textZh: '太好了！<br>右侧区域标记为0，但有一个格子被涂色。',
       highlight: {
         cells: [
           {row: 1, col: 3},
@@ -98,6 +108,8 @@ export const tutorialSteps = {
    {
       text: '표시된 칸을 탭해 색칠을 지워 보세요.',
       textEn: 'Tap the highlighted cell to erase its color.',
+      textJa: 'ハイライトされたマスをタップして、色を消してください。',
+      textZh: '请点击突出显示的格子来擦除颜色。',
       highlight: {
         cells: [
           {row: 2, col: 3}
@@ -117,11 +129,15 @@ export const tutorialSteps = {
     {
       text: '두 번째 규칙은 연결성 규칙입니다.',
       textEn: 'The second rule is the connectivity rule.',
+      textJa: '2つ目のルールは、つながりのルールです。',
+      textZh: '第二条规则是连接规则。',
       showNextButton: true
     },
     {
       text: '퍼즐판을 보시면, 색칠된 칸이 연결되어 있지 않고 서로 떨어져 있습니다.',
       textEn: 'As you can see, the colored cells are not connected and are separated from each other.',
+      textJa: 'ご覧のように、色の付いたマスがつながらず、離れています。',
+      textZh: '如你所见，涂色的格子没有连在一起，而是彼此分开。',
       highlight: {
         cells: [
           [
@@ -141,6 +157,8 @@ export const tutorialSteps = {
     {
       text: '색칠된 칸들은 연결되어야 하므로, 표시된 칸을 색칠해 연결해 보세요.',
       textEn: 'Colored cells must be connected, so color the highlighted cell to connect them.',
+      textJa: '色の付いたマスはつながっている必要があります。ハイライトされたマスを塗ってつなげてみましょう。',
+      textZh: '涂色的格子必须相互连接，请给突出显示的格子涂色将它们连接起来。',
       highlight: {
         cells: [
             {row: 2, col: 1}
@@ -156,6 +174,8 @@ export const tutorialSteps = {
     {
       text: '연결되었습니다. 이제 룰 체크에서 연결 규칙을 눌러서 확인해 볼까요?',
       textEn: 'They are connected. Now select the connectivity rule in Rule Check.',
+      textJa: 'つながりました。次にルールチェックで、つながりのルールを選択してみましょう。',
+      textZh: '它们已经连接。现在请在规则检查中选择连接规则。',
       highlight: {
         selectors: ['data-testid=rule-card-connect'],
       },
@@ -167,6 +187,8 @@ export const tutorialSteps = {
     {
       text: '이런! 오른쪽에도 색칠된 칸들이 고립되어 있네요.',
       textEn: 'Uh-oh! There are isolated colored cells on the right too.',
+      textJa: 'あっ！右側にも孤立した色付きのマスがあります。',
+      textZh: '糟糕！右侧也有孤立的涂色格子。',
       highlight: {
         cells: [
             {row: 0, col: 4},
@@ -179,6 +201,8 @@ export const tutorialSteps = {
     {
       text: '여기도 색칠해 연결해 볼까요?',
       textEn: 'Let’s color these cells to connect them too.',
+      textJa: 'ここもマスを塗って、つなげてみましょう。',
+      textZh: '也给这里的格子涂色，把它们连接起来吧。',
       highlight: {
         cells: [
             {row: 1, col: 2},
@@ -200,6 +224,8 @@ export const tutorialSteps = {
     {
       text: '마지막 세 번째 규칙은 4연속 금지 규칙입니다. 룰 체크에서 4연속 규칙을 눌러 볼까요?',
       textEn: 'The third and final rule is the No Four rule. Let\'s tap it in the Rule Check.',
+      textJa: '3つ目で最後のルールは、4つ連続禁止のルールです。ルールチェックで選択してみましょう。',
+      textZh: '第三条也是最后一条规则是不允许四个连续相同颜色的规则。请在规则检查中点击它。',
       highlight: {
         selectors: ['data-testid=rule-card-seq'],
       },
@@ -211,6 +237,8 @@ export const tutorialSteps = {
     {
       text: '여기 흰색 칸 네 개가 가로로 이어져 있다고 표시되고 있습니다.',
       textEn: 'Four white cells in a row are highlighted here.',
+      textJa: 'ここでは白いマスが4つ横に並んでハイライトされています。',
+      textZh: '这里突出显示了四个横向连续的白色格子。',
       highlight: {
         cells: [
           {row: 0, col: 1},
@@ -225,6 +253,8 @@ export const tutorialSteps = {
     {
       text: '가로든 세로든 연속된 네 칸이 같은 색상이 되지 않도록 한 칸을 색칠해야 합니다.',
       textEn: 'Color one cell so that four consecutive cells do not share the same color.',
+      textJa: '4つ連続するマスが同じ色にならないように、1マスを塗ってください。',
+      textZh: '请给一个格子涂色，使连续四格不再是相同颜色。',
       highlight: {
         cells: [
           {row: 0, col: 1},
@@ -239,6 +269,8 @@ export const tutorialSteps = {
     {
       text: '또한 이미 색칠된 칸들과 연결되어야 하므로, 표시된 칸을 색칠해 볼까요?',
       textEn: 'It also needs to connect to the already colored cells, so let\'s color the highlighted cell.',
+      textJa: 'すでに色の付いたマスともつながる必要があります。ハイライトされたマスを塗りましょう。',
+      textZh: '它还必须与已有的涂色格子连接，请给突出显示的格子涂色。',
       highlight: {
         cells: [
             {row: 0, col: 1}
@@ -254,6 +286,8 @@ export const tutorialSteps = {
     {
       text: '해결되었네요! 하지만 색칠된 칸도 세로로 네 칸이 연속되어 있습니다.',
       textEn: 'Solved! But four colored cells are also consecutive vertically.',
+      textJa: '解決しました！しかし、色の付いたマスも縦に4つ連続しています。',
+      textZh: '解决了！但是涂色的格子也有四个纵向连续。',
       highlight: {
         cells: [
           {row: 0, col: 0},
@@ -268,6 +302,8 @@ export const tutorialSteps = {
     {
       text: '연결이 끊어지지 않도록 문제를 해결해 보세요.',
       textEn: 'Solve the problem without breaking the connection.',
+      textJa: 'つながりを切らないように、問題を解決してください。',
+      textZh: '请在不破坏连接的情况下解决这个问题。',
       highlight: {
         cells: [
           {row: 0, col: 0},
@@ -290,6 +326,8 @@ export const tutorialSteps = {
     {
       text: '축하합니다! 이렇게 모든 규칙을 익히셨습니다.',
       textEn: 'Congratulations! You have now learned all the rules.',
+      textJa: 'おめでとうございます！これですべてのルールを学びました。',
+      textZh: '恭喜你！现在你已经学会了所有规则。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -297,6 +335,8 @@ export const tutorialSteps = {
     {
       text: '본 게임에 앞서 규칙을 응용할 수 있는 퍼즐을 준비하였습니다.',
       textEn: 'Before the main game, we have prepared a puzzle where you can apply the rules.',
+      textJa: '本編の前に、ルールを応用できるパズルを用意しました。',
+      textZh: '在开始正式游戏前，我们准备了一道可以应用这些规则的谜题。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -304,6 +344,8 @@ export const tutorialSteps = {
     {
       text: '상단의 초기화 버튼을 통해 퍼즐을 처음 상태로 되돌릴 수 있으며,',
       textEn: 'You can use the reset button at the top to return the puzzle to its initial state,',
+      textJa: '上部のリセットボタンで、パズルを初期状態に戻せます。',
+      textZh: '你可以使用顶部的重置按钮将谜题恢复到初始状态。',
       highlight: {
         selectors: ['data-testid=reset-level']
       },
@@ -313,6 +355,8 @@ export const tutorialSteps = {
     {
       text: '아래 룰 체크 박스를 잘 사용하여 모든 규칙에 맞는 하나의 답을 찾아보시기 바랍니다.',
       textEn: 'Use the Rule Check box below to find a solution that follows all the rules.',
+      textJa: '下のルールチェックを活用して、すべてのルールに合う答えを見つけてください。',
+      textZh: '请善用下方的规则检查，找出符合所有规则的答案。',
       highlight: {
         selectors: ['[data-testid="rule-card-area"]', '[data-testid="rule-card-connect"]', '[data-testid="rule-card-seq"]']
       },
@@ -327,6 +371,8 @@ export const tutorialSteps = {
     {
       text: '드디어 마지막 튜토리얼입니다.',
       textEn: 'This is the final tutorial.',
+      textJa: 'これが最後のチュートリアルです。',
+      textZh: '这是最后一个教程。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -334,6 +380,8 @@ export const tutorialSteps = {
     {
       text: '이제 점점 더 어려워지는 퍼즐에 대응할 수 있도록 힌트에 대해 알아볼 것입니다.',
       textEn: 'Now, let\'s learn about hints to help you tackle increasingly difficult puzzles.',
+      textJa: 'これから、難しくなるパズルに挑戦するためにヒントについて学びましょう。',
+      textZh: '现在，让我们了解提示，帮助你应对越来越难的谜题。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -341,6 +389,8 @@ export const tutorialSteps = {
     {
       text: '임시로 힌트를 열어드릴테니 눌러보실까요?',
       textEn: 'I\'ll temporarily enable the hint button for you. Why don\'t you tap it?',
+      textJa: '一時的にヒントボタンを有効にします。タップしてみましょう。',
+      textZh: '我会暂时为你启用提示按钮。点击试试看吧。',
       highlight: {
         selectors: ['[data-testid="hint"]', '#hint-button']
       },
@@ -350,6 +400,8 @@ export const tutorialSteps = {
     {
       text: '힌트 모드가 활성화 되었습니다. 답을 알고 싶은 셀을 선택하세요.',
       textEn: 'Hint mode is activated. Select a cell to reveal its answer.',
+      textJa: 'ヒントモードが有効になりました。答えを知りたいマスを選択してください。',
+      textZh: '提示模式已启用。请选择想要查看答案的格子。',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -359,6 +411,8 @@ export const tutorialSteps = {
     {
       text: '해당 칸의 답이 표시되고 잠금처리 되었습니다. 칸을 오래눌러도 잠금처리 할 수 있습니다.',
       textEn: 'The answer for that cell is revealed and it has been locked. You can also lock a cell by long-pressing it.',
+      textJa: 'そのマスの答えが表示され、ロックされました。長押しでもマスをロックできます。',
+      textZh: '该格子的答案已显示并锁定。长按格子也可以将其锁定。',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -368,6 +422,8 @@ export const tutorialSteps = {
     {
       text: '다시 오래 누르면 잠금을 해제할 수 있습니다. 힌트 포인트는 광고보기를 통해 추가할 수 있습니다.',
       textEn: 'Long-press again to unlock it. Hint points can be earned by watching ads.',
+      textJa: 'もう一度長押しするとロックを解除できます。ヒントポイントは広告を見ると獲得できます。',
+      textZh: '再次长按即可解锁。观看广告可以获得提示点数。',
       highlight: {
         selectors: ['[data-testid="board"]']
       },
@@ -380,6 +436,8 @@ export const tutorialSteps = {
       hintRewardKey: 'tutorials-completion-reward',
       text: '마지막으로 응원하는 마음을 담아 힌트 포인트를 선물로 드리겠습니다.',
       textEn: 'Lastly, as a gesture of support, we\'ll gift you some hint points.',
+      textJa: '最後に、応援の気持ちを込めてヒントポイントをプレゼントします。',
+      textZh: '最后，为了表达支持，我们会赠送你一些提示点数。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -387,6 +445,8 @@ export const tutorialSteps = {
     {
       text: '이제 즐거운 마음으로 퍼즐을 즐겨주시기 바랍니다.',
       textEn: 'Now please enjoy the puzzles and have fun!',
+      textJa: 'それでは、パズルを楽しくプレイしてください！',
+      textZh: '现在请享受谜题，玩得开心！',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -397,6 +457,8 @@ export const tutorialSteps = {
     {
       text: '이제부터 퍼즐은 여러 카드로 나뉘어 제공됩니다.',
       textEn: 'From now on, puzzles are organized into multiple series.',
+      textJa: 'これからは、パズルが複数のシリーズに分かれて表示されます。',
+      textZh: '从现在开始，谜题将分为多个系列。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -404,6 +466,8 @@ export const tutorialSteps = {
     {
       text: '화면에 표시된 점과 카드 이름은 현재 보고 있는 레벨 카드와 전체 시리즈의 순서를 알려줍니다.',
       textEn: 'The dots and series names show which level card you are viewing and its order among all series.',
+      textJa: '表示されている点とカード名は、現在のレベルカードとシリーズ全体での順番を示します。',
+      textZh: '屏幕上的圆点和卡片名称会显示当前查看的关卡卡片及其在所有系列中的顺序。',
       highlight: {
         selectors: ['data-testid=level-series-indicator'],
         padding: 6
@@ -414,6 +478,8 @@ export const tutorialSteps = {
     {
       text: '카드를 집고 왼쪽으로 밀어 다음 레벨로 이동하세요.',
       textEn: 'Swipe the card left to move to the next series.',
+      textJa: 'カードをつかんで左にスワイプし、次のレベルへ移動してください。',
+      textZh: '抓住卡片向左滑动，前往下一个系列。',
       highlight: {
         selectors: ['data-testid=level-card'],
         padding: 50
@@ -427,6 +493,8 @@ export const tutorialSteps = {
     {
       text: '오늘도 접속해주셨군요! 환영합니다.',
       textEn: 'Welcome back today! It\'s great to see you.',
+      textJa: '今日もログインしてくれましたね！お会いできてうれしいです。',
+      textZh: '欢迎今天再次登录！很高兴见到你。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -436,6 +504,8 @@ export const tutorialSteps = {
       hintRewardKey: `daily-event-reward-${new Date().toDateString()}`,
       text: '게임 플레이를 응원하기 위해 작은 선물을 준비했습니다. 오늘도 즐거운 시간 보내세요!',
       textEn: 'Here is a small gift to support your gameplay. Have a great time solving puzzles today!',
+      textJa: 'プレイを応援するために、ささやかなプレゼントを用意しました。今日もパズルを楽しんでください！',
+      textZh: '为了支持你的游戏体验，我们准备了一份小礼物。祝你今天解谜愉快！',
       highlight: null,
       condition: null,
       showNextButton: true

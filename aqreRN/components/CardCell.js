@@ -81,11 +81,11 @@ const CardCell = React.memo(function CardCell({
 
   const frontStyle = useAnimatedStyle(() => ({
     opacity: 1 - progress.value,
-    transform: [{ perspective: 600 }, { rotateY: `${progress.value * 90}deg` }, { scale: 1 - progress.value * 0.2 }],
+    transform: [{ scaleX: 1 - progress.value }],
   }));
   const backStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ perspective: 600 }, { rotateY: `${90 - progress.value * 90}deg` }, { scale: 0.8 + progress.value * 0.2 }],
+    transform: [{ scaleX: progress.value }],
   }));
 
   const startHoldProgress = () => {
@@ -111,8 +111,8 @@ const CardCell = React.memo(function CardCell({
   const handleCellPress = () => {
     if (cell === 2 || isLocked || !onPress || clearInput || isFlippingRef.current) return;
     if (hasFlippedRef.current) {
-      setFrontCell(cardBackCell);
-      setBackCell(cardFrontCell);
+      setFrontCell(backCell);
+      setBackCell(frontCell);
     }
     isFlippingRef.current = true;
     onTapStart?.();

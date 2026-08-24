@@ -26,7 +26,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Carousel } from 'react-native-reanimated-carousel';
-import * as Localization from 'expo-localization';
+import { getDeviceLanguage, getText, setCurrentLanguage } from '../utils/i18n';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -88,7 +88,6 @@ const SERIES_INFO = [
   { series: 5, label: 'HARD',      color: '#4a6fa5', icon: 'skull-outline' },
 ];
 
-
 export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refreshKey }) {
   const insets = useSafeAreaInsets();
   const [clearedPuzzles, setClearedPuzzles] = useState([]);
@@ -108,11 +107,19 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
   const [isTutorialSkipHolding, setIsTutorialSkipHolding] = useState(false);
   const [listHeight, setListHeight] = useState(0);
   const [masterMode, setMasterMode] = useState(false);
-  const [language] = useState(() => {
-    const locales = Localization.getLocales();
-    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
-  });
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
+    AsyncStorage.getItem('options').then(json => {
+      const options = json ? JSON.parse(json) : {};
+      const selectedLanguage = options.language || getDeviceLanguage();
+      const resolvedLanguage = setCurrentLanguage(selectedLanguage);
+      setLanguage(resolvedLanguage);
+    }).catch(() => {
+      const resolvedLanguage = setCurrentLanguage(getDeviceLanguage());
+      setLanguage(resolvedLanguage);
+    });
+  }, []);
   const isEnglish = language === 'en';
   const carouselRef = useRef(null);
   const level0Steps = getTutorialStepsByLevel(0);
@@ -250,18 +257,12 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
       4: normal2Locked,
       5: hardLocked,
     };
-    const unlockHints = isEnglish ? {
-      1: 'Complete the tutorial to unlock.',
-      2: 'Clear 5 EASY 1 puzzles to unlock.',
-      3: 'Clear 10 EASY puzzles to unlock.',
-      4: 'Clear 5 NORMAL 1 puzzles to unlock.',
-      5: 'Clear 10 NORMAL puzzles to unlock.',
-    } : {
-      1: '튜토리얼을 완료하면 잠금 해제됩니다.',
-      2: 'EASY 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
-      3: 'EASY 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.',
-      4: 'NORMAL 1 퍼즐을 5개 이상 클리어하면 잠금 해제됩니다.',
-      5: 'NORMAL 퍼즐을 10개 이상 클리어하면 잠금 해제됩니다.'
+    const unlockHints = {
+      1: getText('level.unlock.tutorial'),
+      2: getText('level.unlock.easy1'),
+      3: getText('level.unlock.easy'),
+      4: getText('level.unlock.normal1'),
+      5: getText('level.unlock.normal'),
     };
 
     const seriesNumbers = [...new Set(chapterPuzzles.map(p => p.series))].sort((a, b) => a - b);
@@ -288,7 +289,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
     const firstLockedIndex = allGroups.findIndex(g => g.locked);
     if (firstLockedIndex === -1) return allGroups;
     return allGroups.slice(0, firstLockedIndex + 1);
-  }, [selectedChapter, clearedPuzzles, showTutorial, isEnglish]);
+  }, [selectedChapter, clearedPuzzles, showTutorial, language]);
 
   const groupData = loaded ? getGroupData() : [];
 
@@ -486,7 +487,7 @@ export default function LevelScreen({ onSelectPuzzle, onBack, onChangeBgm, refre
                 <Ionicons name="lock-closed" size={56} color="#9aa5b0" />
               )}
               <Text style={styles.unlockHintText}>{item.unlockHint}</Text>
-              {item.series === 1 && <Text style={styles.tutorialSkipHint}>{isEnglish ? 'Press and hold the lock to skip the tutorial.' : '튜토리얼을 스킵할려면 자물쇠를 꾸욱 눌러주세요.'}</Text>}
+              {item.series === 1 && <Text style={styles.tutorialSkipHint}>{getText('level.skipTutorial')}</Text>}
             </View>
           ) : (
             <>

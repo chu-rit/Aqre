@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Path } from 'react-native-svg';
 import styles from './tutorialStyles';
 import { measureSelector } from '../utils/refRegistry';
-import * as Localization from 'expo-localization';
+import { getDeviceLanguage, setCurrentLanguage } from '../utils/i18n';
 
 // 정적 Dimensions 제거 - useWindowDimensions 훅 사용
 
@@ -128,11 +128,14 @@ const TutorialScreen = ({
   bottomInset = 0,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [language] = useState(() => {
-    const locales = Localization.getLocales();
-    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
-  });
+  const [language, setLanguage] = useState(getDeviceLanguage);
+
+  useEffect(() => {
+    AsyncStorage.getItem('options').then(json => {
+      const savedLanguage = json ? JSON.parse(json).language : null;
+      if (savedLanguage) setLanguage(setCurrentLanguage(savedLanguage));
+    }).catch(() => {});
+  }, []);
   const [showNextButton, setShowNextButton] = useState(false); // 기본값으로 false로 설정
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -995,9 +998,13 @@ const TutorialScreen = ({
                   <View style={styles.speechBubble}>
                     <View style={styles.speechBubbleTriangle} />
                     <TypeWriterText
-                      text={language === 'en'
-                        ? (currentStepData.textEn || currentStepData.text || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")
-                        : (currentStepData.text || '안녕하세요. 저는 퍼즐을 푸는 것을 도울 AI 로봇 아크입니다.')}
+                      text={language === 'ja'
+                        ? (currentStepData.textJa || currentStepData.textEn || currentStepData.text || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")
+                        : language === 'zh'
+                          ? (currentStepData.textZh || currentStepData.textEn || currentStepData.text || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")
+                          : language === 'en'
+                            ? (currentStepData.textEn || currentStepData.text || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")
+                            : (currentStepData.text || currentStepData.textEn || "Hello! I'm Arc, an AI robot here to help you solve puzzles.")}
                       style={styles.tooltipText}
                       onTypingDone={() => setShowNextButton(!!currentStepData.showNextButton)}
                     />
@@ -1014,7 +1021,7 @@ const TutorialScreen = ({
                 )}
                 {showNextButton && (
                   <TouchableOpacity style={styles.nextButton} onPress={nextStep} activeOpacity={0.8}>
-                    <Text allowFontScaling={false} style={styles.nextButtonText}>{language === 'en' ? 'NEXT' : '다음'}</Text>
+                    <Text allowFontScaling={false} style={styles.nextButtonText}>NEXT</Text>
                   </TouchableOpacity>
                 )}
               </View>

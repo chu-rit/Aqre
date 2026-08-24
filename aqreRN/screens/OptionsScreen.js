@@ -3,7 +3,6 @@ import {
   View, Text, Switch, TouchableOpacity,
   Alert, Platform, StyleSheet, PanResponder, Animated,
 } from 'react-native';
-import * as Localization from 'expo-localization';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast, { showToast } from '../components/Toast';
@@ -12,18 +11,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { setBGMEnabled, setSoundEnabled as setGlobalSoundEnabled, setBGMVolume, setSoundVolume, playTap, setVibrationEnabled as setGlobalVibrationEnabled } from '../utils/sound';
 import { scaleStyles } from '../utils/responsive';
+import { getDeviceLanguage, getText, setCurrentLanguage, SUPPORTED_LANGUAGES } from '../utils/i18n';
 
 const VOLUME_STEPS = [0, 0.1, 0.25, 0.5, 0.75, 1.0];
 const STEP_WIDTH = 18;
 const STEP_GAP = 8;
 const NUM_BARS = VOLUME_STEPS.length - 1;
 const TOTAL_WIDTH = NUM_BARS * STEP_WIDTH + (NUM_BARS - 1) * STEP_GAP;
-
-function getDeviceLanguage() {
-  const locales = Localization.getLocales();
-  const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-  return String(locale || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
-}
 
 function VolumeSlider({ value, onChange }) {
   const containerRef = useRef(null);
@@ -84,7 +78,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
   const [soundVolume, setSoundVolumeState] = useState(4);
   const [bgmVolume, setBgmVolumeState] = useState(2);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [language] = useState(getDeviceLanguage);
+  const [language, setLanguage] = useState(() => setCurrentLanguage(getDeviceLanguage()));
   const [masterModeReady, setMasterModeReady] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
   const isEnglish = language === 'en';
@@ -108,7 +102,18 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
           if (typeof p.soundVolumeStep === 'number') setSoundVolumeState(p.soundVolumeStep);
           if (typeof p.bgmVolumeStep === 'number') setBgmVolumeState(p.bgmVolumeStep);
           if (typeof p.vibrationEnabled === 'boolean') setVibrationEnabled(p.vibrationEnabled);
+          if (SUPPORTED_LANGUAGES.includes(p.language)) {
+            setLanguage(setCurrentLanguage(p.language));
+          } else {
+            const deviceLanguage = getDeviceLanguage();
+            setLanguage(setCurrentLanguage(deviceLanguage));
+            await AsyncStorage.setItem('options', JSON.stringify({ ...p, language: deviceLanguage }));
+          }
           if (p.masterMode) setMasterMode(true);
+        } else {
+          const deviceLanguage = getDeviceLanguage();
+          setLanguage(deviceLanguage);
+          await AsyncStorage.setItem('options', JSON.stringify({ language: deviceLanguage }));
         }
       } catch {}
     };
@@ -137,9 +142,9 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
           const json = await AsyncStorage.getItem('options');
           const current = json ? JSON.parse(json) : {};
           await AsyncStorage.setItem('options', JSON.stringify({ ...current, masterMode: true }));
-          showToast(isEnglish ? 'Master Mode activated!' : '마스터 모드가 활성화되었습니다!');
+          showToast(getText('options.masterActivated'));
         } else {
-          showToast(isEnglish ? 'Clear data has been reset.' : '성공적으로 초기화되었습니다');
+          showToast(getText('options.resetDataSuccess'));
         }
         if (onResetData) setTimeout(onResetData, 1200);
         else if (onClose) setTimeout(onClose, 1200);
@@ -149,11 +154,11 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm(isEnglish ? 'Do you want to reset all clear data?' : '게임 클리어 데이터를 정말로 지우시겠습니까?')) doDelete();
+      if (window.confirm(getText('options.resetDataConfirm'))) doDelete();
     } else {
-      Alert.alert(isEnglish ? 'Reset Data' : '데이터 초기화', isEnglish ? 'Do you want to reset all clear data?' : '게임 클리어 데이터를 정말로 지우시겠습니까?', [
-        { text: isEnglish ? 'Cancel' : '취소', style: 'cancel' },
-        { text: isEnglish ? 'Reset' : '초기화', style: 'destructive', onPress: doDelete },
+      Alert.alert(getText('options.resetDataTitle'), getText('options.resetDataConfirm'), [
+        { text: getText('button.cancel'), style: 'cancel' },
+        { text: getText('button.reset'), style: 'destructive', onPress: doDelete },
       ]);
     }
   };
@@ -172,7 +177,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
 
         <View style={styles.section}>
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Sound Effects' : '효과음'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{getText('options.soundEffects')}</Text>
             <VolumeSlider
               value={soundVolume}
               onChange={(i) => {
@@ -186,7 +191,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
           </View>
           <View style={styles.divider} />
           <View style={styles.volumeRow}>
-            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Background Music' : '배경음'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{getText('options.backgroundMusic')}</Text>
             <VolumeSlider
               value={bgmVolume}
               onChange={(i) => {
@@ -202,13 +207,34 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
           </View>
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.rowLabel} selectable={false}>{isEnglish ? 'Vibration' : '진동'}</Text>
+            <Text style={styles.rowLabel} selectable={false}>{getText('options.vibration')}</Text>
             <Switch
               value={vibrationEnabled}
               onValueChange={v => { playTap(); setVibrationEnabled(v); setGlobalVibrationEnabled(v); saveMultiple({ vibrationEnabled: v }); }}
               trackColor={{ false: '#bcd6f7', true: '#2196F3' }}
               thumbColor="#fff"
             />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.languageRow}>
+            <Text style={styles.rowLabel} selectable={false}>{getText('options.language')}</Text>
+            <View style={styles.languageSelector}>
+              {[
+                ['en', 'English'],
+                ['ko', '한국어'],
+                ['ja', '日本語'],
+                ['zh', '中文'],
+              ].map(([code, label]) => (
+                <TouchableOpacity
+                  key={code}
+                  style={[styles.languageButton, language === code && styles.languageButtonActive]}
+                  onPress={() => { playTap(); setLanguage(setCurrentLanguage(code)); saveMultiple({ language: code }); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.languageButtonText, language === code && styles.languageButtonTextActive]} selectable={false}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -227,10 +253,10 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
               const claimed = claimedJson ? JSON.parse(claimedJson) : {};
               delete claimed[`daily-event-reward-${todayStr}`];
               await AsyncStorage.setItem('claimedHintRewards', JSON.stringify(claimed));
-              showToast(isEnglish ? 'Daily event has been reset.' : '데일리 이벤트를 초기화하였습니다.');
+              showToast(getText('options.dailyReset'));
             }}
           >
-            <Text style={styles.dangerBtnText} selectable={false}>{isEnglish ? 'Reset Clear Data' : '클리어 데이터 초기화'}</Text>
+            <Text style={styles.dangerBtnText} selectable={false}>{getText('options.resetClearData')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -248,7 +274,7 @@ export default function OptionsScreen({ onClose, onChangeBgm, onResetData, rende
                     await AsyncStorage.setItem('options', JSON.stringify({ ...current, masterMode: false }));
                     setMasterMode(false);
                     setMasterModeReady(false);
-                    showToast(isEnglish ? 'Master Mode deactivated.' : '마스터 모드가 비활성화되었습니다.');
+                    showToast(getText('options.masterDeactivated'));
                   } else {
                     setMasterModeReady(true);
                     if (churitBlueTimer.current) clearTimeout(churitBlueTimer.current);
@@ -287,7 +313,7 @@ const styles = StyleSheet.create(scaleStyles({
   modalContainer: {
     flex: 0,
     width: '92%',
-    height: 520,
+    minHeight: 520,
     maxWidth: 420,
     borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.96)',
@@ -295,7 +321,7 @@ const styles = StyleSheet.create(scaleStyles({
   },
   embeddedRoot: {
     width: '100%',
-    height: 520,
+    minHeight: 520,
     maxWidth: 420,
     borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.96)',
@@ -304,7 +330,6 @@ const styles = StyleSheet.create(scaleStyles({
     borderColor: 'rgba(255,255,255,0.9)',
   },
   embeddedContent: {
-    flex: 1,
     width: '100%',
     backgroundColor: 'transparent',
   },
@@ -346,6 +371,41 @@ const styles = StyleSheet.create(scaleStyles({
     justifyContent: 'space-between',
     paddingHorizontal: 18,
     paddingVertical: 16,
+  },
+  languageRow: {
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  languageButton: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: '#d7e3ef',
+    backgroundColor: 'rgba(248,251,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  languageButtonActive: {
+    borderColor: '#4a90d9',
+    backgroundColor: '#4a90d9',
+  },
+  languageButtonText: {
+    fontSize: 13,
+    color: '#6b7c8d',
+    fontWeight: '700',
+  },
+  languageButtonTextActive: {
+    color: '#fff',
   },
   stepsContainer: {
     flexDirection: 'row',

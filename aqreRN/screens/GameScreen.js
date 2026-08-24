@@ -12,8 +12,6 @@ import {
 } from 'react-native';
 import { Svg, Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import * as Localization from 'expo-localization';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from '../components/Toast';
 import OptionsScreen from './OptionsScreen';
@@ -32,6 +30,7 @@ import { scaleStyles, UI_SCALE } from '../utils/responsive';
 import CardCell from '../components/CardCell';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getDeviceLanguage, getText, setCurrentLanguage } from '../utils/i18n';
 
 const DIFFICULTY_NAMES = ['Tutorial', 'Easy', 'Normal', 'Hard'];
 const SERIES_NAMES = {
@@ -59,7 +58,7 @@ const isTablet = Platform.isPad || SCREEN_WIDTH > 600;
 const LOCK_HOLD_DURATION = 1000;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-function checkGameRules(board, puzzle, isEnglish) {
+function checkGameRules(board, puzzle) {
   const size = puzzle.size;
   const violationMessages = new Set();
 
@@ -68,16 +67,16 @@ function checkGameRules(board, puzzle, isEnglish) {
     const required = parseInt(area.required);
     const grayCount = area.cells.reduce((n, [r, c]) => n + (board[r][c] === 1 ? 1 : 0), 0);
     if (grayCount > required) {
-      violationMessages.add(JSON.stringify({ type: 'area_overflow', message: isEnglish ? 'Area has too many gray cells.' : '영역의 회색 칸 수가 초과되었습니다.', cells: area.cells.filter(([r, c]) => board[r][c] === 1).map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'area_overflow', cells: area.cells.filter(([r, c]) => board[r][c] === 1).map(([r, c]) => ({ row: r, col: c })) }));
       break;
     }
     if (grayCount < required) {
-      violationMessages.add(JSON.stringify({ type: 'area_underflow', message: isEnglish ? 'Area has too few gray cells.' : '영역의 회색 칸 수가 부족합니다.', cells: area.cells.filter(([r, c]) => board[r][c] !== 1).map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'area_underflow', cells: area.cells.filter(([r, c]) => board[r][c] !== 1).map(([r, c]) => ({ row: r, col: c })) }));
       break;
     }
   }
 
-  const dirs = [{ dx: 1, dy: 0, name: isEnglish ? 'Horizontal' : '가로', key: 'horizontal' }, { dx: 0, dy: 1, name: isEnglish ? 'Vertical' : '세로', key: 'vertical' }];
+  const dirs = [{ dx: 1, dy: 0, key: 'horizontal' }, { dx: 0, dy: 1, key: 'vertical' }];
   for (const dir of dirs) {
     let found = false;
     for (let i = 0; i < size && !found; i++) {
@@ -91,7 +90,7 @@ function checkGameRules(board, puzzle, isEnglish) {
           cells.push({ row: r, col: c });
         }
         if (seq.every(v => v === 0) || seq.every(v => v === 1)) {
-          violationMessages.add(JSON.stringify({ type: `${dir.key}_consecutive`, message: isEnglish ? `${dir.name} 4 consecutive cells violation` : `${dir.name} 방향 4칸 연속 색상 위반`, cells }));
+          violationMessages.add(JSON.stringify({ type: `${dir.key}_consecutive`, cells }));
           found = true;
         }
       }
@@ -124,7 +123,7 @@ function checkGameRules(board, puzzle, isEnglish) {
     if (groups.length > 1) {
       groups.sort((a, b) => b.length - a.length);
       const disconnected = groups.slice(1).flat();
-      violationMessages.add(JSON.stringify({ type: 'connectivity', message: isEnglish ? 'Gray cells are not connected.' : '회색 칸들이 서로 연결되어 있지 않습니다.', cells: disconnected.map(([r, c]) => ({ row: r, col: c })) }));
+      violationMessages.add(JSON.stringify({ type: 'connectivity', cells: disconnected.map(([r, c]) => ({ row: r, col: c })) }));
     }
   }
 
@@ -134,19 +133,6 @@ function checkGameRules(board, puzzle, isEnglish) {
 const REFERENCE_BOARD_SIZE = 480;
 const GAP = Math.round(14 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
 const AREA_GAP = Math.round(6 * BOARD_SIZE / REFERENCE_BOARD_SIZE);
-
-function getViolationMeta(type, isEnglish) {
-  if (type === 'area_overflow' || type === 'area_underflow') {
-    return { title: isEnglish ? 'Area' : '영역 규칙', icon: 'apps', color: '#3b82c4', tint: '#e3eef8' };
-  }
-  if (type === 'horizontal_consecutive' || type === 'vertical_consecutive') {
-    return { title: isEnglish ? 'No Four' : '4연속 규칙', icon: 'warning', color: '#e8a33d', tint: '#fbf1de' };
-  }
-  if (type === 'connectivity') {
-    return { title: isEnglish ? 'Connectivity' : '연결 규칙', icon: 'git-network', color: '#9b59b6', tint: '#f0e6f6' };
-  }
-  return { title: isEnglish ? 'Rule' : '규칙 위반', icon: 'alert-circle', color: '#6b8e3d', tint: '#eef3e2' };
-}
 
 const BackButton = () => (
   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
@@ -204,13 +190,19 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
   const [hintMode, setHintMode] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
   const masterHintModeRef = useRef(false);
-  const [language] = useState(() => {
-    const locales = Localization.getLocales();
-    const locale = locales?.[0]?.languageCode || locales?.[0]?.languageTag || '';
-    return String(locale).toLowerCase().startsWith('ko') ? 'ko' : 'en';
-  });
-  const isEnglish = language === 'en';
+  const [language, setLanguage] = useState('en');
 
+  useEffect(() => {
+    AsyncStorage.getItem('options').then(json => {
+      const options = json ? JSON.parse(json) : {};
+      const selectedLanguage = options.language || getDeviceLanguage();
+      const resolvedLanguage = setCurrentLanguage(selectedLanguage);
+      setLanguage(resolvedLanguage);
+    }).catch(() => {
+      const resolvedLanguage = setCurrentLanguage(getDeviceLanguage());
+      setLanguage(resolvedLanguage);
+    });
+  }, []);
   const [dotResetKey, setDotResetKey] = useState(0);
   const [lockedCells, setLockedCells] = useState({});
   const [clearPending, setClearPending] = useState(false);
@@ -351,7 +343,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
 
   useEffect(() => {
     if (!board || board.length !== size) return;
-    const msgs = checkGameRules(board, puzzle, isEnglish);
+    const msgs = checkGameRules(board, puzzle);
     setViolations(prev => JSON.stringify(prev) === JSON.stringify(msgs) ? prev : msgs);
     if (msgs.length > 0) {
       clearTriggeredRef.current = false;
@@ -399,7 +391,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
         clearStartTimerRef.current = null;
       }
     };
-  }, [board, puzzle, isEnglish, clearWaveAnim, clearPopupAnim]);
+  }, [board, puzzle, language, clearWaveAnim, clearPopupAnim]);
 
   useEffect(() => {
     setSelectedViolation(prev => prev === null ? prev : null);
@@ -417,7 +409,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
     if (currentBoard[r][c] === 2) return;
     const nextBoard = currentBoard.map(row => [...row]);
     nextBoard[r][c] = nextBoard[r][c] === 0 ? 1 : 0;
-    if (checkGameRules(nextBoard, puzzle, isEnglish).length === 0) {
+    if (checkGameRules(nextBoard, puzzle).length === 0) {
       clearPendingRef.current = true;
       setClearPending(true);
     }
@@ -425,7 +417,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
     boardRef.current = nextBoard;
     setBoard(nextBoard);
     setMoveCount(n => n + 1);
-  }, [clearEffectVisible, clearVisible, puzzle, isEnglish]);
+  }, [clearEffectVisible, clearVisible, puzzle, language]);
 
   const toggleLock = useCallback((r, c) => {
     if (clearPendingRef.current || clearPending || clearEffectVisible || clearVisible) return;
@@ -685,9 +677,9 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
 
 {(() => {
           const ALL_RULES = [
-            { key: 'area',    title: isEnglish ? 'Area' : '영역', types: ['area_overflow', 'area_underflow'], icon: 'apps',        okColor: '#3b82c4' },
-            { key: 'connect', title: isEnglish ? 'Connect' : '연결', types: ['connectivity'],                     icon: 'git-network', okColor: '#9b59b6' },
-            { key: 'seq',     title: isEnglish ? 'No Four' : '4연속', types: ['horizontal_consecutive', 'vertical_consecutive'], icon: 'warning',   okColor: '#e8a33d' },
+            { key: 'area',    title: getText('game.rule.area'), types: ['area_overflow', 'area_underflow'], icon: 'apps',        okColor: '#3b82c4' },
+            { key: 'connect', title: getText('game.rule.connect'), types: ['connectivity'],                     icon: 'git-network', okColor: '#9b59b6' },
+            { key: 'seq',     title: getText('game.rule.noFour'), types: ['horizontal_consecutive', 'vertical_consecutive'], icon: 'warning',   okColor: '#e8a33d' },
           ];
           return (
             <View style={styles.violationSection}>
@@ -730,7 +722,7 @@ export default function GameScreen({ puzzle, onBack, onChangeBgm, onResetData, i
                     <Text
                       style={[styles.violationCardText, isViolated && styles.violationCardTextError]}
                     >
-                      {rule.title}{isEnglish ? ' Rule' : ' 규\u2060칙'}
+                      {rule.title}
                     </Text>
                   </TouchableOpacity>
                 );
