@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated as RNAnimated, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
 import { Circle, Svg } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import Reanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Reanimated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 const COLORS = {
   empty: '#f8f9fb',
@@ -102,6 +102,10 @@ const CardCell = React.memo(function CardCell({
     holdAnim.setValue(0);
     setIsHolding(false);
   };
+  const finishFlip = () => {
+    hasFlippedRef.current = true;
+    isFlippingRef.current = false;
+  };
 
   const areaIdx = areaMap[rowIdx][colIdx];
   const showLabel = areaIdx !== -1 && puzzle.areas[areaIdx].required !== 'J'
@@ -118,8 +122,7 @@ const CardCell = React.memo(function CardCell({
     onTapStart?.();
     progress.value = 0;
     progress.value = withTiming(1, { duration: 300 }, finished => {
-      if (finished) hasFlippedRef.current = true;
-      isFlippingRef.current = false;
+      if (finished) runOnJS(finishFlip)();
     });
     onPress(rowIdx, colIdx);
   };

@@ -14,6 +14,8 @@ export const tutorialSteps = {
     {
       text: '안녕하세요. 저는 퍼즐을 푸는 것을 도울 AI 로봇 아크입니다.',
       textEn: "Hello! I'm Arc, an AI robot here to help you solve puzzles.",
+      textJa: 'こんにちは。パズルを解くお手伝いをするAIロボット、アークです。',
+      textZh: '你好！我是方舟，一个帮助你解决谜题的AI机器人。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -21,6 +23,8 @@ export const tutorialSteps = {
     {
       text: 'AQRE(Ay-kurr)라고 불리는 이 퍼즐은 세 가지 규칙을 통해 색칠해 나가야 합니다.',
       textEn: 'This puzzle, known as AQRE (Ay-kurr), is solved by coloring cells according to three rules.',
+      textJa: 'AQRE（エイ・カー）と呼ばれるこのパズルは、3つのルールに従ってマスを塗っていきます。',
+      textZh: '这个被称为 AQRE（Ay-kurr）的谜题，需要按照三条规则给格子涂色。',
       highlight: null,
       condition: null,
       showNextButton: true
@@ -28,6 +32,8 @@ export const tutorialSteps = {
     {
       text: '먼저 레벨 1부터 시작해 보실까요?',
       textEn: 'Shall we begin with Level 1?',
+      textJa: 'まずはレベル1から始めてみましょうか？',
+      textZh: '我们先从第1关开始吧？',
       highlight: {
         selectors: ["data-testid=level-26000001"]
       },
